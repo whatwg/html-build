@@ -48,9 +48,10 @@ while (@lines) {
         my $indent = $1;
         my $folder = $2;
         my $example = $3;
-        my $filename = "/home/ianh/other/whatwg/demos/$folder$example";
-        die "$filename: not found" unless -f $filename;
-        my $data = `cat $filename`;
+        # TODO: maybe move these to the HTML source repo, and upload them to whatwg.org from there?
+        # Or maybe better, redirect from these URLs to new html.spec.whatwg.org URLs
+        my $url = "https://whatwg.org/demos/$folder$example";
+        my $data = `curl $url`;
         $data =~ s/&/&amp;/gos;
         $data =~ s/</&lt;/gos;
         unshift @lines, split("\n", "$indent<pre>$data</pre>");
