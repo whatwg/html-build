@@ -5,7 +5,6 @@ This repository contains the tools and setup necessary for building the [HTML St
 ## Setup
 
 1. Get a copy of [wattsi](https://github.com/whatwg/wattsi) and put the resulting binary in your PATH.
-1. Copy [`dfn.js`](https://resources.whatwg.org/dfn.js) into this directory.
 1. Create a `.cldr-data` directory inside this repository that is the SVN checkout of http://www.unicode.org/repos/cldr/trunk/common/main/.
 1. Check out [the source repo](https://github.com/whatwg/html) into this directory (by checking out into an empty folder then moving the contents here).
 
@@ -18,7 +17,6 @@ The relevant output files will be placed in this directory. They are:
 - .htaccess
 - .multipage-404
 - complete.html
-- dfn.js
 - entities.json
 - fonts/*
 - images/*
@@ -29,5 +27,4 @@ The relevant output files will be placed in this directory. They are:
 ## TODOs
 
 - Automate CLDR data checkout as part of the build script.
-- Use the existing resources.whatwg.org dfn.js instead of requiring our own copy.
 - Don't require throwing everything into one directory before doing the build; instead, let the source and cldr-data be in seperate directories, and the output be put in another directory.
