@@ -37,7 +37,29 @@ perl .pre-process-annotate-attributes.pl < .source-expanded-1 > .source-expanded
 perl .pre-process-tag-omission.pl < .source-expanded-2 > source-whatwg-complete || exit # this one could be merged
 rm -f .source*
 mkdir .wattsi-output || exit
-wattsi source-whatwg-complete .wattsi-output caniuse.json w3cbugs.csv || exit
+
+if [ -e "wattsi" ] ; then
+  wattsi source-whatwg-complete .wattsi-output caniuse.json w3cbugs.csv || exit
+else
+  echo "Local wattsi is not present; trying the build server..."
+
+  HTTP_CODE=`curl http://ec2-52-88-42-163.us-west-2.compute.amazonaws.com/ \
+        --write-out "%{http_code}" \
+        --form source=@source-whatwg-complete \
+        --form caniuse=@caniuse.json \
+        --form w3cbugs=@w3cbugs.csv \
+        --output .wattsi-output.zip`
+
+  if [ "$HTTP_CODE" != "200" ]; then
+      cat .wattsi-output.zip
+      rm .wattsi-output.zip
+      exit 22
+  fi
+
+  unzip .wattsi-output.zip -d .wattsi-output
+  rm .wattsi-output.zip
+fi
+
 rm -f complete.html
 cat .wattsi-output/index-html | perl .post-process-index-generator.pl | perl .post-process-partial-backlink-generator.pl > complete.html;
 
@@ -72,4 +94,3 @@ grep -ni 'chosing\|approprate\|occured\|elemenst\|\bteh\b\|\blabelled\b\|\blabel
 perl -ne 'print "$.: $_" if (/\ban (<[^>]*>)*(?!(L\b|http|https|href|hgroup|rt|rp|li|xml|svg|svgmatrix|hour|hr|xhtml|xslt|xbl|nntp|mpeg|m[ions]|mtext|merror|h[1-6]|xmlns|xpath|s|x|sgml|huang|srgb|rsa|only|option|optgroup)\b|html)[b-df-hj-np-tv-z]/i or /\b(?<![<\/;])a (?!<!--grammar-check-override-->)(<[^>]*>)*(?!&gt|one)(?:(L\b|http|https|href|hgroup|rt|rp|li|xml|svg|svgmatrix|hour|hr|xhtml|xslt|xbl|nntp|mpeg|m[ions]|mtext|merror|h[1-6]|xmlns|xpath|s|x|sgml|huang|srgb|rsa|only|option|optgroup)\b|html|[aeio])/i)' source | perl -lpe 'print "\nPossible article problems:" if $. == 1'
 grep -ni 'and/or' source | perl -lpe 'print "\nOccurrences of making Ms2ger unhappy and/or annoyed:" if $. == 1'
 grep -ni 'throw\s\+an\?\s\+<span' source | perl -lpe 'print "\nException marked using <span> rather than <code>:" if $. == 1'
-
