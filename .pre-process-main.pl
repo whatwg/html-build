@@ -38,10 +38,7 @@ while (@lines) {
         $lastProgress = $progress;
     }
 
-    if ($line =~ m/^ *<!-- this is where zcorpan's <picture> spec goes --> *\n$/os) {
-        unshift @lines, split("\n", `cat middle-picture-spec`);
-        next;
-    } elsif ($line =~ m|^(.*)<!--BOILERPLATE ([-.a-z0-9]+)-->(.*)\n$|os) {
+    if ($line =~ m|^(.*)<!--BOILERPLATE ([-.a-z0-9]+)-->(.*)\n$|os) {
         unshift @lines, split("\n", $1 . `cat $2` . $3);
         next;
     } elsif ($line =~ m!^( *)<pre>EXAMPLE (offline/|workers/|canvas/)((?:[-a-z0-9]+/){1,2}[-a-z0-9]+.[-a-z0-9]+)</pre> *\n$!os) {

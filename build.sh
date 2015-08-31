@@ -26,8 +26,7 @@ if [ unicode.xml -nt entities-unicode.inc ]; then
   perl -Tw .entity-to-dtd.pl < entities-unicode.inc > entities-dtd.url
 fi
 
-rm -rf caniuse.json w3cbugs.csv middle-picture-spec
-wget -o /dev/null -O middle-picture-spec --no-check-certificate https://raw.githubusercontent.com/ResponsiveImagesCG/picture-element/gh-pages/source
+rm -rf caniuse.json w3cbugs.csv
 wget -o /dev/null -O caniuse.json --no-check-certificate https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
 wget -o /dev/null -O w3cbugs.csv 'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv'
 

@@ -9,7 +9,6 @@ my %attributes = ();
 my @lines = ();
 my %instances = ();
 while (defined($_ = <>)) {
-    s/element-dfn-/concept-element-/og; # for <picture>
     my $line = \"$_";
     push(@lines, $line);
     if ($_ eq "  <h3 class=\"no-num\">Attributes</h3>\n") {
