@@ -1,20 +1,36 @@
 #!/bin/bash
-if [ "$1" == "-v" ]; then
-  set -vx # verbosely echoes all commands the script runs, and expand variables
-fi
+DO_UPDATE=true
+export DO_UPDATE
+
+for arg in "$@"
+do
+  case $arg in
+    -n|--no-update|--no-updates)
+      DO_UPDATE=false
+      ;;
+    -v|--verbose)
+      set -vx
+      ;;
+    *)
+      ;;
+  esac
+done
 
 if [ ! -d .cldr-data ]; then
   svn checkout http://www.unicode.org/repos/cldr/trunk/common/main/ .cldr-data
 fi
 
-if [ "`svn info -r HEAD .cldr-data | grep -i "Last Changed Rev"`" != "`svn info .cldr-data | grep -i "Last Changed Rev"`" -o ! -s cldr.inc ]; then
+if [ "$DO_UPDATE" == true ] && [ "`svn info -r HEAD .cldr-data | grep -i "Last Changed Rev"`" != "`svn info .cldr-data | grep -i "Last Changed Rev"`" -o ! -s cldr.inc ]; then
   echo;
   echo Updating CLDR...;
   svn up .cldr-data;
   perl -T .cldr-processor.pl > cldr.inc;
 fi
 
-wget -o /dev/null -N http://www.w3.org/2003/entities/2007xml/unicode.xml
+if [ "$DO_UPDATE" == true ] || [ ! -f unicode.xml ]; then
+  wget -N https://www.w3.org/2003/entities/2007xml/unicode.xml
+fi
+
 # XXX should also check if .entity-processor.py, .entity-processor-json.py, and entities-legacy* have changed
 if [ unicode.xml -nt entities-unicode.inc ]; then
   echo;
@@ -33,9 +49,11 @@ if [ unicode.xml -nt entities-unicode.inc ]; then
   perl -Tw .entity-to-dtd.pl < entities-unicode.inc > entities-dtd.url
 fi
 
-rm -rf caniuse.json w3cbugs.csv
-wget -o /dev/null -O caniuse.json --no-check-certificate https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
-wget -o /dev/null -O w3cbugs.csv 'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv'
+if [ "$DO_UPDATE" == true ] || [ ! -f caniuse.json ] || [ ! -f w3cbugs.csv ]; then
+  rm -rf caniuse.json w3cbugs.csv
+  wget -O caniuse.json --no-check-certificate https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
+  wget -O w3cbugs.csv 'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv'
+fi
 
 echo "Generating spec..."
 rm -rf source-* .source* .wattsi-*
