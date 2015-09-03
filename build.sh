@@ -1,4 +1,7 @@
 #!/bin/bash
+if [ "$1" == "-v" ]; then
+  set -vx # verbosely echoes all commands the script runs, and expand variables
+fi
 
 if [ "`svn info -r HEAD .cldr-data | grep -i "Last Changed Rev"`" != "`svn info .cldr-data | grep -i "Last Changed Rev"`" -o ! -s cldr.inc ]; then
   echo;
