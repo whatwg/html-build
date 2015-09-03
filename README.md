@@ -17,7 +17,6 @@ The relevant output files will be placed in this directory. They are:
 
 - .htaccess
 - .multipage-404
-- complete.html
 - entities.json
 - fonts/*
 - images/*

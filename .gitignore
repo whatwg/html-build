@@ -4,7 +4,6 @@
 .wattsi-output/
 caniuse.json
 cldr.inc
-complete.html
 entities-dtd.url
 entities-unicode.inc
 entities.inc

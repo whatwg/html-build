@@ -61,7 +61,7 @@ echo "</files>" >> .wattsi-output/multipage-html/.htaccess
 cp .multipage-404 .wattsi-output/multipage-html/404.html
 
 rm -rf multipage index
-cp complete.html index
+mv complete.html index
 mv .wattsi-output/multipage-html multipage
 
 # show potential problems
