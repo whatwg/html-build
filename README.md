@@ -6,7 +6,6 @@ This repository contains the tools and setup necessary for building the [HTML St
 
 1. Get a copy of [wattsi](https://github.com/whatwg/wattsi) and put the resulting binary in your PATH.
 1. Install `wget`.
-1. Run `svn checkout http://www.unicode.org/repos/cldr/trunk/common/main/ .cldr-data`.
 1. Check out [the source repo](https://github.com/whatwg/html) into this directory (by checking out into an empty folder then moving the contents here).
 
 Then running build.sh inside this directory will generate the spec, multipage version, entities JSON file, and more.

@@ -3,6 +3,10 @@ if [ "$1" == "-v" ]; then
   set -vx # verbosely echoes all commands the script runs, and expand variables
 fi
 
+if [ ! -d .cldr-data ]; then
+  svn checkout http://www.unicode.org/repos/cldr/trunk/common/main/ .cldr-data
+fi
+
 if [ "`svn info -r HEAD .cldr-data | grep -i "Last Changed Rev"`" != "`svn info .cldr-data | grep -i "Last Changed Rev"`" -o ! -s cldr.inc ]; then
   echo;
   echo Updating CLDR...;
