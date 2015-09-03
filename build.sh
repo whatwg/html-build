@@ -38,7 +38,7 @@ perl .pre-process-tag-omission.pl < .source-expanded-2 > source-whatwg-complete 
 rm -f .source*
 mkdir .wattsi-output || exit
 
-if [ -e "wattsi" ] ; then
+if hash wattsi 2>/dev/null; then
   wattsi source-whatwg-complete .wattsi-output caniuse.json w3cbugs.csv || exit
 else
   echo "Local wattsi is not present; trying the build server..."
