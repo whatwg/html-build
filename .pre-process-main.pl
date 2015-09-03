@@ -1,6 +1,8 @@
 #!/usr/bin/perl -w
 # -d:DProf
 use strict;
+use File::Path;
+use File::Basename;
 use Time::HiRes qw(time);
 
 $| = 1;
@@ -48,7 +50,24 @@ while (@lines) {
         # TODO: maybe move these to the HTML source repo, and upload them to whatwg.org from there?
         # Or maybe better, redirect from these URLs to new html.spec.whatwg.org URLs
         my $url = "https://whatwg.org/demos/$folder$example";
-        my $data = `curl $url`;
+        my $data;
+        my $fh;
+        mkpath(dirname(".demos/$folder$example"));
+        if (-e ".demos/$folder$example" && "false" eq "$ENV{'DO_UPDATE'}") {
+          report "\r\nReading .demos/$folder$example";
+          open($fh, "<:encoding(UTF-8)", ".demos/$folder$example");
+          while (<$fh>) {
+            $data .= $_;
+          }
+          close $fh;
+        } else {
+          report "\r\n\nReading $url\n";
+          $data = `curl $url`;
+          report "\rWriting .demos/$folder$example";
+          open($fh, '>', ".demos/$folder$example");
+          print $fh $data;
+          close $fh;
+        }
         $data =~ s/&/&amp;/gos;
         $data =~ s/</&lt;/gos;
         unshift @lines, split("\n", "$indent<pre>$data</pre>");

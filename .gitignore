@@ -1,4 +1,5 @@
 .cldr-data/
+.demos/
 .htaccess
 .multipage-404
 .wattsi-output/
