@@ -7,7 +7,7 @@ use Time::HiRes qw(time);
 
 $| = 1;
 
-sub report($) { print STDERR $_[0] }
+sub report($) { print STDERR $_[0] if "false" eq "$ENV{'QUIET'}" }
 
 report "Loading...";
 my @lines = <STDIN>;
@@ -62,7 +62,7 @@ while (@lines) {
           close $fh;
         } else {
           report "\r\n\nReading $url\n";
-          $data = `curl $url`;
+          $data = `curl \$(\$VERBOSE && echo "-v" || echo "-s") $url`;
           report "\rWriting .demos/$folder$example";
           open($fh, '>', ".demos/$folder$example");
           print $fh $data;

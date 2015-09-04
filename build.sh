@@ -1,6 +1,10 @@
 #!/bin/bash
 DO_UPDATE=true
+VERBOSE=false
+QUIET=false
 export DO_UPDATE
+export VERBOSE
+export QUIET
 
 for arg in "$@"
 do
@@ -8,7 +12,13 @@ do
     -n|--no-update|--no-updates)
       DO_UPDATE=false
       ;;
+    -q|--quiet)
+      QUIET=true
+      VERBOSE=false
+      ;;
     -v|--verbose)
+      VERBOSE=true
+      QUIET=false
       set -vx
       ;;
     *)
@@ -17,24 +27,28 @@ do
 done
 
 if [ ! -d .cldr-data ]; then
-  svn checkout http://www.unicode.org/repos/cldr/trunk/common/main/ .cldr-data
+  $QUIET || echo "Checking out CLDR..."
+  svn $($VERBOSE && echo "-v") \
+    checkout http://www.unicode.org/repos/cldr/trunk/common/main/ .cldr-data
 fi
 
+$QUIET || echo "Examining CLDR...";
 if [ "$DO_UPDATE" == true ] && [ "`svn info -r HEAD .cldr-data | grep -i "Last Changed Rev"`" != "`svn info .cldr-data | grep -i "Last Changed Rev"`" -o ! -s cldr.inc ]; then
-  echo;
-  echo Updating CLDR...;
-  svn up .cldr-data;
+  $QUIET || echo "Updating CLDR...";
+  svn $($VERBOSE && echo "-v") up .cldr-data;
   perl -T .cldr-processor.pl > cldr.inc;
 fi
 
 if [ "$DO_UPDATE" == true ] || [ ! -f unicode.xml ]; then
-  wget -N https://www.w3.org/2003/entities/2007xml/unicode.xml
+  $QUIET || echo "Downloading unicode.xml...";
+  wget $($VERBOSE || echo "-o > /dev/null") \
+    -N https://www.w3.org/2003/entities/2007xml/unicode.xml
 fi
 
 # XXX should also check if .entity-processor.py, .entity-processor-json.py, and entities-legacy* have changed
 if [ unicode.xml -nt entities-unicode.inc ]; then
-  echo;
-  echo Updating entities database...;
+  $QUIET || echo;
+  $QUIET || echo "Updating entities database...";
   python .entity-processor.py > .new-entities-unicode.inc;
   [ -s .new-entities-unicode.inc ] && mv -f .new-entities-unicode.inc entities-unicode.inc; # otherwise, probably http error, just do it again next time
   python .entity-processor-json.py > .new-entities-unicode-json.inc;
@@ -51,11 +65,19 @@ fi
 
 if [ "$DO_UPDATE" == true ] || [ ! -f caniuse.json ] || [ ! -f w3cbugs.csv ]; then
   rm -rf caniuse.json w3cbugs.csv
-  wget -O caniuse.json --no-check-certificate https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
-  wget -O w3cbugs.csv 'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv'
+  $QUIET || echo "Downloading caniuse data..."
+  wget $($VERBOSE || echo "-o > /dev/null") \
+    -O caniuse.json --no-check-certificate \
+    https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
+  $QUIET || echo "Downloading list of W3C bugzilla bugs..."
+  wget $($VERBOSE || echo "-o > /dev/null") \
+    -O w3cbugs.csv \
+    'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv'
 fi
 
-echo "Generating spec..."
+$QUIET || echo
+$QUIET || echo "Generating spec..."
+$QUIET || echo
 rm -rf source-* .source* .wattsi-*
 perl .pre-process-main.pl < source > .source-expanded-1 || exit
 perl .pre-process-annotate-attributes.pl < .source-expanded-1 > .source-expanded-2 || exit # this one could be merged
@@ -66,9 +88,11 @@ mkdir .wattsi-output || exit
 if hash wattsi 2>/dev/null; then
   wattsi source-whatwg-complete .wattsi-output caniuse.json w3cbugs.csv || exit
 else
-  echo "Local wattsi is not present; trying the build server..."
+  $QUIET || echo
+  $QUIET || echo "Local wattsi is not present; trying the build server..."
 
-  HTTP_CODE=`curl http://ec2-52-88-42-163.us-west-2.compute.amazonaws.com/ \
+  HTTP_CODE=`curl $($VERBOSE && echo "-v") $($QUIET && echo "-s")\
+        http://ec2-52-88-42-163.us-west-2.compute.amazonaws.com/ \
         --write-out "%{http_code}" \
         --form source=@source-whatwg-complete \
         --form caniuse=@caniuse.json \
@@ -81,7 +105,7 @@ else
       exit 22
   fi
 
-  unzip .wattsi-output.zip -d .wattsi-output
+  unzip $($VERBOSE && echo "-v" || echo "-qq") .wattsi-output.zip -d .wattsi-output
   rm .wattsi-output.zip
 fi
 
@@ -111,6 +135,8 @@ rm -rf multipage index
 mv complete.html index
 mv .wattsi-output/multipage-html multipage
 
+$QUIET || echo
+$QUIET || echo "Checking for potential problems..."
 # show potential problems
 # note - would be nice if the ones with \s+ patterns actually cross lines, but, they don't...
 grep -ni 'xxx' source | perl -lpe 'print "\nPossible incomplete sections:" if $. == 1'
