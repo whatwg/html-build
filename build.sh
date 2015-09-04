@@ -9,6 +9,15 @@ export QUIET
 for arg in "$@"
 do
   case $arg in
+    -h|--help)
+      echo "Usage: $0 [-h|--help] [-n|--no-update] [-q|--quiet] [-v|--verbose]"
+      echo
+      echo "  -h|--help       Show this usage statement."
+      echo "  -n|--no-update  Don't update before building; just build."
+      echo "  -q|--quiet      Don't emit any messages except errors/warnings."
+      echo "  -v|--verbose    Show verbose output from every build step."
+      exit 0
+      ;;
     -n|--no-update|--no-updates)
       DO_UPDATE=false
       ;;
