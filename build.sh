@@ -50,7 +50,7 @@ fi
 
 if [ "$DO_UPDATE" == true ] || [ ! -f unicode.xml ]; then
   $QUIET || echo "Downloading unicode.xml...";
-  wget $($VERBOSE || echo "-o > /dev/null") \
+  wget $($VERBOSE || echo "--quiet") \
     -N https://www.w3.org/2003/entities/2007xml/unicode.xml
 fi
 
@@ -75,11 +75,11 @@ fi
 if [ "$DO_UPDATE" == true ] || [ ! -f caniuse.json ] || [ ! -f w3cbugs.csv ]; then
   rm --force caniuse.json w3cbugs.csv
   $QUIET || echo "Downloading caniuse data..."
-  wget $($VERBOSE || echo "-o > /dev/null") \
+  wget $($VERBOSE || echo "--quiet") \
     -O caniuse.json --no-check-certificate \
     https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
   $QUIET || echo "Downloading list of W3C bugzilla bugs..."
-  wget $($VERBOSE || echo "-o > /dev/null") \
+  wget $($VERBOSE || echo "--quiet") \
     -O w3cbugs.csv \
     'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv'
 fi
