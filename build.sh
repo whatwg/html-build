@@ -125,20 +125,6 @@ cat .wattsi-output/index-html | perl .post-process-index-generator.pl | perl .po
 ln -s ../images .wattsi-output/multipage-html/
 ln -s ../link-fixup.js .wattsi-output/multipage-html/
 ln -s ../entities.json .wattsi-output/multipage-html/
-echo "ErrorDocument 404 /multipage/404.html" > .wattsi-output/multipage-html/.htaccess
-echo "<files *.txt>" >> .wattsi-output/multipage-html/.htaccess
-echo " ForceType text/plain" >> .wattsi-output/multipage-html/.htaccess
-echo "</files>" >> .wattsi-output/multipage-html/.htaccess
-echo "<files *.js>" >> .wattsi-output/multipage-html/.htaccess
-echo " ForceType text/javascript" >> .wattsi-output/multipage-html/.htaccess
-echo "</files>" >> .wattsi-output/multipage-html/.htaccess
-echo "<files *.css>" >> .wattsi-output/multipage-html/.htaccess
-echo " ForceType text/css" >> .wattsi-output/multipage-html/.htaccess
-echo "</files>" >> .wattsi-output/multipage-html/.htaccess
-echo "<files *.html>" >> .wattsi-output/multipage-html/.htaccess
-echo " ForceType text/html" >> .wattsi-output/multipage-html/.htaccess
-echo "</files>" >> .wattsi-output/multipage-html/.htaccess
-cp .multipage-404 .wattsi-output/multipage-html/404.html
 
 rm --recursive --force multipage
 mv .wattsi-output/multipage-html multipage

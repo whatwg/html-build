@@ -1,8 +1,8 @@
 .cldr-data/
 .demos/
 .htaccess
-.multipage-404
 .wattsi-output/
+404.html
 caniuse.json
 cldr.inc
 entities-dtd.url

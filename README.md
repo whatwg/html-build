@@ -15,7 +15,7 @@ Then running build.sh inside this directory will generate the spec, multipage ve
 The relevant output files will be placed in this directory. They are:
 
 - .htaccess
-- .multipage-404
+- 404.html
 - entities.json
 - fonts/*
 - images/*
