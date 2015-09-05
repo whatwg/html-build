@@ -63,7 +63,7 @@ if [ unicode.xml -nt entities-unicode.inc ]; then
   python .entity-processor-json.py > .new-entities-unicode-json.inc;
   [ -s .new-entities-unicode-json.inc ] && mv -f .new-entities-unicode-json.inc json-entities-unicode.inc; # otherwise, probably http error, just do it again next time
   echo '<tbody>' > entities.inc
-  rm --force entities-dtd.url entities*~ json-*~ json-entities.inc
+  rm -f entities-dtd.url entities*~ json-*~ json-entities.inc
   cat entities-*.inc | perl -e 'my @lines = <>; print sort { $a =~ m/id="([^"]+?)(-legacy)?"/; $a1 = $1; $a2 = $2; $b =~ m/id="([^"]+?)(-legacy)?"/; $b1 = $1; $b2 = $2; return (lc($a1) cmp lc($b1)) || ($a1 cmp $b1) || ($a2 cmp $b2); } @lines' >> entities.inc
   echo '{' > entities.json
   cat json-entities-* | sort | perl -e '$/ = undef; $_ = <>; chop, chop, print' >> entities.json
@@ -73,7 +73,7 @@ if [ unicode.xml -nt entities-unicode.inc ]; then
 fi
 
 if [ "$DO_UPDATE" == true ] || [ ! -f caniuse.json ] || [ ! -f w3cbugs.csv ]; then
-  rm --force caniuse.json w3cbugs.csv
+  rm -f caniuse.json w3cbugs.csv
   $QUIET || echo "Downloading caniuse data..."
   wget $($VERBOSE || echo "--quiet") \
     -O caniuse.json --no-check-certificate \
@@ -87,11 +87,11 @@ fi
 $QUIET || echo
 $QUIET || echo "Generating spec..."
 $QUIET || echo
-rm --recursive --force source-* .source* .wattsi-*
+rm -rf source-* .source* .wattsi-*
 perl .pre-process-main.pl < source > .source-expanded-1 || exit
 perl .pre-process-annotate-attributes.pl < .source-expanded-1 > .source-expanded-2 || exit # this one could be merged
 perl .pre-process-tag-omission.pl < .source-expanded-2 > source-whatwg-complete || exit # this one could be merged
-rm --force .source*
+rm -f .source*
 mkdir .wattsi-output || exit
 
 if hash wattsi 2>/dev/null; then
@@ -110,7 +110,7 @@ else
 
   if [ "$HTTP_CODE" != "200" ]; then
       cat .wattsi-output.zip
-      rm --force .wattsi-output.zip
+      rm -f .wattsi-output.zip
       exit 22
   fi
 
@@ -118,7 +118,7 @@ else
   rm .wattsi-output.zip
 fi
 
-rm --force index
+rm -f index
 cat .wattsi-output/index-html | perl .post-process-index-generator.pl | perl .post-process-partial-backlink-generator.pl > index;
 
 # multipage setup
@@ -126,7 +126,7 @@ ln -s ../images .wattsi-output/multipage-html/
 ln -s ../link-fixup.js .wattsi-output/multipage-html/
 ln -s ../entities.json .wattsi-output/multipage-html/
 
-rm --recursive --force multipage
+rm -rf multipage
 mv .wattsi-output/multipage-html multipage
 
 $QUIET || echo
