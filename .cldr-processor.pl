@@ -2,18 +2,20 @@
 use strict;
 use XML::Parser;
 
+my $quiet = $ARGV[0] && '--quiet' eq "$ARGV[0]" ? 'true' : 'false';
+
 my $parser = XML::Parser->new(Style => 'Tree');
 
 my $delimiters = {};
 
-my @filenames = <.cldr-data/*.xml>;
+my @filenames = <$ENV{'HTML_CACHE'}/cldr-data/*.xml>;
 my $count = 0;
 for my $filename (@filenames) {
     $count += 1;
     $filename =~ m|/([0-9a-zA-Z_]+)\.xml$|os or die "Unexpected filename syntax: $filename\n";
     my $language = $1;
     $language =~ s/_/-/os;
-    print STDERR sprintf "Reading  %-35s    %3d%%\r", $filename, (100 * $count / (scalar @filenames));
+    print STDERR sprintf "Reading  %-35s    %3d%%\r", $filename, (100 * $count / (scalar @filenames)) if "false" eq $quiet;
     my $tree = tweak($parser->parsefile($filename));
     next unless ref $tree->{ldml}->{delimiters};
     if (scalar keys %{$tree->{ldml}->{delimiters}} > 0) {
@@ -21,7 +23,7 @@ for my $filename (@filenames) {
     }
 }
 
-print STDERR "Processing...                                          \r";
+print STDERR "Processing...                                          \r" if "false" eq $quiet;
 
 for my $language (sort { $a eq 'root' ? -1 : $b eq 'root' ? 1 : $a cmp $b } keys %$delimiters) {
     my $q1a = escape(getDelimiter($language, 'quotationStart'));
@@ -34,10 +36,10 @@ for my $language (sort { $a eq 'root' ? -1 : $b eq 'root' ? 1 : $a cmp $b } keys
     } else {
         $selector = sprintf('%-21s %s', ":root:lang($language),", ":not(:lang($language)) > :lang($language)");
     }
-    printf "%-61s { quotes: '\\$q1a' '\\$q1b' '\\$q2a' '\\$q2b' } /* &#x$q1a; &#x$q1b; &#x$q2a; &#x$q2b; */\n", $selector;
+    printf "%-61s { quotes: '\\$q1a' '\\$q1b' '\\$q2a' '\\$q2b' } /* &#x$q1a; &#x$q1b; &#x$q2a; &#x$q2b; */\n", $selector if "false" eq $quiet;
 }
 
-print STDERR "Done.                                                  \n";
+print STDERR "Done.                                                  \n" if "false" eq $quiet;
 
 sub getDelimiter {
     my($originalLanguage, $key) = @_;

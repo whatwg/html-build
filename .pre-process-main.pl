@@ -41,7 +41,7 @@ while (@lines) {
     }
 
     if ($line =~ m|^(.*)<!--BOILERPLATE ([-.a-z0-9]+)-->(.*)\n$|os) {
-        unshift @lines, split("\n", $1 . `cat $2` . $3);
+        unshift @lines, split("\n", $1 . `cat $ENV{'HTML_CACHE'}/$2` . $3);
         next;
     } elsif ($line =~ m!^( *)<pre>EXAMPLE (offline/|workers/|canvas/)((?:[-a-z0-9]+/){1,2}[-a-z0-9]+.[-a-z0-9]+)</pre> *\n$!os) {
         my $indent = $1;
@@ -52,10 +52,10 @@ while (@lines) {
         my $url = "https://whatwg.org/demos/$folder$example";
         my $data;
         my $fh;
-        mkpath(dirname(".demos/$folder$example"));
-        if (-e ".demos/$folder$example" && "false" eq "$ENV{'DO_UPDATE'}") {
-          report "\r\nReading .demos/$folder$example";
-          open($fh, "<:encoding(UTF-8)", ".demos/$folder$example");
+        mkpath(dirname("$ENV{'HTML_CACHE'}/demos/$folder$example"));
+        if (-e "$ENV{'HTML_CACHE'}/demos/$folder$example" && "false" eq "$ENV{'DO_UPDATE'}") {
+          report "\r\nReading $ENV{'HTML_CACHE'}/demos/$folder$example";
+          open($fh, "<:encoding(UTF-8)", "$ENV{'HTML_CACHE'}/demos/$folder$example");
           while (<$fh>) {
             $data .= $_;
           }
@@ -63,8 +63,8 @@ while (@lines) {
         } else {
           report "\r\n\nReading $url\n";
           $data = `curl \$(\$VERBOSE && echo "-v" || echo "-s") $url`;
-          report "\rWriting .demos/$folder$example";
-          open($fh, '>', ".demos/$folder$example");
+          report "\rWriting $ENV{'HTML_CACHE'}/demos/$folder$example";
+          open($fh, '>', "$ENV{'HTML_CACHE'}/demos/$folder$example");
           print $fh $data;
           close $fh;
         }

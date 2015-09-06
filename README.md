@@ -1,29 +1,43 @@
 # HTML Build Tools
 
-This repository contains the tools and setup necessary for building the [HTML Standard](https://html.spec.whatwg.org/multipage/) from its [source](https://github.com/whatwg/html).
+This repository contains the tools and instructions necessary for building the [HTML Standard](https://html.spec.whatwg.org/multipage/) from its [source](https://github.com/whatwg/html).
 
-## Setup
+## Prerequisites
 
-1. Get a copy of [wattsi](https://github.com/whatwg/wattsi) and put the resulting binary in your PATH.
-1. Install `wget`.
-1. Check out [the source repo](https://github.com/whatwg/html) into this directory (by checking out into an empty folder then moving the contents here).
+Before building, make sure you have the following commands installed on your system.
 
-Then running build.sh inside this directory will generate the spec, multipage version, entities JSON file, and more.
+- `curl`, `egrep`, `git`, `grep`, `perl`, `python`, `svn`, `unzip`, `wget`
+
+You'll also need to have the Perl XML::Parser module installed on your system. It's not a "core" Perl module, so you may have to install it by doing one of the following to either get it using the perl `cpan install` command, or by getting the version packaged for your OS; for example;
+
+- `cpan install XML::parser`
+- `apt-get install libxml-parser-perl` (Ubuntu)
+
+## Build
+
+Building your own copy of the HTML Standard from its source requires just two simple steps:
+
+1. Clone this ([html-build](https://github.com/whatwg/html-build)) repo:
+```
+    git clone https://github.com/whatwg/html-build.git && cd html-build
+```
+
+1. Run the `build.sh` script from inside your `html-build` working directory, like this:
+```
+    ./build.sh
+```
 
 ## Output
 
-The relevant output files will be placed in this directory. They are:
+After you complete the build steps above, the build will run and generate the single-page version of the spec, the multipage version, and more. If all goes well, you should very soon have all the following in your `output/` directory:
 
-- .htaccess
-- 404.html
-- entities.json
-- fonts/*
-- images/*
-- index
-- link-fixup.js
-- multipage/*
+- `.htaccess`
+- `404.html`
+- `entities.json`
+- `fonts/*`
+- `images/*`
+- `index`
+- `link-fixup.js`
+- `multipage/*`
 
-## TODOs
-
-- Automate CLDR data checkout as part of the build script.
-- Don't require throwing everything into one directory before doing the build; instead, let the source and cldr-data be in seperate directories, and the output be put in another directory.
+And then you're also ready to edit the `html/source` file—and after you make your changes, you can run the `build.sh` script again to see the new output.
