@@ -188,6 +188,7 @@ else
   fi
 
   unzip $($VERBOSE && echo "-v" || echo "-qq") $HTML_TEMP/wattsi-output.zip -d $HTML_TEMP/wattsi-output
+  cat $HTML_TEMP/wattsi-output/output.txt
 fi
 
 cat $HTML_TEMP/wattsi-output/index-html | perl .post-process-index-generator.pl | perl .post-process-partial-backlink-generator.pl > $HTML_OUTPUT/index;
