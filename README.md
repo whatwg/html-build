@@ -41,3 +41,15 @@ After you complete the build steps above, the build will run and generate the si
 - `multipage/*`
 
 And then you're also ready to edit the `html/source` file—and after you make your changes, you can run the `build.sh` script again to see the new output.
+
+## Options
+
+Your clone doesn't need the HTML standard's complete revision history just for you to build the spec and contribute patches. So, by default we don't start you out with a clone of the history. That makes your first build finish much faster. And if later you decide you do want to clone the complete history, you can still get it, by doing this:
+```
+   cd ./html && git fetch --unshallow
+```
+That said, if you really do want to *start out* with the complete history of the repo, then run the build script for the first time like this:
+```
+   HTML_GIT_CLONE_OPTIONS="" ./build.sh
+```
+That will clone the complete history for you. But be warned: It'll make your first build take *dramatically* longer to finish!
