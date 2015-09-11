@@ -112,7 +112,7 @@ if [ "$DO_UPDATE" == true ] && [ "`svn info -r HEAD $HTML_CACHE/cldr-data | grep
 fi
 
 if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/unicode.xml ]; then
-  $QUIET || echo "Downloading unicode.xml (can take a short time, depending on your bandwith)...";
+  $QUIET || echo "Downloading unicode.xml (can take a short time, depending on your bandwidth)...";
   curl --location $($VERBOSE && echo "-v") $($QUIET && echo "-s") \
     https://www.w3.org/2003/entities/2007xml/unicode.xml.zip \
     $( [ -f $HTML_CACHE/unicode.xml ] && echo "--time-cond $HTML_CACHE/unicode.xml" ) \
