@@ -62,7 +62,13 @@ function cloneHtml {
   git clone $HTML_GIT_CLONE_OPTIONS \
     $($VERBOSE && echo "--verbose" || $QUIET && echo "--quiet") \
     https://github.com/whatwg/html.git $HTML_SOURCE
+    cd $HTML_SOURCE
+    git remote set-branches origin '*'
+    git fetch $HTML_GIT_CLONE_OPTIONS \
+      $($VERBOSE && echo "--verbose" || $QUIET && echo "--quiet")
+    cd $DIR
 }
+
 if [ -z "$HTML_SOURCE" ]; then
   $QUIET || echo "HTML_SOURCE environment variable not set..."
   $QUIET || echo "OK, looking for HTML source file..."
