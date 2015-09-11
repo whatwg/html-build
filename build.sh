@@ -168,6 +168,9 @@ if hash wattsi 2>/dev/null; then
   # unless you build from the wattsi pr/2 branch.
   wattsi $($QUIET && echo "--quiet") \
     $HTML_TEMP/source-whatwg-complete $HTML_TEMP/wattsi-output \
+    $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv \
+    || wattsi $($QUIET && echo "--quiet") \
+    $HTML_SOURCE/source $HTML_TEMP/wattsi-output \
     $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv
 else
   $QUIET || echo
