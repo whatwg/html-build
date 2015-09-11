@@ -171,16 +171,17 @@ function rerunWattsi {
   # pre-processer steps above. Therefore, the reported line numbers may be
   # wrong, so here we re-run wattsi against the original source to get the
   # correct line numbers.
-  $QUIET || echo
-  $QUIET || echo "Line numbers in any error messages above may be wrong."
-  $QUIET || echo "The correct line numbers for errors in $HTML_SOURCE/source are shown below."
-  $QUIET || echo
-  mkdir $HTML_TEMP/parse2-output;
+  echo > $HTML_TEMP/parse.log
+  echo "Line numbers in any error messages above may be wrong." >> $HTML_TEMP/parse.log
+  echo "The correct line numbers for errors in the $HTML_SOURCE/source file are shown below." >> $HTML_TEMP/parse.log
+  echo >> $HTML_TEMP/parse.log
+  WATTSI_OUTPUT2=$HTML_TEMP/wattsi-output-original-source
+  mkdir $WATTSI_OUTPUT2
   # XXX make this call to wattsi always be quiet after wattsi patch lands
   wattsi $($QUIET && echo "--quiet") \
-    $HTML_SOURCE/source $HTML_TEMP/parse2-output \
+    $HTML_SOURCE/source $WATTSI_OUTPUT2 \
     $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv \
-    > $HTML_TEMP/parse.log || cat $HTML_TEMP/parse.log && exit 1
+    >> $HTML_TEMP/parse.log || cat $HTML_TEMP/parse.log && exit 1
     # unless this 2nd call to wattsi also exits non-zero, there aren't
     # actually any error messages in the source to report, and so the line
     # numbers reported during the first pass must be correct, and must
