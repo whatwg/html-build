@@ -57,16 +57,98 @@ do
   esac
 done
 
-function cloneHtml {
+function chooseRepo {
+echo
+echo "What HTML source would you like to build from?"
+echo
+echo "1) Use an existing clone on my local filesystem."
+echo "2) Create a clone from https://github.com/whatwg/html."
+echo "3) Create a clone from an existing fork, by GitHub username."
+echo "4) Create a clone from an existing fork, by custom URL."
+echo "5) Quit"
+echo
+read -e -p "Choose 1-5: " choice
+if [ "1" = "$choice" ]; then
+  read -e -p "Path to your existing clone: "
+  HTML_SOURCE=$(echo "$REPLY" | xargs) # trims leading/trailing space
+  if [[ "$HTML_SOURCE" = "" ]]; then
+    chooseRepo
+  fi
+  confirmRepo
+elif [ "2" = "$choice" ]; then
+  HTML_REPO=https://github.com/whatwg/html.git
+  confirmRepo
+elif [ "3" = "$choice" ]; then
+  echo
+  read -e -p "GitHub username of fork owner: "
+  GH_USERNAME=$(echo "$REPLY" | xargs) # trims leading/trailing space
+  if [ -z "$GH_USERNAME" ]; then
+    chooseRepo
+  fi
+  echo
+  echo "Does a fork already exist at https://github.com/$GH_USERNAME/html?"
+  echo
+  read -e -p "Y or N? " yn
+  if [[ "y" = "$yn" || "Y" = "$yn" ]]; then
+    HTML_REPO="https://github.com/$GH_USERNAME/html.git"
+    confirmRepo
+  else
+    echo
+    echo "Before proceeding, first go to https://github.com/whatwg/html and create a fork."
+    exit
+  fi
+elif [ "4" = "$choice" ]; then
+  echo
+  read -e -p "URL: "
+  REPLY=$(echo "$REPLY" | xargs) # trims leading/trailing space
+  if [ -z "$REPLY" ]; then
+    chooseRepo
+  fi
+  HTML_REPO=$REPLY
+  confirmRepo
+elif [[ "5" = "$choice" || "q" = "$choice" || "Q" = "$choice" ]]; then
+  echo
+  echo "Can't build without a source repo to build from. Quitting..."
+  exit
+else
+  chooseRepo
+fi
+}
+
+function confirmRepo {
+  if [ -n "$HTML_SOURCE" ]; then
+    if [ -f "$HTML_SOURCE/source" ]; then
+      echo
+      echo "OK, build from the $HTML_SOURCE/source file?"
+      echo
+      read -e -p "Y or N? " yn
+      if [[ "y" = "$yn" || "Y" = "$yn" ]]; then
+        return
+      else
+        unset HTML_SOURCE
+        chooseRepo
+      fi
+    else
+      echo
+      echo "$HTML_SOURCE/source file doesn't exist. Please choose another option."
+      unset HTML_SOURCE
+      chooseRepo
+    fi
+    return
+  fi
   HTML_SOURCE=${HTML_SOURCE:-$DIR/html}
-  git clone $HTML_GIT_CLONE_OPTIONS \
-    $($VERBOSE && echo "--verbose" || $QUIET && echo "--quiet") \
-    https://github.com/whatwg/html.git $HTML_SOURCE
-    cd $HTML_SOURCE
-    git remote set-branches origin '*'
-    git fetch $HTML_GIT_CLONE_OPTIONS \
-      $($VERBOSE && echo "--verbose" || $QUIET && echo "--quiet")
-    cd $DIR
+  echo
+  echo "OK, clone from $HTML_REPO?"
+  echo
+  read -e -p "Y or N? " yn
+  if [[ "y" = "$yn" || "Y" = "$yn" ]]; then
+    git clone $HTML_GIT_CLONE_OPTIONS \
+      $($VERBOSE && echo "--verbose" || $QUIET && echo "--quiet") \
+      $HTML_REPO $HTML_SOURCE
+  else
+    unset HTML_SOURCE
+    chooseRepo
+  fi
 }
 
 if [ -z "$HTML_SOURCE" ]; then
@@ -83,8 +165,7 @@ if [ -z "$HTML_SOURCE" ]; then
     else
       # TODO Before giving up, should we maybe also check $HOME/html? Or anywhere else?
       $QUIET || echo "Didn't find the HTML source on your system..."
-      $QUIET || echo "OK, cloning it..."
-      cloneHtml
+      chooseRepo
     fi
   fi
 else
@@ -93,8 +174,8 @@ else
     $QUIET || echo "OK, looked in the $HTML_SOURCE directory and found HTML source there..."
   else
     $QUIET || echo "Looked in the $HTML_SOURCE directory but didn't find HTML source there..."
-    $QUIET || echo "OK, cloning it instead..."
-    cloneHtml
+    unset HTML_SOURCE
+    chooseRepo
   fi
 fi
 export HTML_SOURCE
