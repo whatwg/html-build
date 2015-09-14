@@ -147,16 +147,16 @@ fi
 if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/caniuse.json ]; then
   rm -f $HTML_CACHE/caniuse.json
   $QUIET || echo "Downloading caniuse data..."
-  wget $($VERBOSE || echo "--quiet") \
-    -O $HTML_CACHE/caniuse.json --no-check-certificate \
+  curl $($VERBOSE || echo "-s") \
+    -o $HTML_CACHE/caniuse.json -k \
     https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
 fi
 
 if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/w3cbugs.csv ]; then
   rm -f $HTML_CACHE/w3cbugs.csv
   $QUIET || echo "Downloading list of W3C bugzilla bugs (can be a wee bit slow)..."
-  wget $($VERBOSE || echo "--quiet") \
-    -O $HTML_CACHE/w3cbugs.csv \
+  curl $($VERBOSE || echo "-s") \
+    -o $HTML_CACHE/w3cbugs.csv \
     'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv'
 fi
 
