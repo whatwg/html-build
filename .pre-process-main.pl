@@ -63,7 +63,7 @@ while (@lines) {
         } else {
           report "\r\n\nReading $url\n";
           $data = `curl \$(\$VERBOSE && echo "-v" || echo "-s") $url`;
-          report "\rWriting $ENV{'HTML_CACHE'}/demos/$folder$example";
+          report "\rWriting $folder$example";
           open($fh, '>', "$ENV{'HTML_CACHE'}/demos/$folder$example");
           print $fh $data;
           close $fh;

@@ -4,14 +4,7 @@ This repository contains the tools and instructions necessary for building the [
 
 ## Prerequisites
 
-Before building, make sure you have the following commands installed on your system.
-
-- `curl`, `egrep`, `git`, `grep`, `perl`, `python`, `svn`, `unzip`
-
-You'll also need to have the Perl XML::Parser module installed on your system. It's not a "core" Perl module, so you may have to install it by doing one of the following to either get it using the perl `cpan install` command, or by getting the version packaged for your OS; for example;
-
-- `cpan install XML::parser`
-- `apt-get install libxml-parser-perl` (Ubuntu)
+`bash`, `git`, and `zip`/`unzip` are the only tools you need to have installed to run a build with the default settings.
 
 ## Build
 
@@ -22,10 +15,22 @@ Building your own copy of the HTML Standard from its source requires just two si
     git clone https://github.com/whatwg/html-build.git && cd html-build
 ```
 
-1. Run the `build.sh` script from inside your `html-build` working directory, like this:
+1. Run the `build.sh` script from inside your `html-build` working directory, in one of the two following ways:
+  1. If you don't already have a clone of the [https://github.com/whatwg/html](https://github.com/whatwg/html) repo or another clone from which to build:
 ```
-    ./build.sh
+        ./build.sh
 ```
+    In the case, the build script will automatically create a clone of the HTML source repo for you, and build from that.
+
+  1. If you *do* already have a clone of the [https://github.com/whatwg/html](https://github.com/whatwg/html) repo or another clone from which to build, the specify the path (relative or absolute) to the HTML `source` file as the final argument to the build script, like this:
+```
+        ./build.sh /path/to/your/html/source
+```
+    Of course, replace `/path/to/your/html/source` with the actual path to the `source` file on your system.
+
+By default your build will be run remotely, on our build server, and can take 90 seconds or more to complete.
+
+Optionally, you can run the build yourself locally, by doing a [Wattsi-enabled build](#wattsi-enabled-build), as described below.
 
 ## Output
 
@@ -42,9 +47,32 @@ After you complete the build steps above, the build will run and generate the si
 
 And then you're also ready to edit the `html/source` file—and after you make your changes, you can run the `build.sh` script again to see the new output.
 
+## Wattsi-enabled build
+
+Along with the default behavior of having your build be run remotely on our build server, you can also run the build locally, in your own environment.
+
+Doing that requires three steps;
+
+1. Install Wattsi by following the [Wattsi build instructions](https://github.com/whatwg/wattsi) (which involves installing a [Free Pascal](http://www.freepascal.org/) compiler and then compiling a `wattsi` binary from the Wattsi sources) and putting the directory for the `wattsi` binary into you system `$PATH`.
+
+2. Make sure you have the following commands installed on your system.
+```
+     bash, curl, egrep, git, grep, perl, python, svn, zip/unzip
+```
+3. Install the Perl XML::Parser module on your system. It's not a "core" Perl module, so you may have to install it by doing one of the following to either get it using the perl `cpan install` command, or by getting the version packaged for your OS; for example;
+
+  - `cpan install XML::parser`
+  - `apt-get install libxml-parser-perl` (Ubuntu)
+
+4. Follow the [build instructions above](#build) just as you would otherwise.
+
+   The build script will detect that you have a `wattsi` binary installed and then will automatically run the build locally rather than on our build server.
+
 ## Options
 
-Your clone doesn't need the HTML standard's complete revision history just for you to build the spec and contribute patches. So, by default we don't start you out with a clone of the history. That makes your first build finish much faster. And if later you decide you do want to clone the complete history, you can still get it, by doing this:
+If you allow our build script to create a clone of the HTML source for you to use (rather than building from a clone you already have), note that we don't start you out with a clone that includes the entire revision history. Omitting the revision history makes your first build finish much faster.
+
+But if later you decide you do want to clone the complete history, you can still get it, by doing this:
 ```
    cd ./html && git fetch --unshallow
 ```
