@@ -77,7 +77,7 @@ if [ -z "$HTML_SOURCE" ]; then
     $QUIET || echo "OK, looked in the $PARENT_DIR/html directory and found HTML source there..."
     HTML_SOURCE=$PARENT_DIR/html
   else
-    if [ -f $DIR/source ]; then
+    if [ -f $DIR/html/source ]; then
       $QUIET || echo "OK, looked in the html subdirectory here and found HTML source..."
       HTML_SOURCE=$DIR/html
     else
