@@ -162,7 +162,7 @@ perl .pre-process-annotate-attributes.pl < $HTML_TEMP/source-expanded-1 > $HTML_
 perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 > $HTML_TEMP/source-whatwg-complete # this one could be merged
 mkdir $HTML_TEMP/wattsi-output
 
-function rerunWattsi {
+function reRunWattsiOrReportErrors {
   # If we end up here it means that wattsi exited non-zero, probably with
   # one or more error messages that include line and column numbers; e.g.:
   #     Parse Error:(748,59) unexpected end tag
@@ -171,50 +171,74 @@ function rerunWattsi {
   # pre-processer steps above. Therefore, the reported line numbers may be
   # wrong, so here we re-run wattsi against the original source to get the
   # correct line numbers.
-  echo > $HTML_TEMP/parse.log
-  echo "Line numbers in any error messages above may be wrong." >> $HTML_TEMP/parse.log
-  echo "The correct line numbers for errors in the $HTML_SOURCE/source file are shown below." >> $HTML_TEMP/parse.log
-  echo >> $HTML_TEMP/parse.log
-  WATTSI_OUTPUT2=$HTML_TEMP/wattsi-output-original-source
-  mkdir $WATTSI_OUTPUT2
-  # XXX make this call to wattsi always be quiet after wattsi patch lands
-  wattsi $($QUIET && echo "--quiet") \
-    $HTML_SOURCE/source $WATTSI_OUTPUT2 \
-    $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv \
-    >> $HTML_TEMP/parse.log || cat $HTML_TEMP/parse.log && exit 1
-    # unless this 2nd call to wattsi also exits non-zero, there aren't
-    # actually any error messages in the source to report, and so the line
-    # numbers reported during the first pass must be correct, and must
-    # indicate some problem introduced during pre-processing.
+  if [[ "$1" != $HTML_SOURCE/source ]]; then
+    # we get here if we've done a first pass through wattsi and errors were
+    # reported; so we re-run now to get the right line numbers
+    rm -rf $HTML_TEMP/wattsi-output && mkdir $HTML_TEMP/wattsi-output
+    runWattsi $HTML_SOURCE/source
+  else
+    # we get after we've done a second pass through wattsi; so it's now
+    # time to emit any error messages wattsi reported
+    if [[ -f $HTML_TEMP/wattsi-first-pass-output.txt \
+      && -n "$(cat $HTML_TEMP/wattsi-first-pass-output.txt)" ]]; then
+      cat $HTML_TEMP/wattsi-first-pass-output.txt | grep -v '^$' # trim blank lines
+    fi
+    if [[ -f $HTML_TEMP/wattsi-output.txt \
+      && -n "$(cat $HTML_TEMP/wattsi-output.txt)" ]]; then
+      echo
+      echo "The correct line numbers for errors in the $HTML_SOURCE/source file are shown below."
+      echo
+      cat $HTML_TEMP/wattsi-first-pass-output.txt | grep -v '^$' # trim blan lines
+    fi
+    echo
+    echo "Found fatal errors. Stopping."
+    exit 1
+  fi
 }
 
-if hash wattsi 2>/dev/null; then
-  # XXX wattsi --quiet awaits review https://github.com/whatwg/wattsi/pull/2
-  # In the mean time, wattsi --quiet will fail with "invalid arguments"
-  # unless you build from the wattsi pr/2 branch.
-  wattsi $($QUIET && echo "--quiet") \
-    $HTML_TEMP/source-whatwg-complete $HTML_TEMP/wattsi-output \
-    $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv || rerunWattsi
-else
-  $QUIET || echo
-  $QUIET || echo "Local wattsi is not present; trying the build server..."
-
-  HTTP_CODE=`curl $($VERBOSE && echo "-v") $($QUIET && echo "-s")\
-        http://ec2-52-88-42-163.us-west-2.compute.amazonaws.com/ \
-        --write-out "%{http_code}" \
-        --form source=@$HTML_TEMP/source-whatwg-complete \
-        --form caniuse=@$HTML_CACHE/caniuse.json \
-        --form w3cbugs=@$HTML_CACHE/w3cbugs.csv \
-        --output $HTML_TEMP/wattsi-output.zip`
-
-  if [ "$HTTP_CODE" != "200" ]; then
-      cat $HTML_TEMP/wattsi-output.zip
-      rm -f $HTML_TEMP/wattsi-output.zip
-      exit 22
+function runWattsi {
+  if [[ -f "$HTML_TEMP/wattsi-output.txt" ]]; then
+    mv $HTML_TEMP/wattsi-output.txt \
+      $HTML_TEMP/wattsi-first-pass-output.txt
   fi
+  # $1 = $HTML_TEMP/source-whatwg-complete | $HTML_SOURCE/source
+  # if wattsi exits non-zero here we run reRunWattsiOrReportErrors to
+  # handle it
+  if hash wattsi 2>/dev/null; then
+    wattsi $($QUIET && echo "--quiet") \
+      $1 $HTML_TEMP/wattsi-output \
+      $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv \
+      > $HTML_TEMP/wattsi-output.txt \
+      || reRunWattsiOrReportErrors $1
+  else
+    $QUIET || echo
+    $QUIET || echo "Local wattsi is not present; (re)trying the build server..."
 
-  unzip $($VERBOSE && echo "-v" || echo "-qq") $HTML_TEMP/wattsi-output.zip -d $HTML_TEMP/wattsi-output
-fi
+    HTTP_CODE=`curl $($VERBOSE && echo "-v") $($QUIET && echo "-s")\
+      http://ec2-52-88-42-163.us-west-2.compute.amazonaws.com/ \
+      --write-out "%{http_code}" \
+      --form source=@$1 \
+      --form caniuse=@$HTML_CACHE/caniuse.json \
+      --form w3cbugs=@$HTML_CACHE/w3cbugs.csv \
+      --output $HTML_TEMP/wattsi-output.zip`
+
+    if [ "$HTTP_CODE" != "200" ]; then
+      # this means wattsi exited non-zero on the server, we we run
+      # reRunWattsiOrReportErrors to handle it
+      mv $HTML_TEMP/wattsi-output.zip $HTML_TEMP/wattsi-output.txt
+      reRunWattsiOrReportErrors $1
+    else
+      unzip $($VERBOSE && echo "-v" || echo "-qq") $HTML_TEMP/wattsi-output.zip -d $HTML_TEMP/wattsi-output
+    fi
+  fi
+  # if we get here it means there were no errors from wattsi, so just emit
+  # whatever non-error messages we might have collected
+  if [[ -f $HTML_TEMP/wattsi-output.txt ]]; then
+    cat $HTML_TEMP/wattsi-output.txt
+  fi
+}
+
+runWattsi $HTML_TEMP/source-whatwg-complete
 
 cat $HTML_TEMP/wattsi-output/index-html | perl .post-process-index-generator.pl | perl .post-process-partial-backlink-generator.pl > $HTML_OUTPUT/index;
 
