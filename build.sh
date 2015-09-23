@@ -168,33 +168,61 @@ perl .pre-process-annotate-attributes.pl < $HTML_TEMP/source-expanded-1 > $HTML_
 perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 > $HTML_TEMP/source-whatwg-complete # this one could be merged
 mkdir $HTML_TEMP/wattsi-output
 
-if hash wattsi 2>/dev/null; then
-  # XXX wattsi --quiet awaits review https://github.com/whatwg/wattsi/pull/2
-  # In the mean time, wattsi --quiet will fail with "invalid arguments"
-  # unless you build from the wattsi pr/2 branch.
-  wattsi $($QUIET && echo "--quiet") \
-    $HTML_TEMP/source-whatwg-complete $HTML_TEMP/wattsi-output \
-    $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv
-else
-  $QUIET || echo
-  $QUIET || echo "Local wattsi is not present; trying the build server..."
+function runWattsi {
+  # Input argument: $1 is the file to run wattsi on
+  # Output:
+  # - Sets global variable $WATTSI_RESULT to an exit code (or equivalent, for HTTP version)
+  # - $HTML_TEMP/wattsi-output directory will contain the output from wattsi on success
+  # - $HTML_TEMP/wattsi-output.txt will contain the output from wattsi, on both success and failure
 
-  HTTP_CODE=`curl $($VERBOSE && echo "-v") $($QUIET && echo "-s")\
-        http://ec2-52-88-42-163.us-west-2.compute.amazonaws.com/ \
-        --write-out "%{http_code}" \
-        --form source=@$HTML_TEMP/source-whatwg-complete \
-        --form caniuse=@$HTML_CACHE/caniuse.json \
-        --form w3cbugs=@$HTML_CACHE/w3cbugs.csv \
-        --output $HTML_TEMP/wattsi-output.zip`
+  rm -rf $HTML_TEMP/wattsi-output
+  mkdir $HTML_TEMP/wattsi-output
 
-  if [ "$HTTP_CODE" != "200" ]; then
-      cat $HTML_TEMP/wattsi-output.zip
-      rm -f $HTML_TEMP/wattsi-output.zip
-      exit 22
+  if hash wattsi 2>/dev/null; then
+    WATTSI_RESULT=$(wattsi $($QUIET && echo "--quiet") $1 $HTML_TEMP/wattsi-output \
+      $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv \
+      > $HTML_TEMP/wattsi-output.txt; echo $?)
+  else
+    $QUIET || echo
+    $QUIET || echo "Local wattsi is not present; trying the build server..."
+
+    HTTP_CODE=`curl $($VERBOSE && echo "-v") $($QUIET && echo "-s")\
+      http://ec2-52-88-42-163.us-west-2.compute.amazonaws.com/ \
+      --write-out "%{http_code}" \
+      --form source=@$1 \
+      --form caniuse=@$HTML_CACHE/caniuse.json \
+      --form w3cbugs=@$HTML_CACHE/w3cbugs.csv \
+      --output $HTML_TEMP/wattsi-output.zip`
+
+    if [ "$HTTP_CODE" != "200" ]; then
+      mv $HTML_TEMP/wattsi-output.zip $HTML_TEMP/wattsi-output.txt
+      WATTSI_RESULT=1
+    else
+      unzip $($VERBOSE && echo "-v" || echo "-qq") $HTML_TEMP/wattsi-output.zip -d $HTML_TEMP/wattsi-output
+      mv $HTML_TEMP/wattsi-output/output.txt $HTML_TEMP/wattsi-output.txt
+      WATTSI_RESULT=0
+    fi
+  fi
+}
+
+runWattsi $HTML_TEMP/source-whatwg-complete
+
+if [[ "$WATTSI_RESULT" -ne "0" ]]; then
+  mv $HTML_TEMP/wattsi-output.txt $HTML_TEMP/wattsi-first-pass-output.txt
+  runWattsi $HTML_SOURCE/source
+
+  cat $HTML_TEMP/wattsi-first-pass-output.txt | grep -v '^$' # trim blank lines
+
+  if [[ "$WATTSI_RESULT" -ne "0" ]]; then
+    echo
+    echo "The correct line numbers for errors in the $HTML_SOURCE/source file are shown below:"
+    echo
+    cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
   fi
 
-  unzip $($VERBOSE && echo "-v" || echo "-qq") $HTML_TEMP/wattsi-output.zip -d $HTML_TEMP/wattsi-output
-  cat $HTML_TEMP/wattsi-output/output.txt
+  echo
+  echo "Found fatal errors. Stopping."
+  exit 1
 fi
 
 cat $HTML_TEMP/wattsi-output/index-html | perl .post-process-index-generator.pl | perl .post-process-partial-backlink-generator.pl > $HTML_OUTPUT/index;
