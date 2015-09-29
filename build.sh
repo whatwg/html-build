@@ -136,9 +136,9 @@ if [ $HTML_CACHE/unicode.xml -nt $HTML_CACHE/entities.inc ]; then
   python .entity-processor-json.py > $HTML_TEMP/new-entities-unicode-json.inc;
   [ -s $HTML_TEMP/new-entities-unicode-json.inc ] && mv -f $HTML_TEMP/new-entities-unicode-json.inc $HTML_TEMP/json-entities-unicode.inc; # otherwise, probably http error, just do it again next time
   echo '<tbody>' > $HTML_CACHE/entities.inc
-  cat $HTML_TEMP/entities-*.inc | perl -e 'my @lines = <>; print sort { $a =~ m/id="([^"]+?)(-legacy)?"/; $a1 = $1; $a2 = $2; $b =~ m/id="([^"]+?)(-legacy)?"/; $b1 = $1; $b2 = $2; return (lc($a1) cmp lc($b1)) || ($a1 cmp $b1) || ($a2 cmp $b2); } @lines' >> $HTML_CACHE/entities.inc
+  cat $HTML_SOURCE/entities-*.inc $HTML_TEMP/entities-*.inc | perl -e 'my @lines = <>; print sort { $a =~ m/id="([^"]+?)(-legacy)?"/; $a1 = $1; $a2 = $2; $b =~ m/id="([^"]+?)(-legacy)?"/; $b1 = $1; $b2 = $2; return (lc($a1) cmp lc($b1)) || ($a1 cmp $b1) || ($a2 cmp $b2); } @lines' >> $HTML_CACHE/entities.inc
   echo '{' > $HTML_OUTPUT/entities.json
-  cat $HTML_TEMP/json-entities-* | sort | perl -e '$/ = undef; $_ = <>; chop, chop, print' >> $HTML_OUTPUT/entities.json
+  cat $HTML_SOURCE/json-entities-* $HTML_TEMP/json-entities-* | sort | perl -e '$/ = undef; $_ = <>; chop, chop, print' >> $HTML_OUTPUT/entities.json
   echo '' >> $HTML_OUTPUT/entities.json
   echo '}' >> $HTML_OUTPUT/entities.json
   perl -Tw .entity-to-dtd.pl < $HTML_TEMP/entities-unicode.inc > $HTML_CACHE/entities-dtd.url
