@@ -18,14 +18,14 @@ You'll also need to have the Perl XML::Parser module installed on your system. I
 Building your own copy of the HTML Standard from its source requires just two simple steps:
 
 1. Clone this ([html-build](https://github.com/whatwg/html-build)) repo:
-```
-    git clone https://github.com/whatwg/html-build.git && cd html-build
-```
+ ```
+ git clone https://github.com/whatwg/html-build.git && cd html-build
+ ```
 
 1. Run the `build.sh` script from inside your `html-build` working directory, like this:
-```
-    ./build.sh
-```
+ ```
+ ./build.sh
+ ```
 
 ## Output
 
@@ -46,10 +46,10 @@ And then you're also ready to edit the `html/source` file—and after you make y
 
 Your clone doesn't need the HTML standard's complete revision history just for you to build the spec and contribute patches. So, by default we don't start you out with a clone of the history. That makes your first build finish much faster. And if later you decide you do want to clone the complete history, you can still get it, by doing this:
 ```
-   cd ./html && git fetch --unshallow
+cd ./html && git fetch --unshallow
 ```
 That said, if you really do want to *start out* with the complete history of the repo, then run the build script for the first time like this:
 ```
-   HTML_GIT_CLONE_OPTIONS="" ./build.sh
+HTML_GIT_CLONE_OPTIONS="" ./build.sh
 ```
 That will clone the complete history for you. But be warned: It'll make your first build take *dramatically* longer to finish!
