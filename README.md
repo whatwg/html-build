@@ -15,7 +15,12 @@ You'll also need to have the Perl XML::Parser module installed on your system. I
 
 ## Build
 
-Building your own copy of the HTML Standard from its source requires just two simple steps:
+Building your own copy of the HTML Standard from its source requires just these simple steps:
+
+1. If you want to submit a pull request to the [whatwg/html](https://github.com/whatwg/html) repo, fork it and clone your fork. (If not, you can skip this step.)
+ ```
+ git clone https://github.com/<username>/html.git
+ ```
 
 1. Clone this ([html-build](https://github.com/whatwg/html-build)) repo:
  ```
