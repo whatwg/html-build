@@ -36,6 +36,9 @@ for entity in document.getElementsByTagName('entity'):
     assert len(name) > 0
     assert entity.parentNode.hasAttribute('id')
     value = entity.parentNode.getAttribute('id')
+    combining = entity.parentNode.getElementsByTagName('description')[0].childNodes[0].data[:9] == 'COMBINING'
+    if (combining):
+      value = 'U00020-' + value[1:]
     assert name not in entities or entities[name] == value, '(name: ' + name + ' old value: ' + entities[name] + ' new value: ' + value + ')'
     if (name not in entities):
       entities[name] = value
