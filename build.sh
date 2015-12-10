@@ -157,7 +157,7 @@ if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/w3cbugs.csv ]; then
   $QUIET || echo "Downloading list of W3C bugzilla bugs (can be a wee bit slow)..."
   curl $($VERBOSE || echo "-s") \
     -o $HTML_CACHE/w3cbugs.csv \
-    'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv'
+    'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv&status_whiteboard=whatwg-resolved&status_whiteboard_type=notregexp'
 fi
 
 $QUIET || echo
