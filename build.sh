@@ -250,17 +250,17 @@ perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 > $HTML_TEMP/so
 mkdir $HTML_TEMP/wattsi-output
 
 function runWattsi {
-  # Input argument: $1 is the file to run wattsi on
+  # Input arguments: $1 is the file to run wattsi on, $2 is a directory for wattsi to write output to
   # Output:
   # - Sets global variable $WATTSI_RESULT to an exit code (or equivalent, for HTTP version)
   # - $HTML_TEMP/wattsi-output directory will contain the output from wattsi on success
   # - $HTML_TEMP/wattsi-output.txt will contain the output from wattsi, on both success and failure
 
-  rm -rf $HTML_TEMP/wattsi-output
-  mkdir $HTML_TEMP/wattsi-output
+  rm -rf $2
+  mkdir $2
 
   if hash wattsi 2>/dev/null; then
-    WATTSI_RESULT=$(wattsi $($QUIET && echo "--quiet") $1 $HTML_TEMP/wattsi-output \
+    WATTSI_RESULT=$(wattsi $($QUIET && echo "--quiet") $1 $2 \
       $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv \
       > $HTML_TEMP/wattsi-output.txt; echo $?)
   else
@@ -286,24 +286,28 @@ function runWattsi {
   fi
 }
 
-runWattsi $HTML_TEMP/source-whatwg-complete
+runWattsi $HTML_TEMP/source-whatwg-complete $HTML_TEMP/wattsi-output
 
-if [[ "$WATTSI_RESULT" -ne "0" ]]; then
+if [[ ! $QUIET = "true" || ! "$WATTSI_RESULT" = "0" ]]; then
   mv $HTML_TEMP/wattsi-output.txt $HTML_TEMP/wattsi-first-pass-output.txt
-  runWattsi $HTML_SOURCE/source
-
-  cat $HTML_TEMP/wattsi-first-pass-output.txt | grep -v '^$' # trim blank lines
-
-  if [[ "$WATTSI_RESULT" -ne "0" ]]; then
-    echo
-    echo "The correct line numbers for errors in the $HTML_SOURCE/source file are shown below:"
-    echo
-    cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
-  fi
+  cp $HTML_SOURCE/source $HTML_TEMP/raw-source
+  # suppress 'missing <dfn> for topic "sort parser mode: separator"' error
+  perl -pi -e 's|^\s+</body>|<dfn w-drop data-x="sort parser mode: separator"></dfn></body>|' $HTML_TEMP/raw-source
+  runWattsi $HTML_TEMP/raw-source $HTML_TEMP/wattsi-raw-source-output
 
   echo
-  echo "Found fatal errors. Stopping."
-  exit 1
+  cat $HTML_TEMP/wattsi-first-pass-output.txt | grep -v '^$' # trim blank lines
+
+  echo
+  echo "For any error messages with line numbers, the messages are repeated below,"
+  echo "but with correct line numbers from the $HTML_SOURCE/source file."
+  echo
+  cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
+  if [[ ! "$WATTSI_RESULT" = "0" ]]; then
+    echo
+    echo "Found fatal errors. Stopping."
+    exit 1
+  fi
 fi
 
 cat $HTML_TEMP/wattsi-output/index-html | perl .post-process-index-generator.pl | perl .post-process-partial-backlink-generator.pl > $HTML_OUTPUT/index;
@@ -324,7 +328,7 @@ cp -pR $HTML_SOURCE/images $HTML_OUTPUT
 cp -pR $HTML_SOURCE/link-fixup.js $HTML_OUTPUT
 
 $QUIET || echo
-$QUIET || echo "Checking for potential problems..."
+$QUIET || echo "Linting the output..."
 # show potential problems
 # note - would be nice if the ones with \s+ patterns actually cross lines, but, they don't...
 grep -ni 'xxx' $HTML_SOURCE/source| perl -lpe 'print "\nPossible incomplete sections:" if $. == 1'
