@@ -195,7 +195,7 @@ $QUIET || echo "Examining CLDR (this takes a moment)...";
 if [ "$DO_UPDATE" == true ] && [ "`svn info -r HEAD $HTML_CACHE/cldr-data | grep -i "Last Changed Rev"`" != "`svn info $HTML_CACHE/cldr-data | grep -i "Last Changed Rev"`" -o ! -s $HTML_CACHE/cldr.inc ]; then
   $QUIET || echo "Updating CLDR..."
   svn $($QUIET && echo "-q") up $HTML_CACHE/cldr-data;
-  perl -T .cldr-processor.pl > $HTML_CACHE/cldr.inc;
+  perl -T .cldr-processor.pl $($QUIET && echo "--quiet") > $HTML_CACHE/cldr.inc;
 fi
 
 if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/unicode.xml ]; then
