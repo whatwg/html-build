@@ -279,8 +279,8 @@ function runWattsi {
       mv $HTML_TEMP/wattsi-output.zip $HTML_TEMP/wattsi-output.txt
       WATTSI_RESULT=1
     else
-      unzip $($VERBOSE && echo "-v" || echo "-qq") $HTML_TEMP/wattsi-output.zip -d $HTML_TEMP/wattsi-output
-      mv $HTML_TEMP/wattsi-output/output.txt $HTML_TEMP/wattsi-output.txt
+      unzip $($VERBOSE && echo "-v" || echo "-qq") $HTML_TEMP/wattsi-output.zip -d $2
+      mv $2/output.txt $HTML_TEMP/wattsi-output.txt
       WATTSI_RESULT=0
     fi
   fi
