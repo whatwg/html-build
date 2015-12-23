@@ -246,7 +246,7 @@ $QUIET || echo "Generating spec..."
 $QUIET || echo
 perl .pre-process-main.pl $($QUIET && echo "--quiet") < $HTML_SOURCE/source > $HTML_TEMP/source-expanded-1
 perl .pre-process-annotate-attributes.pl < $HTML_TEMP/source-expanded-1 > $HTML_TEMP/source-expanded-2 # this one could be merged
-perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 | perl .post-process-index-generator.pl > $HTML_TEMP/source-whatwg-complete # this one could be merged
+perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 | perl .pre-process-index-generator.pl > $HTML_TEMP/source-whatwg-complete # this one could be merged
 mkdir $HTML_TEMP/wattsi-output
 
 function runWattsi {
