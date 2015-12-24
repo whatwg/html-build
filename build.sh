@@ -189,6 +189,7 @@ if [ -d $HTML_CACHE ]; then
 
   if [ "$PREV_BUILD_SHA" != "$CURRENT_BUILD_SHA" ]; then
     $QUIET || echo "Build tools have been updated since last run; clearing the cache"
+    DO_UPDATE=true
     rm -rf $HTML_CACHE
     mkdir -p $HTML_CACHE
     echo $CURRENT_BUILD_SHA > $HTML_CACHE/last-build-sha.txt
@@ -259,7 +260,6 @@ $QUIET || echo
 perl .pre-process-main.pl $($QUIET && echo "--quiet") < $HTML_SOURCE/source > $HTML_TEMP/source-expanded-1
 perl .pre-process-annotate-attributes.pl < $HTML_TEMP/source-expanded-1 > $HTML_TEMP/source-expanded-2 # this one could be merged
 perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 | perl .pre-process-index-generator.pl > $HTML_TEMP/source-whatwg-complete # this one could be merged
-mkdir $HTML_TEMP/wattsi-output
 
 function runWattsi {
   # Input arguments: $1 is the file to run wattsi on, $2 is a directory for wattsi to write output to
