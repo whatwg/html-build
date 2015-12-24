@@ -47,27 +47,17 @@ while (@lines) {
         my $indent = $1;
         my $folder = $2;
         my $example = $3;
-        # TODO: maybe move these to the HTML source repo, and upload them to whatwg.org from there?
-        # Or maybe better, redirect from these URLs to new html.spec.whatwg.org URLs
-        my $url = "https://whatwg.org/demos/$folder$example";
+
         my $data;
         my $fh;
-        mkpath(dirname("$ENV{'HTML_CACHE'}/demos/$folder$example"));
-        if (-e "$ENV{'HTML_CACHE'}/demos/$folder$example" && "false" eq "$ENV{'DO_UPDATE'}") {
-          report "\r\nReading $ENV{'HTML_CACHE'}/demos/$folder$example";
-          open($fh, "<:encoding(UTF-8)", "$ENV{'HTML_CACHE'}/demos/$folder$example");
-          while (<$fh>) {
-            $data .= $_;
-          }
-          close $fh;
-        } else {
-          report "\r\n\nReading $url\n";
-          $data = `curl \$(\$VERBOSE && echo "-v" || echo "-s") $url`;
-          report "\rWriting $ENV{'HTML_CACHE'}/demos/$folder$example";
-          open($fh, '>', "$ENV{'HTML_CACHE'}/demos/$folder$example");
-          print $fh $data;
-          close $fh;
+
+        open($fh, "<:encoding(UTF-8)", "$ENV{'HTML_SOURCE'}/demos/$folder$example")
+          or die "\rCannot open $ENV{'HTML_SOURCE'}/demos/$folder$example";
+        while (<$fh>) {
+          $data .= $_;
         }
+        close $fh;
+
         $data =~ s/&/&amp;/gos;
         $data =~ s/</&lt;/gos;
         unshift @lines, split("\n", "$indent<pre>$data</pre>");

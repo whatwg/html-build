@@ -325,6 +325,7 @@ cp -p  $HTML_SOURCE/.htaccess $HTML_OUTPUT
 cp -p  $HTML_SOURCE/404.html $HTML_OUTPUT
 cp -pR $HTML_SOURCE/fonts $HTML_OUTPUT
 cp -pR $HTML_SOURCE/images $HTML_OUTPUT
+cp -pR $HTML_SOURCE/demos $HTML_OUTPUT
 cp -pR $HTML_SOURCE/link-fixup.js $HTML_OUTPUT
 
 $QUIET || echo
