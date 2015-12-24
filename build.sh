@@ -183,7 +183,19 @@ export HTML_SOURCE
 rm -rf $HTML_TEMP && mkdir -p $HTML_TEMP
 rm -rf $HTML_OUTPUT && mkdir -p $HTML_OUTPUT
 
-[ -d $HTML_CACHE ]  || mkdir -p $HTML_CACHE
+if [ -d $HTML_CACHE ]; then
+  PREV_BUILD_SHA=$( cat $HTML_CACHE/last-build-sha.txt 2>/dev/null || echo "" )
+  CURRENT_BUILD_SHA=$( git rev-parse HEAD )
+
+  if [ "$PREV_BUILD_SHA" != "$CURRENT_BUILD_SHA" ]; then
+    $QUIET || echo "Build tools have been updated since last run; clearing the cache"
+    rm -rf $HTML_CACHE
+    mkdir -p $HTML_CACHE
+    echo $CURRENT_BUILD_SHA > $HTML_CACHE/last-build-sha.txt
+  fi
+else
+  mkdir -p $HTML_CACHE
+fi
 
 if [ ! -d $HTML_CACHE/cldr-data ]; then
   $QUIET || echo "Checking out CLDR (79 MB)..."
