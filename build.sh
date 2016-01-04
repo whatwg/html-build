@@ -325,10 +325,6 @@ fi
 cat $HTML_TEMP/wattsi-output/index-html | perl .post-process-partial-backlink-generator.pl > $HTML_OUTPUT/index;
 
 # multipage setup
-ln -s ../images $HTML_TEMP/wattsi-output/multipage-html/
-ln -s ../link-fixup.js $HTML_TEMP/wattsi-output/multipage-html/
-ln -s ../entities.json $HTML_TEMP/wattsi-output/multipage-html/
-
 rm -rf $HTML_OUTPUT/multipage
 mv $HTML_TEMP/wattsi-output/multipage-html $HTML_OUTPUT/multipage
 rm -rf $HTML_TEMP
