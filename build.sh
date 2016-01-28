@@ -279,21 +279,28 @@ function runWattsi {
     $QUIET || echo
     $QUIET || echo "Local wattsi is not present; trying the build server..."
 
-    HTTP_CODE=`curl $($VERBOSE && echo "-v") $($QUIET && echo "-s")\
+    curl $($VERBOSE && echo "-v") $($QUIET && echo "-s") \
       http://ec2-52-33-14-28.us-west-2.compute.amazonaws.com/wattsi \
-      --write-out "%{http_code}" \
       --form source=@$1 \
       --form caniuse=@$HTML_CACHE/caniuse.json \
       --form w3cbugs=@$HTML_CACHE/w3cbugs.csv \
-      --output $HTML_TEMP/wattsi-output.zip`
+      --dump-header $HTML_TEMP/wattsi-headers.txt \
+      --output $HTML_TEMP/wattsi-output.zip
 
-    if [ "$HTTP_CODE" != "200" ]; then
+    # read exit code from the Wattsi-Exit-Code header and assume failure if not found
+    WATTSI_RESULT=1
+    while IFS=":" read NAME VALUE; do
+      if [ "$NAME" == "Wattsi-Exit-Code" ]; then
+        WATTSI_RESULT=$(echo $VALUE | tr -d ' \r\n')
+        break
+      fi
+    done < $HTML_TEMP/wattsi-headers.txt
+
+    if [ "$WATTSI_RESULT" != "0" ]; then
       mv $HTML_TEMP/wattsi-output.zip $HTML_TEMP/wattsi-output.txt
-      WATTSI_RESULT=1
     else
       unzip $($VERBOSE && echo "-v" || echo "-qq") $HTML_TEMP/wattsi-output.zip -d $2
       mv $2/output.txt $HTML_TEMP/wattsi-output.txt
-      WATTSI_RESULT=0
     fi
   fi
 }
