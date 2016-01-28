@@ -302,10 +302,7 @@ runWattsi $HTML_TEMP/source-whatwg-complete $HTML_TEMP/wattsi-output
 
 if [[ ! $QUIET = "true" || ! "$WATTSI_RESULT" = "0" ]]; then
   mv $HTML_TEMP/wattsi-output.txt $HTML_TEMP/wattsi-first-pass-output.txt
-  cp $HTML_SOURCE/source $HTML_TEMP/raw-source
-  # suppress 'missing <dfn> for topic "sort parser mode: separator"' error
-  perl -pi -e 's|^\s+</body>|<dfn w-drop data-x="sort parser mode: separator"></dfn></body>|' $HTML_TEMP/raw-source
-  runWattsi $HTML_TEMP/raw-source $HTML_TEMP/wattsi-raw-source-output
+  runWattsi $HTML_SOURCE/source $HTML_TEMP/wattsi-raw-source-output
 
   echo
   cat $HTML_TEMP/wattsi-first-pass-output.txt | grep -v '^$' # trim blank lines
