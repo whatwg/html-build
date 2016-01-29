@@ -306,24 +306,20 @@ function runWattsi {
 }
 
 runWattsi $HTML_TEMP/source-whatwg-complete $HTML_TEMP/wattsi-output
+$QUIET || cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
 
-if [[ ! $QUIET = "true" || ! "$WATTSI_RESULT" = "0" ]]; then
-  mv $HTML_TEMP/wattsi-output.txt $HTML_TEMP/wattsi-first-pass-output.txt
-  runWattsi $HTML_SOURCE/source $HTML_TEMP/wattsi-raw-source-output
-
-  echo
-  cat $HTML_TEMP/wattsi-first-pass-output.txt | grep -v '^$' # trim blank lines
-
-  echo
-  echo "For any error messages with line numbers, the messages are repeated below,"
-  echo "but with correct line numbers from the $HTML_SOURCE/source file."
-  echo
-  cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
-  if [[ ! "$WATTSI_RESULT" = "0" ]]; then
+if [ "$WATTSI_RESULT" != "0" ]; then
+  $QUIET && exit $WATTSI_RESULT
+  if [ "$WATTSI_RESULT" == "65" ]; then
     echo
-    echo "Found fatal errors. Stopping."
-    exit 1
+    echo "There were errors. Running again to show the original line numbers."
+    echo
+    runWattsi $HTML_SOURCE/source $HTML_TEMP/wattsi-raw-source-output
+    cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
   fi
+  echo
+  echo "There were errors. Stopping."
+  exit $WATTSI_RESULT
 fi
 
 cat $HTML_TEMP/wattsi-output/index-html | perl .post-process-partial-backlink-generator.pl > $HTML_OUTPUT/index;
