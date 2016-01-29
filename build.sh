@@ -199,16 +199,22 @@ else
 fi
 
 if [ ! -d $HTML_CACHE/cldr-data ]; then
-  $QUIET || echo "Checking out CLDR (79 MB)..."
-  svn $($VERBOSE && echo "-v") $($QUIET && echo "-q") \
-    checkout http://www.unicode.org/repos/cldr/trunk/common/main/ $HTML_CACHE/cldr-data
+  $QUIET || echo "Cloning CLDR..."
+  git clone $HTML_GIT_CLONE_OPTIONS \
+    $($VERBOSE && echo "--verbose" || $QUIET && echo "--quiet") \
+    https://github.com/foolip/cldr-data $HTML_CACHE/cldr-data
 fi
 
-$QUIET || echo "Examining CLDR (this takes a moment)...";
-if [ "$DO_UPDATE" == true ] && [ "`svn info -r HEAD $HTML_CACHE/cldr-data | grep -i "Last Changed Rev"`" != "`svn info $HTML_CACHE/cldr-data | grep -i "Last Changed Rev"`" -o ! -s $HTML_CACHE/cldr.inc ]; then
+if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/cldr.inc ]; then
   $QUIET || echo "Updating CLDR..."
-  svn $($QUIET && echo "-q") up $HTML_CACHE/cldr-data;
-  perl -T .cldr-processor.pl $($QUIET && echo "--quiet") > $HTML_CACHE/cldr.inc;
+  cd $HTML_CACHE/cldr-data
+  OLD_CLDR_SHA=$( git rev-parse HEAD )
+  git pull $($VERBOSE && echo "--verbose" || $QUIET && echo "--quiet")
+  NEW_CLDR_SHA=$( git rev-parse HEAD )
+  cd - >/dev/null
+  if [ "$OLD_CLDR_SHA" != "$NEW_CLDR_SHA" ] || [ ! -f $HTML_CACHE/cldr.inc ]; then
+    perl -T .cldr-processor.pl $($QUIET && echo "--quiet") > $HTML_CACHE/cldr.inc;
+  fi
 fi
 
 if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/unicode.xml ]; then
