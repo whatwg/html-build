@@ -280,7 +280,7 @@ function runWattsi {
     $QUIET || echo "Local wattsi is not present; trying the build server..."
 
     HTTP_CODE=`curl $($VERBOSE && echo "-v") $($QUIET && echo "-s")\
-      http://ec2-52-33-14-28.us-west-2.compute.amazonaws.com/ \
+      http://ec2-52-33-14-28.us-west-2.compute.amazonaws.com/wattsi \
       --write-out "%{http_code}" \
       --form source=@$1 \
       --form caniuse=@$HTML_CACHE/caniuse.json \
