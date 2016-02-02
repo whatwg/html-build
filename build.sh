@@ -211,33 +211,6 @@ if [ "$DO_UPDATE" == true ] && [ "`svn info -r HEAD $HTML_CACHE/cldr-data | grep
   perl -T .cldr-processor.pl $($QUIET && echo "--quiet") > $HTML_CACHE/cldr.inc;
 fi
 
-if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/unicode.xml ]; then
-  $QUIET || echo "Downloading unicode.xml (can take a short time, depending on your bandwidth)...";
-  curl --location $($VERBOSE && echo "-v") $($QUIET && echo "-s") \
-    https://www.w3.org/2003/entities/2007xml/unicode.xml.zip \
-    $( [ -f $HTML_CACHE/unicode.xml ] && echo "--time-cond $HTML_CACHE/unicode.xml" ) \
-    --output $HTML_TEMP/unicode.xml.zip
-  [ -f $HTML_TEMP/unicode.xml.zip ] && unzip $($VERBOSE && echo "-v" || echo "-qq") \
-    -o $HTML_TEMP/unicode.xml.zip -d $HTML_CACHE && touch $HTML_CACHE/unicode.xml
-fi
-
-# XXX should also check if .entity-processor.py, .entity-processor-json.py, and entities-legacy* have changed
-if [ $HTML_CACHE/unicode.xml -nt $HTML_CACHE/entities.inc ]; then
-  $QUIET || echo;
-  $QUIET || echo "Updating entities database (this always takes a while)...";
-  python .entity-processor.py > $HTML_TEMP/new-entities-unicode.inc;
-  [ -s $HTML_TEMP/new-entities-unicode.inc ] && mv -f $HTML_TEMP/new-entities-unicode.inc $HTML_TEMP/entities-unicode.inc; # otherwise, probably http error, just do it again next time
-  python .entity-processor-json.py > $HTML_TEMP/new-entities-unicode-json.inc;
-  [ -s $HTML_TEMP/new-entities-unicode-json.inc ] && mv -f $HTML_TEMP/new-entities-unicode-json.inc $HTML_TEMP/json-entities-unicode.inc; # otherwise, probably http error, just do it again next time
-  echo '<tbody>' > $HTML_CACHE/entities.inc
-  cat $HTML_SOURCE/entities-*.inc $HTML_TEMP/entities-*.inc | perl -e 'my @lines = <>; print sort { $a =~ m/id="([^"]+?)(-legacy)?"/; $a1 = $1; $a2 = $2; $b =~ m/id="([^"]+?)(-legacy)?"/; $b1 = $1; $b2 = $2; return (lc($a1) cmp lc($b1)) || ($a1 cmp $b1) || ($a2 cmp $b2); } @lines' >> $HTML_CACHE/entities.inc
-  echo '{' > $HTML_OUTPUT/entities.json
-  cat $HTML_SOURCE/json-entities-* $HTML_TEMP/json-entities-* | sort | perl -e '$/ = undef; $_ = <>; chop, chop, print' >> $HTML_OUTPUT/entities.json
-  echo '' >> $HTML_OUTPUT/entities.json
-  echo '}' >> $HTML_OUTPUT/entities.json
-  perl -Tw .entity-to-dtd.pl < $HTML_TEMP/entities-unicode.inc > $HTML_CACHE/entities-dtd.url
-fi
-
 if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/caniuse.json ]; then
   rm -f $HTML_CACHE/caniuse.json
   $QUIET || echo "Downloading caniuse data..."
@@ -257,6 +230,8 @@ fi
 $QUIET || echo
 $QUIET || echo "Generating spec..."
 $QUIET || echo
+cp -p  entities/out/entities.inc $HTML_CACHE
+cp -p  entities/out/entities-dtd.url $HTML_CACHE
 perl .pre-process-main.pl $($QUIET && echo "--quiet") < $HTML_SOURCE/source > $HTML_TEMP/source-expanded-1
 perl .pre-process-annotate-attributes.pl < $HTML_TEMP/source-expanded-1 > $HTML_TEMP/source-expanded-2 # this one could be merged
 perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 | perl .pre-process-index-generator.pl > $HTML_TEMP/source-whatwg-complete # this one could be merged
@@ -323,6 +298,7 @@ if [ "$WATTSI_RESULT" != "0" ]; then
 fi
 
 cat $HTML_TEMP/wattsi-output/index-html | perl .post-process-partial-backlink-generator.pl > $HTML_OUTPUT/index;
+cp -p  entities/out/entities.json $HTML_OUTPUT
 
 # multipage setup
 rm -rf $HTML_OUTPUT/multipage
