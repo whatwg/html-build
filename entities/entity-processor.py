@@ -2,7 +2,7 @@ import xml.dom.minidom
 import os
 
 # this uses 658 MB
-document = xml.dom.minidom.parse('%s/unicode.xml' % os.environ['HTML_CACHE'])
+document = xml.dom.minidom.parse('%s/unicode.xml' % os.environ['ENTITIES_TEMP'])
 
 sets = []
 entities = {}
