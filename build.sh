@@ -2,8 +2,9 @@
 set -e
 HTML_GIT_CLONE_OPTIONS=${HTML_GIT_CLONE_OPTIONS:-"--depth 1"}
 
-# Absolute path to the directory containing this script
-DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+# cd to the directory containing this script
+cd "$( dirname "${BASH_SOURCE[0]}" )"
+DIR=$(pwd)
 
 DO_UPDATE=true
 VERBOSE=false
