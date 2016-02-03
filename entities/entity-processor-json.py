@@ -1,6 +1,6 @@
 import xml.dom.minidom
 import math
-import os
+import sys
 
 def highSurrogate(codePoint):
   return int(math.floor((codePoint - 0x10000) / 0x400) + 0xD800)
@@ -16,7 +16,7 @@ def codePointToString(codePoint):
   return string
 
 # this uses 658 MB
-document = xml.dom.minidom.parse('%s/unicode.xml' % os.environ['ENTITIES_TEMP'])
+document = xml.dom.minidom.parse(sys.stdin)
 
 sets = []
 entities = {}

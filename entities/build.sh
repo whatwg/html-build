@@ -1,16 +1,12 @@
 #!/bin/bash
 set -e
 
-# Absolute path to the directory containing this script
-DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+# cd to the directory containing this script
+cd "$( dirname "${BASH_SOURCE[0]}" )"
 
 VERBOSE=false
 QUIET=false
-export VERBOSE
-export QUIET
-
-ENTITIES_TEMP=${ENTITIES_TEMP:-$DIR/.temp}
-export ENTITIES_TEMP
+ENTITIES_TEMP=${ENTITIES_TEMP:-.temp}
 
 for arg in "$@"
 do
@@ -43,19 +39,16 @@ rm -rf entities-dtd.url entities.inc entities.json
 
 # Fetch unicode.xml
 $QUIET || echo "Downloading unicode.xml (can take a short time, depending on your bandwidth)...";
-curl --location $($VERBOSE && echo "-v") $($QUIET && echo "-s") \
-  https://www.w3.org/2003/entities/2007xml/unicode.xml.zip \
-  $( [ -f $ENTITIES_TEMP/unicode.xml ] && echo "--time-cond $ENTITIES_TEMP/unicode.xml" ) \
-  --output $ENTITIES_TEMP/unicode.xml.zip
-[ -f $ENTITIES_TEMP/unicode.xml.zip ] && unzip $($VERBOSE && echo "-v" || echo "-qq") \
-  -o $ENTITIES_TEMP/unicode.xml.zip -d $ENTITIES_TEMP && touch $ENTITIES_TEMP/unicode.xml
+curl $($VERBOSE && echo "-v") $($QUIET && echo "-s") \
+  https://raw.githubusercontent.com/w3c/xml-entities/gh-pages/unicode.xml \
+  --output $ENTITIES_TEMP/unicode.xml
 
 # Generate entity files
 $QUIET || echo;
-$QUIET || echo "Generate entities (this always takes a while)...";
-python entity-processor.py > $ENTITIES_TEMP/new-entities-unicode.inc;
+$QUIET || echo "Generating entities (this always takes a while)...";
+python entity-processor.py < $ENTITIES_TEMP/unicode.xml > $ENTITIES_TEMP/new-entities-unicode.inc;
 [ -s $ENTITIES_TEMP/new-entities-unicode.inc ] && mv -f $ENTITIES_TEMP/new-entities-unicode.inc $ENTITIES_TEMP/entities-unicode.inc; # otherwise, probably http error, just do it again next time
-python entity-processor-json.py > $ENTITIES_TEMP/new-entities-unicode-json.inc;
+python entity-processor-json.py < $ENTITIES_TEMP/unicode.xml > $ENTITIES_TEMP/new-entities-unicode-json.inc;
 [ -s $ENTITIES_TEMP/new-entities-unicode-json.inc ] && mv -f $ENTITIES_TEMP/new-entities-unicode-json.inc $ENTITIES_TEMP/json-entities-unicode.inc; # otherwise, probably http error, just do it again next time
 echo '<tbody>' > entities.inc
 cat entities-*.inc $ENTITIES_TEMP/entities-*.inc | perl -e 'my @lines = <>; print sort { $a =~ m/id="([^"]+?)(-legacy)?"/; $a1 = $1; $a2 = $2; $b =~ m/id="([^"]+?)(-legacy)?"/; $b1 = $1; $b2 = $2; return (lc($a1) cmp lc($b1)) || ($a1 cmp $b1) || ($a2 cmp $b2); } @lines' >> entities.inc

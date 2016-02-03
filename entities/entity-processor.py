@@ -1,8 +1,8 @@
 import xml.dom.minidom
-import os
+import sys
 
 # this uses 658 MB
-document = xml.dom.minidom.parse('%s/unicode.xml' % os.environ['ENTITIES_TEMP'])
+document = xml.dom.minidom.parse(sys.stdin)
 
 sets = []
 entities = {}
