@@ -6,12 +6,7 @@ This repository contains the tools and instructions necessary for building the [
 
 Before building, make sure you have the following commands installed on your system.
 
-- `curl`, `egrep`, `git`, `grep`, `perl`, `svn`, `unzip`
-
-You'll also need to have the Perl XML::Parser module installed on your system. It's not a "core" Perl module, so you may have to install it by doing one of the following to either get it using the perl `cpan install` command, or by getting the version packaged for your OS; for example;
-
-- `cpan install XML::Parser`
-- `apt-get install libxml-parser-perl` (Ubuntu)
+- `curl`, `egrep`, `git`, `grep`, `perl`, `unzip`
 
 ## Build
 

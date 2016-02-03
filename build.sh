@@ -198,19 +198,6 @@ else
   mkdir -p $HTML_CACHE
 fi
 
-if [ ! -d $HTML_CACHE/cldr-data ]; then
-  $QUIET || echo "Checking out CLDR (79 MB)..."
-  svn $($VERBOSE && echo "-v") $($QUIET && echo "-q") \
-    checkout http://www.unicode.org/repos/cldr/trunk/common/main/ $HTML_CACHE/cldr-data
-fi
-
-$QUIET || echo "Examining CLDR (this takes a moment)...";
-if [ "$DO_UPDATE" == true ] && [ "`svn info -r HEAD $HTML_CACHE/cldr-data | grep -i "Last Changed Rev"`" != "`svn info $HTML_CACHE/cldr-data | grep -i "Last Changed Rev"`" -o ! -s $HTML_CACHE/cldr.inc ]; then
-  $QUIET || echo "Updating CLDR..."
-  svn $($QUIET && echo "-q") up $HTML_CACHE/cldr-data;
-  perl -T .cldr-processor.pl $($QUIET && echo "--quiet") > $HTML_CACHE/cldr.inc;
-fi
-
 if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/caniuse.json ]; then
   rm -f $HTML_CACHE/caniuse.json
   $QUIET || echo "Downloading caniuse data..."
@@ -232,6 +219,7 @@ $QUIET || echo "Generating spec..."
 $QUIET || echo
 cp -p  entities/out/entities.inc $HTML_CACHE
 cp -p  entities/out/entities-dtd.url $HTML_CACHE
+cp -p  quotes/out/cldr.inc $HTML_CACHE
 perl .pre-process-main.pl $($QUIET && echo "--quiet") < $HTML_SOURCE/source > $HTML_TEMP/source-expanded-1
 perl .pre-process-annotate-attributes.pl < $HTML_TEMP/source-expanded-1 > $HTML_TEMP/source-expanded-2 # this one could be merged
 perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 | perl .pre-process-index-generator.pl > $HTML_TEMP/source-whatwg-complete # this one could be merged

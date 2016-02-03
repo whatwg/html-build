@@ -3,12 +3,13 @@ use strict;
 use XML::Parser;
 
 my $quiet = $ARGV[0] && '--quiet' eq "$ARGV[0]" ? 'true' : 'false';
+shift if $quiet eq 'true';
 
 my $parser = XML::Parser->new(Style => 'Tree');
 
 my $delimiters = {};
 
-my @filenames = <$ENV{'HTML_CACHE'}/cldr-data/*.xml>;
+my @filenames = @ARGV;
 my $count = 0;
 for my $filename (@filenames) {
     $count += 1;
