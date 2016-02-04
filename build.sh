@@ -58,6 +58,27 @@ do
   esac
 done
 
+if [ "$DO_UPDATE" == true ]; then
+  $QUIET || echo "Checking if html-build is up to date..."
+  ORIGIN_URL=$(git remote get-url origin)
+  git fetch $($VERBOSE || echo "-q") $ORIGIN_URL master
+  NEW_COMMITS=$(git rev-list --count HEAD..FETCH_HEAD)
+  if [ "$NEW_COMMITS" != "0" ]; then
+    $QUIET || echo
+    echo -n "Your local branch is $NEW_COMMITS "
+    [ "$NEW_COMMITS" == "1" ] && echo -n commit || echo -n commits
+    echo " behind $ORIGIN_URL:"
+    git log --oneline HEAD..FETCH_HEAD
+    echo
+    echo "To update, run this command:"
+    echo
+    echo "  git pull --rebase origin master"
+    echo
+    echo "This check can be bypassed with the --no-update option."
+    exit 1
+  fi
+fi
+
 function chooseRepo {
 echo
 echo "What HTML source would you like to build from?"
