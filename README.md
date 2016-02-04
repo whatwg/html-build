@@ -8,6 +8,8 @@ Before building, make sure you have the following commands installed on your sys
 
 - `curl`, `git`, `grep`, `perl`, `unzip`
 
+Optionally, for faster builds, you can install [Wattsi](https://github.com/whatwg/wattsi) on your system. If you don't bother with that, the build will use [Wattsi Server](https://github.com/domenic/wattsi-server).
+
 ## Build
 
 Building your own copy of the HTML Standard from its source requires just these simple steps:
