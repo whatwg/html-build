@@ -199,6 +199,13 @@ else
 fi
 export HTML_SOURCE
 
+$QUIET || echo "Linting the source file..."
+./lint.sh $HTML_SOURCE/source || {
+  echo
+  echo "There were lint errors. Stopping."
+  exit 1
+}
+
 rm -rf $HTML_TEMP && mkdir -p $HTML_TEMP
 rm -rf $HTML_OUTPUT && mkdir -p $HTML_OUTPUT
 
@@ -316,16 +323,6 @@ cp -pR $HTML_SOURCE/fonts $HTML_OUTPUT
 cp -pR $HTML_SOURCE/images $HTML_OUTPUT
 cp -pR $HTML_SOURCE/demos $HTML_OUTPUT
 cp -pR $HTML_SOURCE/link-fixup.js $HTML_OUTPUT
-
-$QUIET || echo "Linting the output..."
-# show potential problems
-# note - would be nice if the ones with \s+ patterns actually cross lines, but, they don't...
-grep -ni 'xxx' $HTML_SOURCE/source| perl -lpe 'print "\nPossible incomplete sections:" if $. == 1'
-grep -niE '( (code|span|var)(>| data-x=)|[^<;]/(code|span|var)>)' $HTML_SOURCE/source| perl -lpe 'print "\nPossible copypasta:" if $. == 1'
-grep -ni 'chosing\|approprate\|occured\|elemenst\|\bteh\b\|\blabelled\b\|\blabelling\b\|\bhte\b\|taht\|linx\b\|speciication\|attribue\|kestern\|horiontal\|\battribute\s\+attribute\b\|\bthe\s\+the\b\|\bthe\s\+there\b\|\bfor\s\+for\b\|\bor\s\+or\b\|\bany\s\+any\b\|\bbe |be\b\|\bwith\s\+with\b\|\bis\s\+is\b' $HTML_SOURCE/source| perl -lpe 'print "\nPossible typos:" if $. == 1'
-perl -ne 'print "$.: $_" if (/\ban (<[^>]*>)*(?!(L\b|http|https|href|hgroup|rb|rp|rt|rtc|li|xml|svg|svgmatrix|hour|hr|xhtml|xslt|xbl|nntp|mpeg|m[ions]|mtext|merror|h[1-6]|xmlns|xpath|s|x|sgml|huang|srgb|rsa|only|option|optgroup)\b|html)[b-df-hj-np-tv-z]/i or /\b(?<![<\/;])a (?!<!--grammar-check-override-->)(<[^>]*>)*(?!&gt|one)(?:(L\b|http|https|href|hgroup|rt|rp|li|xml|svg|svgmatrix|hour|hr|xhtml|xslt|xbl|nntp|mpeg|m[ions]|mtext|merror|h[1-6]|xmlns|xpath|s|x|sgml|huang|srgb|rsa|only|option|optgroup)\b|html|[aeio])/i)' $HTML_SOURCE/source| perl -lpe 'print "\nPossible article problems:" if $. == 1'
-grep -ni 'and/or' $HTML_SOURCE/source| perl -lpe 'print "\nOccurrences of making Ms2ger unhappy and/or annoyed:" if $. == 1'
-grep -ni 'throw\s\+an\?\s\+<span' $HTML_SOURCE/source| perl -lpe 'print "\nException marked using <span> rather than <code>:" if $. == 1'
 
 $QUIET || echo
 $QUIET || echo "Success!"
