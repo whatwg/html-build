@@ -6,7 +6,7 @@ This repository contains the tools and instructions necessary for building the [
 
 Before building, make sure you have the following commands installed on your system.
 
-- `curl`, `egrep`, `git`, `grep`, `perl`, `unzip`
+- `curl`, `git`, `grep`, `perl`, `unzip`
 
 ## Build
 
