@@ -270,10 +270,10 @@ function runWattsi {
 }
 
 runWattsi $HTML_TEMP/source-whatwg-complete $HTML_TEMP/wattsi-output
-$QUIET || cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
-
-if [ "$WATTSI_RESULT" != "0" ]; then
-  $QUIET && exit $WATTSI_RESULT
+if [ "$WATTSI_RESULT" == "0" ]; then
+    $QUIET || cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
+else
+  cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
   if [ "$WATTSI_RESULT" == "65" ]; then
     echo
     echo "There were errors. Running again to show the original line numbers."
