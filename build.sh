@@ -173,27 +173,24 @@ function confirmRepo {
   fi
 }
 
+$QUIET || echo "Looking for the HTML source (set HTML_SOURCE to override)..."
 if [ -z "$HTML_SOURCE" ]; then
-  $QUIET || echo "HTML_SOURCE environment variable not set..."
-  $QUIET || echo "OK, looking for HTML source file..."
   PARENT_DIR=$(dirname $DIR)
   if [ -f $PARENT_DIR/html/source ]; then
-    $QUIET || echo "OK, looked in the $PARENT_DIR/html directory and found HTML source there..."
     HTML_SOURCE=$PARENT_DIR/html
+    $QUIET || echo "Found $HTML_SOURCE (alongside html-build)..."
   else
     if [ -f $DIR/html/source ]; then
-      $QUIET || echo "OK, looked in the html subdirectory here and found HTML source..."
       HTML_SOURCE=$DIR/html
+      $QUIET || echo "Found $HTML_SOURCE (inside html-build)..."
     else
-      # TODO Before giving up, should we maybe also check $HOME/html? Or anywhere else?
       $QUIET || echo "Didn't find the HTML source on your system..."
       chooseRepo
     fi
   fi
 else
-  $QUIET || echo "HTML_SOURCE environment variable is set to $HTML_SOURCE; looking for HTML source..."
   if [ -f "$HTML_SOURCE/source" ]; then
-    $QUIET || echo "OK, looked in the $HTML_SOURCE directory and found HTML source there..."
+    $QUIET || echo "Found $HTML_SOURCE (from HTML_SOURCE)..."
   else
     $QUIET || echo "Looked in the $HTML_SOURCE directory but didn't find HTML source there..."
     unset HTML_SOURCE
@@ -210,7 +207,7 @@ if [ -d $HTML_CACHE ]; then
   CURRENT_BUILD_SHA=$( git rev-parse HEAD )
 
   if [ "$PREV_BUILD_SHA" != "$CURRENT_BUILD_SHA" ]; then
-    $QUIET || echo "Build tools have been updated since last run; clearing the cache"
+    $QUIET || echo "Build tools have been updated since last run; clearing the cache..."
     DO_UPDATE=true
     rm -rf $HTML_CACHE
     mkdir -p $HTML_CACHE
@@ -236,13 +233,11 @@ if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/w3cbugs.csv ]; then
     'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv&status_whiteboard=whatwg-resolved&status_whiteboard_type=notregexp&bug_file_loc=http&bug_file_loc_type=substring&product=WHATWG&product=HTML%20WG&product=CSS&product=WebAppsWG'
 fi
 
-$QUIET || echo
-$QUIET || echo "Generating spec..."
-$QUIET || echo
+$QUIET || echo "Pre-processing the source..."
 cp -p  entities/out/entities.inc $HTML_CACHE
 cp -p  entities/out/entities-dtd.url $HTML_CACHE
 cp -p  quotes/out/cldr.inc $HTML_CACHE
-perl .pre-process-main.pl $($QUIET && echo "--quiet") < $HTML_SOURCE/source > $HTML_TEMP/source-expanded-1
+perl .pre-process-main.pl $($VERBOSE && echo "--verbose") < $HTML_SOURCE/source > $HTML_TEMP/source-expanded-1
 perl .pre-process-annotate-attributes.pl < $HTML_TEMP/source-expanded-1 > $HTML_TEMP/source-expanded-2 # this one could be merged
 perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 | perl .pre-process-index-generator.pl > $HTML_TEMP/source-whatwg-complete # this one could be merged
 
@@ -322,7 +317,6 @@ cp -pR $HTML_SOURCE/images $HTML_OUTPUT
 cp -pR $HTML_SOURCE/demos $HTML_OUTPUT
 cp -pR $HTML_SOURCE/link-fixup.js $HTML_OUTPUT
 
-$QUIET || echo
 $QUIET || echo "Linting the output..."
 # show potential problems
 # note - would be nice if the ones with \s+ patterns actually cross lines, but, they don't...

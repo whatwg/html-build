@@ -7,7 +7,8 @@ use Time::HiRes qw(time);
 
 $| = 1;
 
-sub report($) { print STDERR $_[0] if "false" eq "$ENV{'QUIET'}" }
+my $verbose = $ARGV[0] && '--verbose' eq "$ARGV[0]";
+sub report($) { print STDERR $_[0] if $verbose; }
 
 report "Loading...";
 my @lines = <STDIN>;
