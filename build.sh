@@ -60,7 +60,8 @@ done
 
 if [ "$DO_UPDATE" == true ]; then
   $QUIET || echo "Checking if html-build is up to date..."
-  ORIGIN_URL=$(git remote get-url origin)
+  # TODO: `git remote get-url origin` is nicer, but new in Git 2.7.
+  ORIGIN_URL=$(git config --get remote.origin.url)
   git fetch $($VERBOSE || echo "-q") $ORIGIN_URL master
   NEW_COMMITS=$(git rev-list --count HEAD..FETCH_HEAD)
   if [ "$NEW_COMMITS" != "0" ]; then
