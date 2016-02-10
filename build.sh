@@ -7,6 +7,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 DIR=$(pwd)
 
 DO_UPDATE=true
+USE_DOCKER=false
 VERBOSE=false
 QUIET=false
 export DO_UPDATE
@@ -32,17 +33,22 @@ do
     -h|--help)
       echo "Usage: $0 [-c|--clean]"
       echo "       $0 [-h|--help]"
-      echo "Usage: $0 [-n|--no-update] [-q|--quiet] [-v|--verbose]"
+      echo "       $0 [-d|--docker]"
+      echo "       $0 [-n|--no-update] [-q|--quiet] [-v|--verbose]"
       echo
       echo "  -c|--clean      Remove downloaded dependencies and generated files (then stop)."
       echo "  -h|--help       Show this usage statement."
       echo "  -n|--no-update  Don't update before building; just build."
+      echo "  -d|--docker     Use Docker to build in and serve from a container."
       echo "  -q|--quiet      Don't emit any messages except errors/warnings."
       echo "  -v|--verbose    Show verbose output from every build step."
       exit 0
       ;;
     -n|--no-update|--no-updates)
       DO_UPDATE=false
+      ;;
+    -d|--docker)
+      USE_DOCKER=true
       ;;
     -q|--quiet)
       QUIET=true
@@ -58,7 +64,9 @@ do
   esac
 done
 
-if [ "$DO_UPDATE" == true ]; then
+# $SKIP_BUILD_UPDATE_CHECK is set inside the Dockerfile so that we don't check for updates both inside and outside
+# the Docker container.
+if [ "$DO_UPDATE" == true -a "$SKIP_BUILD_UPDATE_CHECK" != true ]; then
   $QUIET || echo "Checking if html-build is up to date..."
   # TODO: `git remote get-url origin` is nicer, but new in Git 2.7.
   ORIGIN_URL=$(git config --get remote.origin.url)
@@ -199,6 +207,32 @@ else
   fi
 fi
 export HTML_SOURCE
+
+if [ "$USE_DOCKER" == true ]; then
+  if [[ "$HTML_SOURCE" != $(pwd)/* ]]; then
+    echo "When using Docker, the HTML source must be checked out in a subdirectory of the html-build repo. Cannot continue."
+    exit 1
+  fi
+
+  # $SOURCE_RELATIVE helps on Windows with Git Bash, where /c/... is a symlink, which Docker doesn't like.
+  SOURCE_RELATIVE=$(realpath --relative-to=. $HTML_SOURCE)
+
+  VERBOSE_OR_QUIET_FLAG=""
+  $QUIET && VERBOSE_OR_QUIET_FLAG+="--quiet"
+  $VERBOSE && VERBOSE_OR_QUIET_FLAG+="--verbose"
+
+  NO_UPDATE_FLAG="--no-update"
+  $DO_UPDATE && NO_UPDATE_FLAG=""
+
+  docker build --tag whatwg-html \
+               --build-arg html_source_dir=$SOURCE_RELATIVE \
+               --build-arg verbose_or_quiet_flag=$VERBOSE_OR_QUIET_FLAG \
+               --build-arg no_update_flag=$NO_UPDATE_FLAG \
+               $($QUIET && echo "--quiet") .
+  docker run --rm -it -p 8080:80 whatwg-html
+  exit 0
+fi
+
 
 $QUIET || echo "Linting the source file..."
 ./lint.sh $HTML_SOURCE/source || {
