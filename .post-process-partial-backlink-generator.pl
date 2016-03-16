@@ -9,7 +9,7 @@ while (<>) {
     $inpre = 1 if /<pre class=idl>/os;
     if ($inpre && /(partial )?interface <(span|dfn|a href=#[^ >]*) id=([^ >]*).*?>([^<:]*)?<\/(span|dfn|a)>(.*<!-- not obsolete -->)?/os) {
         my ($partial, $id, $name, $notobs) = ($1, $3, $4, $6);
-        $notobs = $name eq 'WorkerGlobalScope'; # XXX hack for now
+        $notobs = $name eq 'NavigatorID'; # XXX hack for now
         $definitions{$name} = { } unless defined $definitions{$name};
         if ($partial) {
             $definitions{$name}{partial} = [] unless exists $definitions{$name}{partial};
