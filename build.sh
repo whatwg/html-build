@@ -279,6 +279,13 @@ $QUIET || echo "Pre-processing the source..."
 cp -p  entities/out/entities.inc $HTML_CACHE
 cp -p  entities/out/entities-dtd.url $HTML_CACHE
 cp -p  quotes/out/cldr.inc $HTML_CACHE
+LINKFIXUPJS=$HTML_SOURCE/link-fixup.js
+if [ -f "$LINKFIXUPJS" ]; then
+  cp -p $LINKFIXUPJS $HTML_TEMP/link-fixup.js
+else
+  echo "$LINKFIXUPJS file not found. Cannot continue."
+  exit 1
+fi
 perl .pre-process-main.pl $($VERBOSE && echo "--verbose") < $HTML_SOURCE/source > $HTML_TEMP/source-expanded-1
 perl .pre-process-annotate-attributes.pl < $HTML_TEMP/source-expanded-1 > $HTML_TEMP/source-expanded-2 # this one could be merged
 perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 | perl .pre-process-index-generator.pl > $HTML_TEMP/source-whatwg-complete # this one could be merged
