@@ -314,6 +314,7 @@ function runWattsi {
       --form source=@$1 \
       --form caniuse=@$HTML_CACHE/caniuse.json \
       --form w3cbugs=@$HTML_CACHE/w3cbugs.csv \
+      --form linkfixupjs=$LINKFIXUPJS \
       --dump-header $HTML_TEMP/wattsi-headers.txt \
       --output $HTML_TEMP/wattsi-output.zip
 
