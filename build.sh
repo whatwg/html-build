@@ -234,6 +234,13 @@ if [ "$USE_DOCKER" == true ]; then
 fi
 
 
+
+LINKFIXUPJS=$HTML_SOURCE/link-fixup.js
+if [ ! -f "$LINKFIXUPJS" ]; then
+  echo "$LINKFIXUPJS file not found. Cannot continue."
+  exit 1
+fi
+
 $QUIET || echo "Linting the source file..."
 ./lint.sh $HTML_SOURCE/source || {
   echo
@@ -279,6 +286,7 @@ $QUIET || echo "Pre-processing the source..."
 cp -p  entities/out/entities.inc $HTML_CACHE
 cp -p  entities/out/entities-dtd.url $HTML_CACHE
 cp -p  quotes/out/cldr.inc $HTML_CACHE
+
 perl .pre-process-main.pl $($VERBOSE && echo "--verbose") < $HTML_SOURCE/source > $HTML_TEMP/source-expanded-1
 perl .pre-process-annotate-attributes.pl < $HTML_TEMP/source-expanded-1 > $HTML_TEMP/source-expanded-2 # this one could be merged
 perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 | perl .pre-process-index-generator.pl > $HTML_TEMP/source-whatwg-complete # this one could be merged
@@ -295,7 +303,7 @@ function runWattsi {
 
   if hash wattsi 2>/dev/null; then
     WATTSI_RESULT=$(wattsi $($QUIET && echo "--quiet") $1 $2 \
-      $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv \
+      $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv $LINKFIXUPJS \
       > $HTML_TEMP/wattsi-output.txt; echo $?)
   else
     $QUIET || echo
@@ -350,6 +358,7 @@ cp -p  entities/out/entities.json $HTML_OUTPUT
 # multipage setup
 rm -rf $HTML_OUTPUT/multipage
 mv $HTML_TEMP/wattsi-output/multipage-html $HTML_OUTPUT/multipage
+mv $HTML_TEMP/wattsi-output/link-fixup.js $HTML_OUTPUT/link-fixup.js
 rm -rf $HTML_TEMP
 
 cp -p  $HTML_SOURCE/.htaccess $HTML_OUTPUT
@@ -357,7 +366,6 @@ cp -p  $HTML_SOURCE/404.html $HTML_OUTPUT
 cp -pR $HTML_SOURCE/fonts $HTML_OUTPUT
 cp -pR $HTML_SOURCE/images $HTML_OUTPUT
 cp -pR $HTML_SOURCE/demos $HTML_OUTPUT
-cp -pR $HTML_SOURCE/link-fixup.js $HTML_OUTPUT
 
 $QUIET || echo
 $QUIET || echo "Success!"
