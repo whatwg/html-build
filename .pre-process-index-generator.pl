@@ -8,7 +8,7 @@ my %definitions;
 my $inpre = 0;
 while (<>) {
     $inpre = 1 if /<pre class="idl">/os;
-    if ($inpre && /(partial )?interface <(span|dfn|a href=#[^ >]*)( id="?([^ ">]*)"?)?>([^<:]*)?<\/(span|dfn|a)>/os) {
+    if ($inpre && /(partial )?interface <(span|dfn|a href=#[^ >]*)( id="?([^ ">]*)"?)?[^>]*>([^<:]*)?<\/(span|dfn|a)>/os) {
         my $partial = $1;
         my $id;
         my $name;
