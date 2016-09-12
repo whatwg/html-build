@@ -359,7 +359,7 @@ cp -p  entities/out/entities.json $HTML_OUTPUT
 # multipage setup
 rm -rf $HTML_OUTPUT/multipage
 mv $HTML_TEMP/wattsi-output/multipage-html $HTML_OUTPUT/multipage
-mv $HTML_TEMP/wattsi-output/link-fixup.js $HTML_OUTPUT/link-fixup.js
+mv $HTML_OUTPUT/multipage/link-fixup.js $HTML_OUTPUT/link-fixup.js
 rm -rf $HTML_TEMP
 
 cp -p  $HTML_SOURCE/.htaccess $HTML_OUTPUT
