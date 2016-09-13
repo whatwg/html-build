@@ -353,7 +353,7 @@ else
   exit $WATTSI_RESULT
 fi
 
-cat $HTML_TEMP/wattsi-output/index-html | perl .post-process-partial-backlink-generator.pl > $HTML_OUTPUT/index;
+cat $HTML_TEMP/wattsi-output/index-html | perl .post-process-partial-backlink-generator.pl > $HTML_OUTPUT/index.html;
 cp -p  entities/out/entities.json $HTML_OUTPUT
 
 # multipage setup
