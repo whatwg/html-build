@@ -208,6 +208,48 @@ else
 fi
 export HTML_SOURCE
 
+# From http://stackoverflow.com/a/12498485
+function relativePath {
+  # both $1 and $2 are absolute paths beginning with /
+  # returns relative path to $2 from $1
+  local source=$1
+  local target=$2
+
+  local commonPart=$source
+  local result=""
+
+  while [[ "${target#$commonPart}" == "${target}" ]]; do
+    # no match, means that candidate common part is not correct
+    # go up one level (reduce common part)
+    commonPart="$(dirname $commonPart)"
+    # and record that we went back, with correct / handling
+    if [[ -z $result ]]; then
+      result=".."
+    else
+      result="../$result"
+    fi
+  done
+
+  if [[ $commonPart == "/" ]]; then
+    # special case for root (no common path)
+    result="$result/"
+  fi
+
+  # since we now have identified the common part,
+  # compute the non-common part
+  local forwardPart="${target#$commonPart}"
+
+  # and now stick all parts together
+  if [[ -n $result ]] && [[ -n $forwardPart ]]; then
+    result="$result$forwardPart"
+  elif [[ -n $forwardPart ]]; then
+    # extra slash removal
+    result="${forwardPart:1}"
+  fi
+
+  echo $result
+}
+
 if [ "$USE_DOCKER" == true ]; then
   if [[ "$HTML_SOURCE" != $(pwd)/* ]]; then
     echo "When using Docker, the HTML source must be checked out in a subdirectory of the html-build repo. Cannot continue."
@@ -215,7 +257,7 @@ if [ "$USE_DOCKER" == true ]; then
   fi
 
   # $SOURCE_RELATIVE helps on Windows with Git Bash, where /c/... is a symlink, which Docker doesn't like.
-  SOURCE_RELATIVE=$(realpath --relative-to=. $HTML_SOURCE)
+  SOURCE_RELATIVE=$(relativePath $(pwd) $HTML_SOURCE)
 
   VERBOSE_OR_QUIET_FLAG=""
   $QUIET && VERBOSE_OR_QUIET_FLAG+="--quiet"
