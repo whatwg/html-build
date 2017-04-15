@@ -1,0 +1,11 @@
+language: bash
+
+addons:
+  apt:
+    sources:
+      - debian-sid
+    packages:
+      - shellcheck
+
+script:
+  - bash -c 'shopt -s globstar; shellcheck build.sh lint.sh'
