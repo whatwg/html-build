@@ -27,7 +27,7 @@ for arg in "$@"
 do
   case $arg in
     -c|--clean)
-      rm -rf $HTML_CACHE
+      rm -rf "$HTML_CACHE"
       exit 0
       ;;
     -h|--help)
@@ -66,11 +66,16 @@ done
 
 # $SKIP_BUILD_UPDATE_CHECK is set inside the Dockerfile so that we don't check for updates both inside and outside
 # the Docker container.
-if [ "$DO_UPDATE" == true -a "$SKIP_BUILD_UPDATE_CHECK" != true ]; then
+if [[ "$DO_UPDATE" == true && "$SKIP_BUILD_UPDATE_CHECK" != true ]]; then
   $QUIET || echo "Checking if html-build is up to date..."
+  GIT_FETCH_ARGS=()
+  if ! $VERBOSE ; then
+    GIT_FETCH_ARGS+=( --quiet )
+  fi
   # TODO: `git remote get-url origin` is nicer, but new in Git 2.7.
   ORIGIN_URL=$(git config --get remote.origin.url)
-  git fetch $($VERBOSE || echo "-q") $ORIGIN_URL master
+  GIT_FETCH_ARGS+=( "$ORIGIN_URL" master)
+  git fetch "${GIT_FETCH_ARGS[@]}"
   NEW_COMMITS=$(git rev-list --count HEAD..FETCH_HEAD)
   if [ "$NEW_COMMITS" != "0" ]; then
     $QUIET || echo
@@ -98,9 +103,9 @@ echo "3) Create a clone from an existing fork, by GitHub username."
 echo "4) Create a clone from an existing fork, by custom URL."
 echo "5) Quit"
 echo
-read -e -p "Choose 1-5: " choice
+read -r -e -p "Choose 1-5: " choice
 if [ "1" = "$choice" ]; then
-  read -e -p "Path to your existing clone: "
+  read -r -e -p "Path to your existing clone: "
   HTML_SOURCE=$(echo "$REPLY" | xargs) # trims leading/trailing space
   if [[ "$HTML_SOURCE" = "" ]]; then
     chooseRepo
@@ -111,7 +116,7 @@ elif [ "2" = "$choice" ]; then
   confirmRepo
 elif [ "3" = "$choice" ]; then
   echo
-  read -e -p "GitHub username of fork owner: "
+  read -r -e -p "GitHub username of fork owner: "
   GH_USERNAME=$(echo "$REPLY" | xargs) # trims leading/trailing space
   if [ -z "$GH_USERNAME" ]; then
     chooseRepo
@@ -119,7 +124,7 @@ elif [ "3" = "$choice" ]; then
   echo
   echo "Does a fork already exist at https://github.com/$GH_USERNAME/html?"
   echo
-  read -e -p "Y or N? " yn
+  read -r -e -p "Y or N? " yn
   if [[ "y" = "$yn" || "Y" = "$yn" ]]; then
     HTML_REPO="https://github.com/$GH_USERNAME/html.git"
     confirmRepo
@@ -130,7 +135,7 @@ elif [ "3" = "$choice" ]; then
   fi
 elif [ "4" = "$choice" ]; then
   echo
-  read -e -p "URL: "
+  read -r -e -p "URL: "
   REPLY=$(echo "$REPLY" | xargs) # trims leading/trailing space
   if [ -z "$REPLY" ]; then
     chooseRepo
@@ -152,7 +157,7 @@ function confirmRepo {
       echo
       echo "OK, build from the $HTML_SOURCE/source file?"
       echo
-      read -e -p "Y or N? " yn
+      read -r -e -p "Y or N? " yn
       if [[ "y" = "$yn" || "Y" = "$yn" ]]; then
         return
       else
@@ -171,11 +176,16 @@ function confirmRepo {
   echo
   echo "OK, clone from $HTML_REPO?"
   echo
-  read -e -p "Y or N? " yn
+  read -r -e -p "Y or N? " yn
+  GIT_CLONE_ARGS=( "$HTML_GIT_CLONE_OPTIONS" )
+  if $VERBOSE; then
+    GIT_CLONE_ARGS+=( --verbose )
+  elif $QUIET; then
+    GIT_CLONE_ARGS+=( --quiet )
+  fi
+  GIT_CLONE_ARGS+=( "$HTML_REPO" "$HTML_SOURCE" )
   if [[ "y" = "$yn" || "Y" = "$yn" ]]; then
-    git clone $HTML_GIT_CLONE_OPTIONS \
-      $($VERBOSE && echo "--verbose" || $QUIET && echo "--quiet") \
-      $HTML_REPO $HTML_SOURCE
+    git clone "${GIT_CLONE_ARGS[@]}"
   else
     unset HTML_SOURCE
     chooseRepo
@@ -184,12 +194,12 @@ function confirmRepo {
 
 $QUIET || echo "Looking for the HTML source (set HTML_SOURCE to override)..."
 if [ -z "$HTML_SOURCE" ]; then
-  PARENT_DIR=$(dirname $DIR)
-  if [ -f $PARENT_DIR/html/source ]; then
+  PARENT_DIR=$(dirname "$DIR")
+  if [ -f "$PARENT_DIR/html/source" ]; then
     HTML_SOURCE=$PARENT_DIR/html
     $QUIET || echo "Found $HTML_SOURCE (alongside html-build)..."
   else
-    if [ -f $DIR/html/source ]; then
+    if [ -f "$DIR/html/source" ]; then
       HTML_SOURCE=$DIR/html
       $QUIET || echo "Found $HTML_SOURCE (inside html-build)..."
     else
@@ -221,7 +231,7 @@ function relativePath {
   while [[ "${target#$commonPart}" == "${target}" ]]; do
     # no match, means that candidate common part is not correct
     # go up one level (reduce common part)
-    commonPart="$(dirname $commonPart)"
+    commonPart=$(dirname "$commonPart")
     # and record that we went back, with correct / handling
     if [[ -z $result ]]; then
       result=".."
@@ -247,7 +257,7 @@ function relativePath {
     result="${forwardPart:1}"
   fi
 
-  echo $result
+  echo "$result"
 }
 
 if [ "$USE_DOCKER" == true ]; then
@@ -257,7 +267,7 @@ if [ "$USE_DOCKER" == true ]; then
   fi
 
   # $SOURCE_RELATIVE helps on Windows with Git Bash, where /c/... is a symlink, which Docker doesn't like.
-  SOURCE_RELATIVE=$(relativePath $(pwd) $HTML_SOURCE)
+  SOURCE_RELATIVE=$(relativePath "$(pwd)" "$HTML_SOURCE")
 
   VERBOSE_OR_QUIET_FLAG=""
   $QUIET && VERBOSE_OR_QUIET_FLAG+="--quiet"
@@ -266,64 +276,78 @@ if [ "$USE_DOCKER" == true ]; then
   NO_UPDATE_FLAG="--no-update"
   $DO_UPDATE && NO_UPDATE_FLAG=""
 
-  docker build --tag whatwg-html \
-               --build-arg html_source_dir=$SOURCE_RELATIVE \
-               --build-arg verbose_or_quiet_flag=$VERBOSE_OR_QUIET_FLAG \
-               --build-arg no_update_flag=$NO_UPDATE_FLAG \
-               $($QUIET && echo "--quiet") .
+  DOCKER_ARGS=( --tag whatwg-html \
+                --build-arg "html_source_dir=$SOURCE_RELATIVE" \
+                --build-arg "verbose_or_quiet_flag=$VERBOSE_OR_QUIET_FLAG" \
+                --build-arg "no_update_flag=$NO_UPDATE_FLAG" )
+  if $QUIET; then
+    DOCKER_ARGS+=( --quiet )
+  fi
+
+  docker build "${DOCKER_ARGS[@]}" .
   docker run --rm -it -p 8080:80 whatwg-html
   exit 0
 fi
 
 
 $QUIET || echo "Linting the source file..."
-./lint.sh $HTML_SOURCE/source || {
+./lint.sh "$HTML_SOURCE/source" || {
   echo
   echo "There were lint errors. Stopping."
   exit 1
 }
 
-rm -rf $HTML_TEMP && mkdir -p $HTML_TEMP
-rm -rf $HTML_OUTPUT && mkdir -p $HTML_OUTPUT
+rm -rf "$HTML_TEMP" && mkdir -p "$HTML_TEMP"
+rm -rf "$HTML_OUTPUT" && mkdir -p "$HTML_OUTPUT"
 
-if [ -d $HTML_CACHE ]; then
-  PREV_BUILD_SHA=$( cat $HTML_CACHE/last-build-sha.txt 2>/dev/null || echo "" )
+if [ -d "$HTML_CACHE" ]; then
+  PREV_BUILD_SHA=$( cat "$HTML_CACHE/last-build-sha.txt" 2>/dev/null || echo )
   CURRENT_BUILD_SHA=$( git rev-parse HEAD )
 
   if [ "$PREV_BUILD_SHA" != "$CURRENT_BUILD_SHA" ]; then
     $QUIET || echo "Build tools have been updated since last run; clearing the cache..."
     DO_UPDATE=true
-    rm -rf $HTML_CACHE
-    mkdir -p $HTML_CACHE
-    echo $CURRENT_BUILD_SHA > $HTML_CACHE/last-build-sha.txt
+    rm -rf "$HTML_CACHE"
+    mkdir -p "$HTML_CACHE"
+    echo "$CURRENT_BUILD_SHA" > "$HTML_CACHE/last-build-sha.txt"
   fi
 else
-  mkdir -p $HTML_CACHE
+  mkdir -p "$HTML_CACHE"
 fi
 
-if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/caniuse.json ]; then
-  rm -f $HTML_CACHE/caniuse.json
+CURL_ARGS=()
+if ! $VERBOSE; then
+  CURL_ARGS+=( --silent )
+fi
+
+CURL_CANIUSE_ARGS=( ${CURL_ARGS[@]} --output "$HTML_CACHE/caniuse.json" -k )
+CURL_W3CBUGS_ARGS=( ${CURL_ARGS[@]} --output "$HTML_CACHE/w3cbugs.csv" )
+
+if [ "$DO_UPDATE" == true ] || [ ! -f "$HTML_CACHE/caniuse.json" ]; then
+  rm -f "$HTML_CACHE/caniuse.json"
   $QUIET || echo "Downloading caniuse data..."
-  curl $($VERBOSE || echo "-s") \
-    -o $HTML_CACHE/caniuse.json -k \
+  curl "${CURL_CANIUSE_ARGS[@]}" \
     https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
 fi
 
-if [ "$DO_UPDATE" == true ] || [ ! -f $HTML_CACHE/w3cbugs.csv ]; then
-  rm -f $HTML_CACHE/w3cbugs.csv
+if [ "$DO_UPDATE" == true ] || [ ! -f "$HTML_CACHE/w3cbugs.csv" ]; then
+  rm -f "$HTML_CACHE/w3cbugs.csv"
   $QUIET || echo "Downloading list of W3C bugzilla bugs..."
-  curl $($VERBOSE || echo "-s") \
-    -o $HTML_CACHE/w3cbugs.csv \
+  curl "${CURL_W3CBUGS_ARGS[@]}" \
     'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv&status_whiteboard=whatwg-resolved&status_whiteboard_type=notregexp&bug_file_loc=http&bug_file_loc_type=substring&product=WHATWG&product=HTML%20WG&product=CSS&product=WebAppsWG'
 fi
 
 $QUIET || echo "Pre-processing the source..."
-cp -p  entities/out/entities.inc $HTML_CACHE
-cp -p  entities/out/entities-dtd.url $HTML_CACHE
-cp -p  quotes/out/cldr.inc $HTML_CACHE
-perl .pre-process-main.pl $($VERBOSE && echo "--verbose") < $HTML_SOURCE/source > $HTML_TEMP/source-expanded-1
-perl .pre-process-annotate-attributes.pl < $HTML_TEMP/source-expanded-1 > $HTML_TEMP/source-expanded-2 # this one could be merged
-perl .pre-process-tag-omission.pl < $HTML_TEMP/source-expanded-2 | perl .pre-process-index-generator.pl > $HTML_TEMP/source-whatwg-complete # this one could be merged
+cp -p  entities/out/entities.inc "$HTML_CACHE"
+cp -p  entities/out/entities-dtd.url "$HTML_CACHE"
+cp -p  quotes/out/cldr.inc "$HTML_CACHE"
+if $VERBOSE; then
+  perl .pre-process-main.pl --verbose < "$HTML_SOURCE/source" > "$HTML_TEMP/source-expanded-1"
+else
+  perl .pre-process-main.pl < "$HTML_SOURCE/source" > "$HTML_TEMP/source-expanded-1"
+fi
+perl .pre-process-annotate-attributes.pl < "$HTML_TEMP/source-expanded-1" > "$HTML_TEMP/source-expanded-2" # this one could be merged
+perl .pre-process-tag-omission.pl < "$HTML_TEMP/source-expanded-2" | perl .pre-process-index-generator.pl > "$HTML_TEMP/source-whatwg-complete" # this one could be merged
 
 function runWattsi {
   # Input arguments: $1 is the file to run wattsi on, $2 is a directory for wattsi to write output to
@@ -332,74 +356,89 @@ function runWattsi {
   # - $HTML_TEMP/wattsi-output directory will contain the output from wattsi on success
   # - $HTML_TEMP/wattsi-output.txt will contain the output from wattsi, on both success and failure
 
-  rm -rf $2
-  mkdir $2
+  rm -rf "$2"
+  mkdir "$2"
 
+  WATTSI_ARGS=()
+  if $QUIET; then
+    WATTSI_ARGS+=( --quiet )
+  fi
+  WATTSI_ARGS+=( "$1" "$2" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv" )
   if hash wattsi 2>/dev/null; then
-    WATTSI_RESULT=$(wattsi $($QUIET && echo "--quiet") $1 $2 \
-      $HTML_CACHE/caniuse.json $HTML_CACHE/w3cbugs.csv \
-      > $HTML_TEMP/wattsi-output.txt; echo $?)
+    WATTSI_RESULT=$(wattsi "${WATTSI_ARGS[@]}" \
+      > "$HTML_TEMP/wattsi-output.txt"; echo $?)
   else
     $QUIET || echo
     $QUIET || echo "Local wattsi is not present; trying the build server..."
 
-    curl $($VERBOSE && echo "-v") $($QUIET && echo "-s") \
-      https://build.whatwg.org/wattsi \
-      --form source=@$1 \
-      --form caniuse=@$HTML_CACHE/caniuse.json \
-      --form w3cbugs=@$HTML_CACHE/w3cbugs.csv \
-      --dump-header $HTML_TEMP/wattsi-headers.txt \
-      --output $HTML_TEMP/wattsi-output.zip
+    CURL_ARGS=( https://build.whatwg.org/wattsi \
+                --form "source=@$1" \
+                --form "caniuse=@$HTML_CACHE/caniuse.json" \
+                --form "w3cbugs=@$HTML_CACHE/w3cbugs.csv" \
+                --dump-header "$HTML_TEMP/wattsi-headers.txt" \
+                --output "$HTML_TEMP/wattsi-output.zip" )
+    if $VERBOSE; then
+      CURL_ARGS+=( --verbose )
+    elif $QUIET; then
+      CURL_ARGS+=( --silent )
+    fi
+    curl "${CURL_ARGS[@]}"
 
     # read exit code from the Wattsi-Exit-Code header and assume failure if not found
     WATTSI_RESULT=1
-    while IFS=":" read NAME VALUE; do
+    while IFS=":" read -r NAME VALUE; do
       if [ "$NAME" == "Wattsi-Exit-Code" ]; then
-        WATTSI_RESULT=$(echo $VALUE | tr -d ' \r\n')
+        WATTSI_RESULT=$(echo "$VALUE" | tr -d ' \r\n')
         break
       fi
-    done < $HTML_TEMP/wattsi-headers.txt
+    done < "$HTML_TEMP/wattsi-headers.txt"
 
     if [ "$WATTSI_RESULT" != "0" ]; then
-      mv $HTML_TEMP/wattsi-output.zip $HTML_TEMP/wattsi-output.txt
+      mv "$HTML_TEMP/wattsi-output.zip" "$HTML_TEMP/wattsi-output.txt"
     else
-      unzip $($VERBOSE && echo "-v" || echo "-qq") $HTML_TEMP/wattsi-output.zip -d $2
-      mv $2/output.txt $HTML_TEMP/wattsi-output.txt
+      UNZIP_ARGS=()
+      # Note: Don't use the -v flag; it doesn't work in combination with -d
+      if ! $VERBOSE; then
+        UNZIP_ARGS+=( -qq )
+      fi
+      UNZIP_ARGS+=( "$HTML_TEMP/wattsi-output.zip" -d "$2" )
+      unzip "${UNZIP_ARGS[@]}"
+      mv "$2/output.txt" "$HTML_TEMP/wattsi-output.txt"
     fi
   fi
 }
 
-runWattsi $HTML_TEMP/source-whatwg-complete $HTML_TEMP/wattsi-output
+runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
 if [ "$WATTSI_RESULT" == "0" ]; then
-    $QUIET || cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
+    "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
 else
-  cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
+  grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
   if [ "$WATTSI_RESULT" == "65" ]; then
     echo
     echo "There were errors. Running again to show the original line numbers."
     echo
-    runWattsi $HTML_SOURCE/source $HTML_TEMP/wattsi-raw-source-output
-    cat $HTML_TEMP/wattsi-output.txt | grep -v '^$' # trim blank lines
+    runWattsi "$HTML_SOURCE/source" "$HTML_TEMP/wattsi-raw-source-output"
+    grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
   fi
   echo
   echo "There were errors. Stopping."
-  exit $WATTSI_RESULT
+  exit "$WATTSI_RESULT"
 fi
 
-cat $HTML_TEMP/wattsi-output/index-html | perl .post-process-partial-backlink-generator.pl > $HTML_OUTPUT/index.html;
-cp -p  entities/out/entities.json $HTML_OUTPUT
+perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
+cp -p  entities/out/entities.json "$HTML_OUTPUT"
 
 # multipage setup
-rm -rf $HTML_OUTPUT/multipage
-mv $HTML_TEMP/wattsi-output/multipage-html $HTML_OUTPUT/multipage
-rm -rf $HTML_TEMP
+rm -rf "$HTML_OUTPUT/multipage"
+mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
+rm -rf "$HTML_TEMP"
 
-cp -p  $HTML_SOURCE/.htaccess $HTML_OUTPUT
-cp -p  $HTML_SOURCE/404.html $HTML_OUTPUT
-cp -pR $HTML_SOURCE/fonts $HTML_OUTPUT
-cp -pR $HTML_SOURCE/images $HTML_OUTPUT
-cp -pR $HTML_SOURCE/demos $HTML_OUTPUT
-cp -pR $HTML_SOURCE/link-fixup.js $HTML_OUTPUT
+cp -p  "$HTML_SOURCE/.htaccess" "$HTML_OUTPUT"
+cp -p  "$HTML_SOURCE/404.html" "$HTML_OUTPUT"
+cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
+cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
+cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
+cp -pR "$HTML_SOURCE/link-fixup.js" "$HTML_OUTPUT"
 
 $QUIET || echo
 $QUIET || echo "Success!"
