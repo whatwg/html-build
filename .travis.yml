@@ -8,4 +8,5 @@ addons:
       - shellcheck
 
 script:
-  - bash -c 'shopt -s globstar; shellcheck build.sh lint.sh'
+  - shellcheck build.sh
+  - shellcheck lint.sh
