@@ -426,6 +426,7 @@ else
 fi
 
 perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
+cp -p  "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 cp -p  entities/out/entities.json "$HTML_OUTPUT"
 cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 
