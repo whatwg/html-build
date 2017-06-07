@@ -427,6 +427,7 @@ fi
 
 perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
 cp -p  entities/out/entities.json "$HTML_OUTPUT"
+cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 
 # multipage setup
 rm -rf "$HTML_OUTPUT/multipage"
@@ -435,10 +436,11 @@ rm -rf "$HTML_TEMP"
 
 cp -p  "$HTML_SOURCE/.htaccess" "$HTML_OUTPUT"
 cp -p  "$HTML_SOURCE/404.html" "$HTML_OUTPUT"
+cp -p "$HTML_SOURCE/link-fixup.js" "$HTML_OUTPUT"
+cp -p "$HTML_SOURCE/html-dfn.js" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
-cp -pR "$HTML_SOURCE/link-fixup.js" "$HTML_OUTPUT"
 
 $QUIET || echo
 $QUIET || echo "Success!"
