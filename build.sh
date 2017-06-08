@@ -432,6 +432,7 @@ cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 # multipage setup
 rm -rf "$HTML_OUTPUT/multipage"
 mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
+mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
 rm -rf "$HTML_TEMP"
 
 cp -p  "$HTML_SOURCE/.htaccess" "$HTML_OUTPUT"
@@ -441,6 +442,7 @@ cp -p "$HTML_SOURCE/html-dfn.js" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
+cp -pR "$HTML_SOURCE/dev" "$HTML_OUTPUT"
 
 $QUIET || echo
 $QUIET || echo "Success!"
