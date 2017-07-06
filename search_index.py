@@ -48,7 +48,7 @@ def main():
         index = page_html.cssselect('ol.toc li a')
 
         write_json(
-            './search_index.json',
+            './output/search_index.json',
             [form_dict(link) for link in index]
         )
 
