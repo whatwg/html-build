@@ -4,6 +4,7 @@ FROM debian:sid
 ## enable some apache mods (the ln -s lines)
 ## cleanup freepascal since it is no longer needed after wattsi build
 RUN apt-get update && \
+    apt-get install -y python python-dev python-pip python-virtualenv && \
     apt-get install -y ca-certificates curl git unzip fp-compiler-3.0.0 apache2 && \
     cd /etc/apache2/mods-enabled && \
     ln -s ../mods-available/headers.load && \
@@ -31,6 +32,11 @@ ARG no_update_flag
 
 # no_update_flag doesn't really work; .cache directory is re-created empty each time
 RUN SKIP_BUILD_UPDATE_CHECK=true ./build.sh $verbose_or_quiet_flag $no_update_flag && \
+    virtualenv ./env && \
+    source ./env/bin/activate && \
+    pip install lxml cssselect && \
+    python ./search_index.py && \
+    deactivate && \
     rm -rf /var/www/html && \
     mv output /var/www/html && \
     chmod -R o+rX /var/www/html && \
