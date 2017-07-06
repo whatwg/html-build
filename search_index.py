@@ -30,7 +30,7 @@ def form_dict(link):
         section_text = '{0} - {1}'.format(section_text, parent_section_title)
 
     return dict(
-        uri=link.get('href'),
+        url=link.get('href'),
         text=text,
         section=section_text,
     )
