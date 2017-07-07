@@ -440,6 +440,11 @@ if [[ "$DO_POST" == true && ("$DO_UPDATE" == true || ! -f "$HTML_CACHE/seach-ind
     PYTHON_STUFF_ARGS="--verbose"
   fi
 
+  if [[ ! -x "virtualenv" ]]; then
+    echo "Command virtualenv not found. Install it or use the --no-post flag to skip this step." >&2
+    exit 1
+  fi
+
   virtualenv "$HTML_CACHE/python-env" "$PYTHON_STUFF_ARGS"
   # shellcheck disable=SC1091 (shellcheck doesn't know about the bin/activate created by virtualenv)
   source "$HTML_CACHE/python-env/bin/activate"
