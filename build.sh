@@ -429,6 +429,7 @@ perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index
 
 if [ "$DO_UPDATE" == true ] || [ ! -f "$HTML_CACHE/seach-index.json" ]; then
   virtualenv env
+  # shellcheck disable=SC1091
   source ./env/bin/activate
   pip install lxml cssselect
   python ./search_index.py -i "$HTML_TEMP/wattsi-output/multipage-dev/index.html" -o "$HTML_CACHE/search-index.json"
