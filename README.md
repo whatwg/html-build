@@ -20,7 +20,7 @@ You then have a decision to make as to how you want to do your builds: locally, 
 
 To build locally, you'll need the following commands installed on your system:
 
-- `curl`, `grep`, `perl`, `unzip`
+- `curl`, `grep`, `perl`, `unzip`, `python`, `python-dev`, `python-virtualenv`
 
 Optionally, for faster builds, you can install [Wattsi](https://github.com/whatwg/wattsi). If you don't bother with that, the build will use [Wattsi Server](https://github.com/domenic/wattsi-server), which requires an internet connection.
 
