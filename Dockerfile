@@ -4,8 +4,7 @@ FROM debian:sid
 ## enable some apache mods (the ln -s lines)
 ## cleanup freepascal since it is no longer needed after wattsi build
 RUN apt-get update && \
-    apt-get install -y python python-dev python-virtualenv && \
-    apt-get install -y ca-certificates curl git unzip fp-compiler-3.0.0 apache2 && \
+    apt-get install -y ca-certificates curl git unzip fp-compiler-3.0.0 apache2 python python-dev python-virtualenv && \
     cd /etc/apache2/mods-enabled && \
     ln -s ../mods-available/headers.load && \
     ln -s ../mods-available/expires.load && \
