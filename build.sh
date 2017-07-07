@@ -325,8 +325,8 @@ if ! $VERBOSE; then
   CURL_ARGS+=( --silent )
 fi
 
-CURL_CANIUSE_ARGS=( ${CURL_ARGS[@]} --output "$HTML_CACHE/caniuse.json" -k )
-CURL_W3CBUGS_ARGS=( ${CURL_ARGS[@]} --output "$HTML_CACHE/w3cbugs.csv" )
+CURL_CANIUSE_ARGS=( "${CURL_ARGS[@]}" --output "$HTML_CACHE/caniuse.json" -k )
+CURL_W3CBUGS_ARGS=( "${CURL_ARGS[@]}" --output "$HTML_CACHE/w3cbugs.csv" )
 
 if [[ "$DO_UPDATE" == true || ! -f "$HTML_CACHE/caniuse.json" ]]; then
   rm -f "$HTML_CACHE/caniuse.json"
@@ -441,7 +441,8 @@ if [[ "$DO_POST" == true && ("$DO_UPDATE" == true || ! -f "$HTML_CACHE/seach-ind
   fi
 
   virtualenv "$HTML_CACHE/python-env" "$PYTHON_STUFF_ARGS"
-  # shellcheck disable=SC1091 (shellcheck doesn't know about the bin/activate created by virtualenv)
+  # Shellcheck doesn't know about the bin/activate created by virtualenv:
+  # shellcheck disable=SC1090
   source "$HTML_CACHE/python-env/bin/activate"
   pip install lxml cssselect "$PYTHON_STUFF_ARGS"
   python ./search-index.py -i "$HTML_TEMP/wattsi-output/multipage-dev/index.html" -o "$HTML_CACHE/search-index.json"
