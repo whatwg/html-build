@@ -414,11 +414,11 @@ function runWattsi {
 }
 
 runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
-if [ "$WATTSI_RESULT" == "0" ]; then
+if [[ "$WATTSI_RESULT" == "0" ]]; then
     "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
 else
   grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
-  if [ "$WATTSI_RESULT" == "65" ]; then
+  if [[ "$WATTSI_RESULT" == "65" ]]; then
     echo
     echo "There were errors. Running again to show the original line numbers."
     echo
@@ -440,15 +440,10 @@ if [[ "$DO_POST" == true && ("$DO_UPDATE" == true || ! -f "$HTML_CACHE/seach-ind
     PYTHON_STUFF_ARGS="--verbose"
   fi
 
-  if [[ ! -x "virtualenv" ]]; then
-    echo "Command virtualenv not found. Install it or use the --no-post flag to skip this step." >&2
-    exit 1
-  fi
-
   virtualenv "$HTML_CACHE/python-env" "$PYTHON_STUFF_ARGS"
   # shellcheck disable=SC1091 (shellcheck doesn't know about the bin/activate created by virtualenv)
   source "$HTML_CACHE/python-env/bin/activate"
-  pip install lxml cssselect "${PYTHON_STUFF_ARGS[@]}"
+  pip install lxml cssselect "$PYTHON_STUFF_ARGS"
   python ./search-index.py -i "$HTML_TEMP/wattsi-output/multipage-dev/index.html" -o "$HTML_CACHE/search-index.json"
   deactivate
 fi
@@ -470,7 +465,8 @@ cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/dev" "$HTML_OUTPUT"
-cp -p "$HTML_CACHE/search-index.json" "$HTML_OUTPUT/dev"
+
+"$DO_POST" == true && cp -p "$HTML_CACHE/search-index.json" "$HTML_OUTPUT/dev"
 
 $QUIET || echo
 $QUIET || echo "Success!"
