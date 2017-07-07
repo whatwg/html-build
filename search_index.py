@@ -1,8 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from lxml import html
 import json
+import argparse
+from lxml import html
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-i', '--input', help='Input file name', required=True)
+parser.add_argument('-o', '--output', help='Output file name', required=True)
 
 
 def strip_span(element):
@@ -42,16 +48,17 @@ def write_json(filename, data):
         json_file.write(json.dumps(data))
 
 
-def main():
-    with open('./output/dev/index.html', 'r') as file:
+def main(input_file, output_file):
+    with open(input_file, 'r') as file:
         page_html = html.fromstring(file.read())
         index = page_html.cssselect('ol.toc li a')
 
         write_json(
-            './output/search_index.json',
+            output_file,
             [form_dict(link) for link in index]
         )
 
 
 if __name__ == "__main__":
-    main()
+    args = parser.parse_args()
+    main(args.input, args.output)

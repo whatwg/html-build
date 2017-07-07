@@ -426,6 +426,15 @@ else
 fi
 
 perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
+
+if [ "$DO_UPDATE" == true ] || [ ! -f "$HTML_CACHE/seach-index.json" ]; then
+  virtualenv env
+  source ./env/bin/activate
+  pip install lxml cssselect
+  python ./search_index.py -i "$HTML_TEMP/wattsi-output/multipage-dev/index.html" -o "$HTML_CACHE/search-index.json"
+  deactivate
+fi
+
 cp -p  entities/out/entities.json "$HTML_OUTPUT"
 cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 
@@ -443,6 +452,7 @@ cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/dev" "$HTML_OUTPUT"
+cp -p "$HTML_CACHE/search-index.json" "$HTML_OUTPUT/dev/search-index.json"
 
 $QUIET || echo
 $QUIET || echo "Success!"

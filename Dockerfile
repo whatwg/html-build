@@ -32,11 +32,6 @@ ARG no_update_flag
 
 # no_update_flag doesn't really work; .cache directory is re-created empty each time
 RUN SKIP_BUILD_UPDATE_CHECK=true ./build.sh $verbose_or_quiet_flag $no_update_flag && \
-    virtualenv ./env && \
-    source ./env/bin/activate && \
-    pip install lxml cssselect && \
-    python ./search_index.py && \
-    deactivate && \
     rm -rf /var/www/html && \
     mv output /var/www/html && \
     chmod -R o+rX /var/www/html && \
