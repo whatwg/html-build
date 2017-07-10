@@ -33,7 +33,7 @@ def form_dict(link):
     parent_section_title = strip_span(parent_section.cssselect('a')[0])
 
     if parent_section.tag == 'li':
-        section_text = '{0} - {1}'.format(section_text, parent_section_title)
+        section_text = '{0} — {1}'.format(section_text, parent_section_title)
 
     return dict(
         url=link.get('href'),
