@@ -7,6 +7,7 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 DIR=$(pwd)
 
 DO_UPDATE=true
+DO_POST=true
 USE_DOCKER=false
 VERBOSE=false
 QUIET=false
@@ -34,11 +35,12 @@ do
       echo "Usage: $0 [-c|--clean]"
       echo "       $0 [-h|--help]"
       echo "       $0 [-d|--docker]"
-      echo "       $0 [-n|--no-update] [-q|--quiet] [-v|--verbose]"
+      echo "       $0 [-n|--no-update] [-p|--no-post] [-q|--quiet] [-v|--verbose]"
       echo
       echo "  -c|--clean      Remove downloaded dependencies and generated files (then stop)."
       echo "  -h|--help       Show this usage statement."
       echo "  -n|--no-update  Don't update before building; just build."
+      echo "  -p|--no-post    Don't perform potentially-slow postprocessing."
       echo "  -d|--docker     Use Docker to build in and serve from a container."
       echo "  -q|--quiet      Don't emit any messages except errors/warnings."
       echo "  -v|--verbose    Show verbose output from every build step."
@@ -46,6 +48,9 @@ do
       ;;
     -n|--no-update|--no-updates)
       DO_UPDATE=false
+      ;;
+    -p|--no-post)
+      DO_POST=false
       ;;
     -d|--docker)
       USE_DOCKER=true
@@ -320,17 +325,17 @@ if ! $VERBOSE; then
   CURL_ARGS+=( --silent )
 fi
 
-CURL_CANIUSE_ARGS=( ${CURL_ARGS[@]} --output "$HTML_CACHE/caniuse.json" -k )
-CURL_W3CBUGS_ARGS=( ${CURL_ARGS[@]} --output "$HTML_CACHE/w3cbugs.csv" )
+CURL_CANIUSE_ARGS=( "${CURL_ARGS[@]}" --output "$HTML_CACHE/caniuse.json" -k )
+CURL_W3CBUGS_ARGS=( "${CURL_ARGS[@]}" --output "$HTML_CACHE/w3cbugs.csv" )
 
-if [ "$DO_UPDATE" == true ] || [ ! -f "$HTML_CACHE/caniuse.json" ]; then
+if [[ "$DO_UPDATE" == true || ! -f "$HTML_CACHE/caniuse.json" ]]; then
   rm -f "$HTML_CACHE/caniuse.json"
   $QUIET || echo "Downloading caniuse data..."
   curl "${CURL_CANIUSE_ARGS[@]}" \
     https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
 fi
 
-if [ "$DO_UPDATE" == true ] || [ ! -f "$HTML_CACHE/w3cbugs.csv" ]; then
+if [[ "$DO_UPDATE" == true || ! -f "$HTML_CACHE/w3cbugs.csv" ]]; then
   rm -f "$HTML_CACHE/w3cbugs.csv"
   $QUIET || echo "Downloading list of W3C bugzilla bugs..."
   curl "${CURL_W3CBUGS_ARGS[@]}" \
@@ -409,11 +414,11 @@ function runWattsi {
 }
 
 runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
-if [ "$WATTSI_RESULT" == "0" ]; then
+if [[ "$WATTSI_RESULT" == "0" ]]; then
     "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
 else
   grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
-  if [ "$WATTSI_RESULT" == "65" ]; then
+  if [[ "$WATTSI_RESULT" == "65" ]]; then
     echo
     echo "There were errors. Running again to show the original line numbers."
     echo
@@ -426,6 +431,24 @@ else
 fi
 
 perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
+
+if [[ "$DO_POST" == true && ("$DO_UPDATE" == true || ! -f "$HTML_CACHE/seach-index.json") ]]; then
+  $QUIET || echo "Performing Python-based postprocessing for DEV variant..."
+
+  PYTHON_STUFF_ARGS="--quiet" # silence by default; this stuff is very noisy
+  if $VERBOSE; then
+    PYTHON_STUFF_ARGS="--verbose"
+  fi
+
+  virtualenv "$HTML_CACHE/python-env" "$PYTHON_STUFF_ARGS"
+  # Shellcheck doesn't know about the bin/activate created by virtualenv:
+  # shellcheck disable=SC1090
+  source "$HTML_CACHE/python-env/bin/activate"
+  pip install lxml cssselect "$PYTHON_STUFF_ARGS"
+  python ./search-index.py -i "$HTML_TEMP/wattsi-output/multipage-dev/index.html" -o "$HTML_CACHE/search-index.json"
+  deactivate
+fi
+
 cp -p  entities/out/entities.json "$HTML_OUTPUT"
 cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 
@@ -443,6 +466,8 @@ cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/dev" "$HTML_OUTPUT"
+
+"$DO_POST" == true && cp -p "$HTML_CACHE/search-index.json" "$HTML_OUTPUT/dev"
 
 $QUIET || echo
 $QUIET || echo "Success!"
