@@ -443,7 +443,12 @@ if [[ "$DO_POST" == true && ("$DO_UPDATE" == true || ! -f "$HTML_CACHE/seach-ind
   virtualenv "$HTML_CACHE/python-env" "$PYTHON_STUFF_ARGS"
   # Shellcheck doesn't know about the bin/activate created by virtualenv:
   # shellcheck disable=SC1090
-  source "$HTML_CACHE/python-env/bin/activate"
+  if [[ -f "$HTML_CACHE/python-env/bin/activate" ]]; then
+    source "$HTML_CACHE/python-env/bin/activate"
+  else
+    # Windows virtualenv seems to be gratuitously different
+    source "$HTML_CACHE/python-env/Scripts/activate"
+  fi
   pip install lxml cssselect "$PYTHON_STUFF_ARGS"
   python ./search-index.py -i "$HTML_TEMP/wattsi-output/multipage-dev/index.html" -o "$HTML_CACHE/search-index.json"
   deactivate
