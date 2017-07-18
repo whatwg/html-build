@@ -7,7 +7,6 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 DIR=$(pwd)
 
 DO_UPDATE=true
-DO_POST=true
 USE_DOCKER=false
 VERBOSE=false
 QUIET=false
@@ -40,7 +39,6 @@ do
       echo "  -c|--clean      Remove downloaded dependencies and generated files (then stop)."
       echo "  -h|--help       Show this usage statement."
       echo "  -n|--no-update  Don't update before building; just build."
-      echo "  -p|--no-post    Don't perform potentially-slow postprocessing."
       echo "  -d|--docker     Use Docker to build in and serve from a container."
       echo "  -q|--quiet      Don't emit any messages except errors/warnings."
       echo "  -v|--verbose    Show verbose output from every build step."
@@ -48,9 +46,6 @@ do
       ;;
     -n|--no-update|--no-updates)
       DO_UPDATE=false
-      ;;
-    -p|--no-post)
-      DO_POST=false
       ;;
     -d|--docker)
       USE_DOCKER=true
@@ -432,28 +427,6 @@ fi
 
 perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
 
-if [[ "$DO_POST" == true && ("$DO_UPDATE" == true || ! -f "$HTML_CACHE/seach-index.json") ]]; then
-  $QUIET || echo "Performing Python-based postprocessing for DEV variant..."
-
-  PYTHON_STUFF_ARGS="--quiet" # silence by default; this stuff is very noisy
-  if $VERBOSE; then
-    PYTHON_STUFF_ARGS="--verbose"
-  fi
-
-  virtualenv "$HTML_CACHE/python-env" "$PYTHON_STUFF_ARGS"
-  # Shellcheck doesn't know about the bin/activate created by virtualenv:
-  # shellcheck disable=SC1090
-  if [[ -f "$HTML_CACHE/python-env/bin/activate" ]]; then
-    source "$HTML_CACHE/python-env/bin/activate"
-  else
-    # Windows virtualenv seems to be gratuitously different
-    source "$HTML_CACHE/python-env/Scripts/activate"
-  fi
-  pip install lxml cssselect "$PYTHON_STUFF_ARGS"
-  python ./search-index.py -i "$HTML_TEMP/wattsi-output/multipage-dev/index.html" -o "$HTML_CACHE/search-index.json"
-  deactivate
-fi
-
 cp -p  entities/out/entities.json "$HTML_OUTPUT"
 cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 
@@ -471,8 +444,6 @@ cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
 cp -pR "$HTML_SOURCE/dev" "$HTML_OUTPUT"
-
-"$DO_POST" == true && cp -p "$HTML_CACHE/search-index.json" "$HTML_OUTPUT/dev"
 
 $QUIET || echo
 $QUIET || echo "Success!"
