@@ -8,5 +8,5 @@ addons:
       - shellcheck
 
 script:
-  - shellcheck build.sh
-  - shellcheck lint.sh
+  - shellcheck *.sh
+  - shellcheck ci-deploy/*.sh

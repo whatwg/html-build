@@ -3,7 +3,7 @@ set -e
 HTML_GIT_CLONE_OPTIONS=${HTML_GIT_CLONE_OPTIONS:-"--depth 1"}
 
 # cd to the directory containing this script
-cd "$( dirname "${BASH_SOURCE[0]}" )"
+cd "$(dirname "$0")"
 DIR=$(pwd)
 
 DO_UPDATE=true
