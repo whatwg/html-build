@@ -45,7 +45,7 @@ echo "$SERVER $SERVER_PUBLIC_KEY" > known_hosts
 # Sync, including deletes, but ignoring the commit-snapshots directory so we don't delete that.
 echo "Deploying build output..."
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
-      --archive --compress --delete --verbose --exclude="commit-snapshots" \
+      --archive --compress --delete --verbose --exclude="commit-snapshots" --exclude="*.cgi" \
       "$HTML_OUTPUT/" "$DEPLOY_USER@$SERVER:$WEB_ROOT"
 
 # Now sync a commit snapshot
@@ -55,6 +55,10 @@ echo "Deploying commit snapshot..."
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --compress --verbose \
       "$HTML_OUTPUT/index.html" "$DEPLOY_USER@$SERVER:$WEB_ROOT/commit-snapshots/$HTML_SHA"
+
+# Tell remote web service to regenerate the PDF.
+# It will ping us back when it's done.
+curl http://sgr-a.ru/h/whatwgpdf.php
 
 echo ""
 echo "All done!"
