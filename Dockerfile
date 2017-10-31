@@ -4,7 +4,7 @@ FROM debian:sid
 ## enable some apache mods (the ln -s lines)
 ## cleanup freepascal since it is no longer needed after wattsi build
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl git unzip fp-compiler-3.0.0 apache2 && \
+    apt-get install -y ca-certificates curl git unzip fp-compiler apache2 && \
     cd /etc/apache2/mods-enabled && \
     ln -s ../mods-available/headers.load && \
     ln -s ../mods-available/expires.load && \
@@ -12,7 +12,7 @@ RUN apt-get update && \
     cd /whatwg/wattsi && \
     /whatwg/wattsi/build.sh && \
     cp /whatwg/wattsi/bin/wattsi /bin/ && \
-    apt-get purge -y fp-compiler-3.0.0 && \
+    apt-get purge -y fp-compiler && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
