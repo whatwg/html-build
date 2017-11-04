@@ -10,6 +10,10 @@ DEPLOY_USER="annevankesteren"
 SERVER="75.119.197.251"
 SERVER_PUBLIC_KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDP7zWfhJdjre9BHhfOtN52v6kIaDM/1kEJV4HqinvLP2hzworwNBmTtAlIMS2JJzSiE+9WcvSbSqmw7FKmNVGtvCd/CNJJkdAOEzYFBntYLf4cwNozCRmRI0O0awTaekIm03pzLO+iJm0+xmdCjIJNDW1v8B7SwXR9t4ElYNfhYD4HAT+aP+qs6CquBbOPfVdPgQMar6iDocAOQuBFBaUHJxPGMAG0qkVRJSwS4gi8VIXNbFrLCCXnwDC4REN05J7q7w90/8/Xjt0q+im2sBUxoXcHAl38ZkHeFJry/He2CiCc8YPoOAWmM8Vd0Ukc4SYZ99UfW/bxDroLHobLQ9Eh"
 
+# New server, see https://github.com/whatwg/misc-server/issues/7
+NEW_SERVER="165.227.248.76"
+NEW_SERVER_PUBLIC_KEY="ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBDt6Igtp73aTOYXuFb8qLtgs80wWF6cNi3/AItpWAMpX3PymUw7stU7Pi+IoBJz21nfgmxaKp3gfSe2DPNt06l8="
+
 HTML_SHA=$(git -C html rev-parse HEAD)
 
 # `export`ed because build.sh reads it
@@ -59,6 +63,23 @@ rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
 # Tell remote web service to regenerate the PDF.
 # It will ping us back when it's done.
 curl http://sgr-a.ru/h/whatwgpdf.php
+
+# Deploy everything to the new server as well.
+echo "$NEW_SERVER $NEW_SERVER_PUBLIC_KEY" >> known_hosts
+
+echo ""
+echo "Deploying build output to new server..."
+rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
+      --archive --compress --delete --verbose --exclude="commit-snapshots" --exclude="*.cgi" \
+      "$HTML_OUTPUT" "deploy@$NEW_SERVER:/var/www/$WEB_ROOT"
+
+echo ""
+echo "Deploying commit snapshot to new server..."
+rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
+      --archive --compress --verbose \
+      "$HTML_OUTPUT/index.html" "deploy@$NEW_SERVER:/var/www/$WEB_ROOT/commit-snapshots/$HTML_SHA"
+
+# TODO: deploy PDF to the new server as well
 
 echo ""
 echo "All done!"
