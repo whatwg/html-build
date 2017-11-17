@@ -4,6 +4,7 @@ set -o nounset
 set -o pipefail
 cd "$(dirname "$0")/../.."
 
+PDF_SOURCE_URL="https://html.spec.whatwg.org/"
 WEB_ROOT="html.spec.whatwg.org"
 DEPLOY_USER="annevankesteren"
 
@@ -60,10 +61,6 @@ rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --compress --verbose \
       "$HTML_OUTPUT/index.html" "$DEPLOY_USER@$SERVER:$WEB_ROOT/commit-snapshots/$HTML_SHA"
 
-# Tell remote web service to regenerate the PDF.
-# It will ping us back when it's done.
-curl http://sgr-a.ru/h/whatwgpdf.php
-
 # Deploy everything to the new server as well.
 echo "$NEW_SERVER $NEW_SERVER_PUBLIC_KEY" >> known_hosts
 
@@ -79,6 +76,21 @@ rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --compress --verbose \
       "$HTML_OUTPUT/index.html" "deploy@$NEW_SERVER:/var/www/$WEB_ROOT/commit-snapshots/$HTML_SHA"
 
+# Build the PDF using Prince
+prince --verbose --output "$HTML_OUTPUT/print.pdf" "$PDF_SOURCE_URL"
+# TODO: optimize
+
+echo ""
+echo "Deploying PDF..."
+rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
+      --archive --compress --verbose \
+      "$HTML_OUTPUT/print.pdf" "$DEPLOY_USER@$SERVER:$WEB_ROOT/print.pdf"
+
+echo ""
+echo "Deploying PDF to new server..."
+rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
+      --archive --compress --verbose \
+      "$HTML_OUTPUT/print.pdf" "deploy@$NEW_SERVER:/var/www/$WEB_ROOT/print.pdf"
 # TODO: deploy PDF to the new server as well
 
 echo ""

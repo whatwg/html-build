@@ -3,13 +3,20 @@
 FROM debian:sid
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl rsync git unzip fp-compiler default-jre
+    apt-get install -y ca-certificates curl rsync git unzip fp-compiler default-jre fonts-dejavu \
+                       fonts-droid netpbm sam2p
 
 ADD wattsi /whatwg/wattsi
 
 RUN cd /whatwg/wattsi && \
     /whatwg/wattsi/build.sh
 ENV PATH="/whatwg/wattsi/bin:${PATH}"
+
+ADD prince.tar.gz /whatwg/prince.tar.gz
+
+RUN tar xzf /whatwg/prince.tar.gz && \
+    /whatwg/prince/install.sh /whatwg/prince
+ENV PATH="/whatwg/prince/bin/prince:${PATH}"
 
 ADD html-build /whatwg/html-build
 
