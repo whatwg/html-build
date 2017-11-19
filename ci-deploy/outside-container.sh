@@ -18,9 +18,6 @@ TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
 
 git clone https://github.com/whatwg/wattsi.git wattsi
 
-curl --output prince.tar.gz --fail \
-     https://www.princexml.com/download/prince-11.3-linux-generic-x86_64.tar.gz
-
 # Copy the Docker-related stuff into the working (grandparent) directory.
 cp "$HERE"/{.dockerignore,Dockerfile} .
 
