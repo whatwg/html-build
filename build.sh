@@ -415,6 +415,9 @@ if [[ "$WATTSI_RESULT" == "0" ]]; then
     "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
   fi
 else
+  if [[ "$LOCAL_WATTSI" != true ]]; then
+    "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+  fi
   if [[ "$WATTSI_RESULT" == "65" ]]; then
     echo
     echo "There were errors. Running again to show the original line numbers."
