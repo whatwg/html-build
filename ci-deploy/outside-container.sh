@@ -18,6 +18,8 @@ TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
 
 git clone https://github.com/whatwg/wattsi.git wattsi
 
+git clone https://github.com/pts/pdfsizeopt.git pdfsizeopt
+
 # Copy the Docker-related stuff into the working (grandparent) directory.
 cp "$HERE"/{.dockerignore,Dockerfile} .
 

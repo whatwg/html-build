@@ -20,8 +20,17 @@ RUN apt-get update && apt-get install -y libfontconfig1 libgomp1 libxml2 \
     fonts-dejavu fonts-droid-fallback && \
     cd /whatwg && \
     tar xzf prince.tar.gz && \
-    echo | /whatwg/prince-11.3-linux-generic-x86_64/install.sh && \
+    echo /whatwg/prince | /whatwg/prince-11.3-linux-generic-x86_64/install.sh && \
     rm -rf /whatwg/prince.tar.gz /whatwg/prince-11.3-linux-generic-x86_64
+ENV PATH="/whatwg/prince/bin:${PATH}"
+
+ADD pdfsizeopt/pdfsizeopt.single /whatwg/pdfsizeopt/bin/pdfsizeopt
+ADD https://github.com/pts/pdfsizeopt/releases/download/2017-01-24/pdfsizeopt_libexec_linux-v3.tar.gz /whatwg/pdfsizeopt_libexec.tar.gz
+RUN cd /whatwg && \
+    tar xzf pdfsizeopt_libexec.tar.gz && \
+    mv pdfsizeopt_libexec/* pdfsizeopt/bin/ && \
+    rm -rf pdfsizeopt_libexec.tar.gz pdfsizeopt_libexec
+ENV PATH="/whatwg/pdfsizeopt/bin:${PATH}"
 
 ADD html-build /whatwg/html-build
 
