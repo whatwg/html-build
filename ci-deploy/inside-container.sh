@@ -41,11 +41,6 @@ if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
   exit 0
 fi
 
-# Build the PDF using Prince
-prince --help
-prince --verbose --output "$HTML_OUTPUT/print.pdf" "$PDF_SOURCE_URL"
-pdfsizeopt "$HTML_OUTPUT/print.pdf" "$HTML_OUTPUT/print-opt.pdf"
-
 # Add the (decoded) deploy key to the SSH agent, so scp works
 chmod 600 html/deploy-key
 eval "$(ssh-agent -s)"
@@ -80,6 +75,12 @@ echo "Deploying commit snapshot to new server..."
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --compress --verbose \
       "$HTML_OUTPUT/index.html" "deploy@$NEW_SERVER:/var/www/$WEB_ROOT/commit-snapshots/$HTML_SHA"
+
+echo ""
+echo "Building PDF..."
+PDF_TMP="$(mktemp --suffix=.pdf)"
+prince --verbose --output "$PDF_TMP" "$PDF_SOURCE_URL"
+pdfsizeopt "$PDF_TMP" "$HTML_OUTPUT/print.pdf"
 
 echo ""
 echo "Deploying PDF..."
