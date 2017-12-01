@@ -11,6 +11,28 @@ RUN cd /whatwg/wattsi && \
     /whatwg/wattsi/build.sh
 ENV PATH="/whatwg/wattsi/bin:${PATH}"
 
+ADD https://www.princexml.com/download/prince-11.3-linux-generic-x86_64.tar.gz /whatwg/prince.tar.gz
+
+# Dependecies of prince_11.3-1_debian8.0_amd64.deb (not used) are libc6 libcurl3 libfontconfig1
+# libfreetype6 libgif4 libgomp1 libjpeg62-turbo libpng12-0 libssl1.0.0 libtiff5 libxml2 zlib1g.
+# Install the subset of that that's needed to make prince work and fonts.
+RUN apt-get update && apt-get install -y libfontconfig1 libgomp1 libxml2 \
+    fonts-dejavu fonts-droid-fallback fonts-liberation fonts-symbola fonts-unfonts-core && \
+    cd /whatwg && \
+    tar xzf prince.tar.gz && \
+    echo /whatwg/prince | /whatwg/prince-11.3-linux-generic-x86_64/install.sh && \
+    echo '@font-face { font-family: serif; src: local("Symbola") }' >> /whatwg/prince/lib/prince/style/fonts.css && \
+    rm -rf /whatwg/prince.tar.gz /whatwg/prince-11.3-linux-generic-x86_64
+ENV PATH="/whatwg/prince/bin:${PATH}"
+
+ADD pdfsizeopt/pdfsizeopt.single /whatwg/pdfsizeopt/bin/pdfsizeopt
+ADD https://github.com/pts/pdfsizeopt/releases/download/2017-01-24/pdfsizeopt_libexec_linux-v3.tar.gz /whatwg/pdfsizeopt_libexec.tar.gz
+RUN cd /whatwg && \
+    tar xzf pdfsizeopt_libexec.tar.gz && \
+    mv pdfsizeopt_libexec/* pdfsizeopt/bin/ && \
+    rm -rf pdfsizeopt_libexec.tar.gz pdfsizeopt_libexec
+ENV PATH="/whatwg/pdfsizeopt/bin:${PATH}"
+
 ADD html-build /whatwg/html-build
 
 # Note: we do not ADD /whatwg/html, but instead mount it using --volume in .travis.yml, since it
