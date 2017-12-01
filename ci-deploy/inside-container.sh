@@ -80,7 +80,12 @@ echo ""
 echo "Building PDF..."
 PDF_TMP="$(mktemp --suffix=.pdf)"
 prince --verbose --output "$PDF_TMP" "$PDF_SOURCE_URL"
-pdfsizeopt "$PDF_TMP" "$HTML_OUTPUT/print.pdf"
+
+echo ""
+echo "Optimizing PDF..."
+# Note: `/dev/null 2>&1` mean no output at all, and is a workaround for
+# https://github.com/pts/pdfsizeopt/issues/66
+pdfsizeopt "$PDF_TMP" "$HTML_OUTPUT/print.pdf" > /dev/null 2>&1
 
 echo ""
 echo "Deploying PDF..."
