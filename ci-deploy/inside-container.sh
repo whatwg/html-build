@@ -46,7 +46,7 @@ echo "$SERVER $SERVER_PUBLIC_KEY" > known_hosts
 echo "Deploying build output..."
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --compress --delete --verbose --exclude="commit-snapshots" \
-      "$HTML_OUTPUT" "deploy@$SERVER:/var/www/$WEB_ROOT"
+      "$HTML_OUTPUT/" "deploy@$SERVER:/var/www/$WEB_ROOT"
 
 # Now sync a commit snapshot
 # (See https://github.com/whatwg/html-build/issues/97 potential improvements to commit snapshots.)
