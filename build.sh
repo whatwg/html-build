@@ -365,8 +365,9 @@ function runWattsi {
   fi
   WATTSI_ARGS+=( "$1" "$2" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv" )
   if hash wattsi 2>/dev/null; then
-    WATTSI_RESULT=$(wattsi "${WATTSI_ARGS[@]}" \
-      > "$HTML_TEMP/wattsi-output.txt"; echo $?)
+    LOCAL_WATTSI=true
+    WATTSI_RESULT="0"
+    wattsi "${WATTSI_ARGS[@]}" || WATTSI_RESULT=$?
   else
     $QUIET || echo
     $QUIET || echo "Local wattsi is not present; trying the build server..."
@@ -410,15 +411,21 @@ function runWattsi {
 
 runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
 if [[ "$WATTSI_RESULT" == "0" ]]; then
+  if [[ "$LOCAL_WATTSI" != true ]]; then
     "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+  fi
 else
-  grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+  if [[ "$LOCAL_WATTSI" != true ]]; then
+    "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+  fi
   if [[ "$WATTSI_RESULT" == "65" ]]; then
     echo
     echo "There were errors. Running again to show the original line numbers."
     echo
     runWattsi "$HTML_SOURCE/source" "$HTML_TEMP/wattsi-raw-source-output"
-    grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+    if [[ "$LOCAL_WATTSI" != true ]]; then
+      grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+    fi
   fi
   echo
   echo "There were errors. Stopping."
