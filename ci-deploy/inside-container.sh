@@ -54,7 +54,7 @@ echo ""
 echo "Deploying commit snapshot..."
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --compress --verbose \
-      "$HTML_OUTPUT/index.html" "deploy@$SERVER:/var/www/$WEB_ROOT/commit-snapshots/$HTML_SHA"
+      "$HTML_OUTPUT/index.html" "deploy@$SERVER:/var/www/$WEB_ROOT/commit-snapshots/$HTML_SHA/index.html"
 
 echo ""
 echo "Building PDF..."
