@@ -63,7 +63,9 @@ prince --verbose --output "$PDF_TMP" "$PDF_SOURCE_URL"
 
 echo ""
 echo "Optimizing PDF..."
-pdfsizeopt --v=40 "$PDF_TMP" "$HTML_OUTPUT/print.pdf"
+# Note: `/dev/null 2>&1` mean no output at all, and is a workaround for
+# https://github.com/pts/pdfsizeopt/issues/66
+pdfsizeopt "$PDF_TMP" "$HTML_OUTPUT/print.pdf" > /dev/null 2>&1
 
 echo ""
 echo "Deploying PDF..."
