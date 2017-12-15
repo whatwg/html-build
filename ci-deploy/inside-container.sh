@@ -6,6 +6,7 @@ cd "$(dirname "$0")/../.."
 
 PDF_SOURCE_URL="https://html.spec.whatwg.org/"
 WEB_ROOT="html.spec.whatwg.org"
+COMMITS_DIR="commit-snapshots"
 
 SERVER="165.227.248.76"
 SERVER_PUBLIC_KEY="ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBDt6Igtp73aTOYXuFb8qLtgs80wWF6cNi3/AItpWAMpX3PymUw7stU7Pi+IoBJz21nfgmxaKp3gfSe2DPNt06l8="
@@ -45,16 +46,20 @@ echo "$SERVER $SERVER_PUBLIC_KEY" > known_hosts
 # Sync, including deletes, but ignoring the commit-snapshots directory so we don't delete that.
 echo "Deploying build output..."
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
-      --archive --compress --delete --verbose --exclude="commit-snapshots" \
+      --archive --chmod=D755,F644 --compress --verbose \
+      --delete --exclude="$COMMITS_DIR" \
       "$HTML_OUTPUT/" "deploy@$SERVER:/var/www/$WEB_ROOT"
 
 # Now sync a commit snapshot
 # (See https://github.com/whatwg/html-build/issues/97 potential improvements to commit snapshots.)
+COMMIT_DIR="$HTML_OUTPUT/$COMMITS_DIR/$HTML_SHA"
+mkdir -p "$COMMIT_DIR"
+cp "$HTML_OUTPUT/index.html" "$COMMIT_DIR/"
 echo ""
 echo "Deploying commit snapshot..."
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
-      --archive --compress --verbose \
-      "$HTML_OUTPUT/index.html" "deploy@$SERVER:/var/www/$WEB_ROOT/commit-snapshots/$HTML_SHA"
+      --archive --chmod=D755,F644 --compress --verbose \
+      "$COMMIT_DIR/" "deploy@$SERVER:/var/www/$WEB_ROOT/$COMMITS_DIR/$HTML_SHA"
 
 echo ""
 echo "Building PDF..."
