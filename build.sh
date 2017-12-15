@@ -443,7 +443,6 @@ mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
 mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
 rm -rf "$HTML_TEMP"
 
-cp -p  "$HTML_SOURCE/.htaccess" "$HTML_OUTPUT"
 cp -p  "$HTML_SOURCE/404.html" "$HTML_OUTPUT"
 cp -p "$HTML_SOURCE/link-fixup.js" "$HTML_OUTPUT"
 cp -p "$HTML_SOURCE/html-dfn.js" "$HTML_OUTPUT"

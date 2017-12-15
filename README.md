@@ -38,12 +38,11 @@ The first time this runs, it will ask for your input on where to clone the HTML 
 
 After you complete the build steps above, the build will run and generate the single-page version of the spec, the multipage version, and more. If all goes well, you should very soon have all the following in your `output/` directory:
 
-- `.htaccess`
 - `404.html`
 - `entities.json`
 - `fonts/*`
 - `images/*`
-- `index`
+- `index.html`
 - `link-fixup.js`
 - `multipage/*`
 
