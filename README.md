@@ -50,7 +50,7 @@ Now you're ready to edit the `html/source` file—and after you make your change
 
 ## Building using a Docker container
 
-The Dockerized version of the build allows you to run the build entirely inside a "container" (lightweight virtual machine). This includes tricky dependencies like a local copy of Wattsi, as well as the Apache HTTP server with a setup analogous to that of https://html.spec.whatwg.org.
+The Dockerized version of the build allows you to run the build entirely inside a "container" (lightweight virtual machine). This includes tricky dependencies like a local copy of Wattsi, as well an HTTP server setup similar to that of https://html.spec.whatwg.org.
 
 To perform a Dockerized build, use the `--docker` flag:
 

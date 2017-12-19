@@ -285,6 +285,7 @@ if [ "$USE_DOCKER" == true ]; then
   fi
 
   docker build "${DOCKER_ARGS[@]}" .
+  echo "Running server on http://localhost:8080"
   docker run --rm -it -p 8080:80 whatwg-html
   exit 0
 fi
