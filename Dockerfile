@@ -1,19 +1,16 @@
 FROM debian:sid
 
-## dependency installation: apache, wattsi, and other build tools
-## enable some apache mods (the ln -s lines)
+## dependency installation: nginx, wattsi, and other build tools
 ## cleanup freepascal since it is no longer needed after wattsi build
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl git unzip fp-compiler apache2 && \
-    cd /etc/apache2/mods-enabled && \
-    ln -s ../mods-available/headers.load && \
-    ln -s ../mods-available/expires.load && \
+    apt-get install -y ca-certificates curl git unzip fp-compiler nginx && \
     git clone https://github.com/whatwg/wattsi.git /whatwg/wattsi && \
     cd /whatwg/wattsi && \
     /whatwg/wattsi/build.sh && \
     cp /whatwg/wattsi/bin/wattsi /bin/ && \
     apt-get purge -y fp-compiler && \
     apt-get autoremove -y && \
+    rm -rf /etc/nginx/sites-enabled/* && \
     rm -rf /var/lib/apt/lists/*
 
 ADD . /whatwg/build
@@ -24,7 +21,7 @@ ENV HTML_SOURCE /whatwg/html
 
 WORKDIR /whatwg/build
 
-## build and copy assets to final apache dir
+## build and copy assets to final nginx dir
 
 ARG verbose_or_quiet_flag
 ARG no_update_flag
@@ -34,6 +31,6 @@ RUN SKIP_BUILD_UPDATE_CHECK=true ./build.sh $verbose_or_quiet_flag $no_update_fl
     rm -rf /var/www/html && \
     mv output /var/www/html && \
     chmod -R o+rX /var/www/html && \
-    cp site.conf /etc/apache2/sites-available/000-default.conf
+    cp site.conf /etc/nginx/sites-enabled/
 
-CMD ["apache2ctl", "-DFOREGROUND"]
+CMD ["nginx", "-g", "daemon off;"]
