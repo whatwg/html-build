@@ -61,7 +61,7 @@ echo "Deploying commit snapshot..."
 # --chmod=D755,F644 means read-write for user, read-only for others.
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --chmod=D755,F644 --compress --verbose \
-      "$COMMIT_DIR/" "deploy@$SERVER:/var/www/$WEB_ROOT/$COMMITS_DIR/$HTML_SHA"
+      "$COMMIT_DIR" "deploy@$SERVER:/var/www/$WEB_ROOT/$COMMITS_DIR/"
 
 echo ""
 echo "Building PDF..."
