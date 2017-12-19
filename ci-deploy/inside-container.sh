@@ -45,6 +45,7 @@ echo "$SERVER $SERVER_PUBLIC_KEY" > known_hosts
 
 # Sync, including deletes, but ignoring the commit-snapshots directory so we don't delete that.
 echo "Deploying build output..."
+# --chmod=D755,F644 means read-write for user, read-only for others.
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --chmod=D755,F644 --compress --verbose \
       --delete --exclude="$COMMITS_DIR" \
@@ -57,6 +58,7 @@ mkdir -p "$COMMIT_DIR"
 cp "$HTML_OUTPUT/index.html" "$COMMIT_DIR/"
 echo ""
 echo "Deploying commit snapshot..."
+# --chmod=D755,F644 means read-write for user, read-only for others.
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --chmod=D755,F644 --compress --verbose \
       "$COMMIT_DIR/" "deploy@$SERVER:/var/www/$WEB_ROOT/$COMMITS_DIR/$HTML_SHA"
