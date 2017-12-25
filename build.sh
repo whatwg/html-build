@@ -428,7 +428,12 @@ fi
 perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
 
 cp -p  entities/out/entities.json "$HTML_OUTPUT"
-cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
+if [ -f "$HTML_TEMP/wattsi-output/xrefs.json" ]; then
+  cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
+else
+  echo "$HTML_TEMP/wattsi-output/xrefs.json not found. You probably need"
+  echo "to rebuild an up-to-date wattsi binary from the wattsi sources."
+fi
 
 # multipage setup
 rm -rf "$HTML_OUTPUT/multipage"
