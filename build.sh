@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
+WATTSI_LATEST=50
+export WATTSI_LATEST
 HTML_GIT_CLONE_OPTIONS=${HTML_GIT_CLONE_OPTIONS:-"--depth 1"}
 
 # cd to the directory containing this script
@@ -366,6 +368,12 @@ function runWattsi {
   fi
   WATTSI_ARGS+=( "$1" "$2" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv" )
   if hash wattsi 2>/dev/null; then
+    if [ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]; then
+      echo
+      echo "Warning: Your wattsi version is out of date. You should to rebuild an"
+      echo "up-to-date wattsi binary from the wattsi sources."
+      echo
+    fi
     LOCAL_WATTSI=true
     WATTSI_RESULT="0"
     wattsi "${WATTSI_ARGS[@]}" || WATTSI_RESULT=$?
