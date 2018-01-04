@@ -48,7 +48,7 @@ echo "Deploying build output..."
 # --chmod=D755,F644 means read-write for user, read-only for others.
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --chmod=D755,F644 --compress --verbose \
-      --delete --exclude="$COMMITS_DIR" \
+      --delete --exclude="$COMMITS_DIR" --exclude=print.pdf \
       "$HTML_OUTPUT/" "deploy@$SERVER:/var/www/$WEB_ROOT"
 
 # Now sync a commit snapshot
