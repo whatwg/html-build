@@ -27,7 +27,7 @@ TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
 echo ""
 echo "Downloading and running conformance checker..."
 curl --remote-name --fail https://sideshowbarker.net/nightlies/jar/vnu.jar
-java -jar vnu.jar --skip-non-html "$HTML_OUTPUT"
+java -Xmx1g -jar vnu.jar --skip-non-html "$HTML_OUTPUT"
 echo ""
 
 # Note: $TRAVIS_PULL_REQUEST is either a number or false, not true or false.
