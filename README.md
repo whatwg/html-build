@@ -39,12 +39,17 @@ The first time this runs, it will ask for your input on where to clone the HTML 
 After you complete the build steps above, the build will run and generate the single-page version of the spec, the multipage version, and more. If all goes well, you should very soon have all the following in your `output/` directory:
 
 - `404.html`
+- `demos/*`
+- `dev/*`
 - `entities.json`
 - `fonts/*`
+- `html-dfn.js`
 - `images/*`
 - `index.html`
 - `link-fixup.js`
 - `multipage/*`
+- `robots.txt`
+- `xrefs.json`
 
 Now you're ready to edit the `html/source` file—and after you make your changes, you can run the `build.sh` script again to see the new output.
 
