@@ -366,7 +366,7 @@ function runWattsi {
   if $QUIET; then
     WATTSI_ARGS+=( --quiet )
   fi
-  WATTSI_ARGS+=( "$1" "$2" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv" )
+  WATTSI_ARGS+=( "$1" "$(git --git-dir=$HTML_SOURCE/.git/ rev-parse HEAD)" "$2" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv")
   if hash wattsi 2>/dev/null; then
     if [ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]; then
       echo
@@ -381,6 +381,7 @@ function runWattsi {
     $QUIET || echo
     $QUIET || echo "Local wattsi is not present; trying the build server..."
 
+    # TODO fix build server
     CURL_ARGS=( https://build.whatwg.org/wattsi \
                 --form "source=@$1" \
                 --form "caniuse=@$HTML_CACHE/caniuse.json" \
@@ -441,16 +442,18 @@ else
   exit "$WATTSI_RESULT"
 fi
 
-perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
+# TODO process index-snap output
 
-cp -p  entities/out/entities.json "$HTML_OUTPUT"
-cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
+#perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
+
+#cp -p  entities/out/entities.json "$HTML_OUTPUT"
+#cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 
 # multipage setup
-rm -rf "$HTML_OUTPUT/multipage"
-mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
-mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
-rm -rf "$HTML_TEMP"
+#rm -rf "$HTML_OUTPUT/multipage"
+#mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
+#mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
+#rm -rf "$HTML_TEMP"
 
 echo "User-agent: *
 Disallow: /commit-snapshots/" > "$HTML_OUTPUT/robots.txt"
