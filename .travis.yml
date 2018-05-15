@@ -3,3 +3,12 @@ language: bash
 script:
   - shellcheck *.sh
   - shellcheck ci-deploy/*.sh
+
+branches:
+  only:
+    - master
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
