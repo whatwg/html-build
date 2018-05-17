@@ -220,6 +220,8 @@ else
 fi
 export HTML_SOURCE
 
+HTML_SHA="$(git --git-dir=$HTML_SOURCE/.git/ rev-parse HEAD)"
+
 # From http://stackoverflow.com/a/12498485
 function relativePath {
   # both $1 and $2 are absolute paths beginning with /
@@ -366,7 +368,7 @@ function runWattsi {
   if $QUIET; then
     WATTSI_ARGS+=( --quiet )
   fi
-  WATTSI_ARGS+=( "$1" "$(git --git-dir=$HTML_SOURCE/.git/ rev-parse HEAD)" "$2" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv")
+  WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "default" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv")
   if hash wattsi 2>/dev/null; then
     if [ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]; then
       echo
@@ -442,18 +444,22 @@ else
   exit "$WATTSI_RESULT"
 fi
 
-# TODO process index-snap output
+# Singlepage HTML
+perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
 
-#perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
+# Singlepage Commit Snapshot
+COMMIT_DIR="$HTML_OUTPUT/commit-snapshots/$HTML_SHA"
+mkdir -p "$COMMIT_DIR"
+perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-snap" > "$COMMIT_DIR/index.html";
 
-#cp -p  entities/out/entities.json "$HTML_OUTPUT"
-#cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
+cp -p  entities/out/entities.json "$HTML_OUTPUT"
+cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 
-# multipage setup
-#rm -rf "$HTML_OUTPUT/multipage"
-#mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
-#mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
-#rm -rf "$HTML_TEMP"
+# Multipage HTML and Dev Edition
+rm -rf "$HTML_OUTPUT/multipage"
+mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
+mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
+rm -rf "$HTML_TEMP"
 
 echo "User-agent: *
 Disallow: /commit-snapshots/" > "$HTML_OUTPUT/robots.txt"

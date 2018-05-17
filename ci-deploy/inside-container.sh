@@ -11,8 +11,6 @@ COMMITS_DIR="commit-snapshots"
 SERVER="165.227.248.76"
 SERVER_PUBLIC_KEY="ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBDt6Igtp73aTOYXuFb8qLtgs80wWF6cNi3/AItpWAMpX3PymUw7stU7Pi+IoBJz21nfgmxaKp3gfSe2DPNt06l8="
 
-HTML_SHA=$(git -C html rev-parse HEAD)
-
 # `export`ed because build.sh reads it
 HTML_OUTPUT="$(pwd)/output"
 export HTML_OUTPUT
@@ -53,15 +51,12 @@ rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
 
 # Now sync a commit snapshot
 # (See https://github.com/whatwg/html-build/issues/97 potential improvements to commit snapshots.)
-COMMIT_DIR="$HTML_OUTPUT/$COMMITS_DIR/$HTML_SHA"
-mkdir -p "$COMMIT_DIR"
-cp "$HTML_OUTPUT/index.html" "$COMMIT_DIR/"
 echo ""
 echo "Deploying commit snapshot..."
 # --chmod=D755,F644 means read-write for user, read-only for others.
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --chmod=D755,F644 --compress --verbose \
-      "$COMMIT_DIR" "deploy@$SERVER:/var/www/$WEB_ROOT/$COMMITS_DIR/"
+      "$COMMITS_DIR" "deploy@$SERVER:/var/www/$WEB_ROOT/$COMMITS_DIR/"
 
 echo ""
 echo "Building PDF..."
