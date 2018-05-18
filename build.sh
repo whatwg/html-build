@@ -497,20 +497,12 @@ processSource "source" "default"
 
 # This is based on https://github.com/whatwg/whatwg.org/pull/201 and should be kept synchronized
 # with that.
-for REVIEW_DRAFT in "$HTML_SOURCE"/review-drafts/*.wattsi; do
-  # http://mywiki.wooledge.org/BashPitfalls#line-80
-  if [[ ! -e "$REVIEW_DRAFT" ]]; then
+CHANGED_FILES=$(git "$HTML_GIT_DIR" diff --name-only HEAD^ HEAD)
+for CHANGED in $CHANGED_FILES; do # Omit quotes around variable to split on whitespace
+  if ! [[ "$CHANGED" =~ ^review-drafts/.*.wattsi$ ]]; then
     continue
   fi
-  RELATIVE_REVIEW_DRAFT=$(relativePath "$HTML_SOURCE" "$REVIEW_DRAFT")
-
-  CHANGED_FILES=$(git "$HTML_GIT_DIR" diff --name-only HEAD^ HEAD)
-  for CHANGED in $CHANGED_FILES; do # Omit quotes around variable to split on whitespace
-    if [[ "$RELATIVE_REVIEW_DRAFT" != "$CHANGED" ]]; then
-      continue
-    fi
-    processSource "$RELATIVE_REVIEW_DRAFT" "review"
-  done
+  processSource "$CHANGED" "review"
 done
 
 $QUIET || echo
