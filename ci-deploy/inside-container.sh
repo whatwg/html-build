@@ -47,14 +47,14 @@ echo "Deploying build output..."
 # --chmod=D755,F644 means read-write for user, read-only for others.
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --chmod=D755,F644 --compress --verbose \
-      --delete --exclude="$COMMITS_DIR" --exclude="$REVIEW_DR" \
+      --delete --exclude="$COMMITS_DIR" --exclude="$REVIEW_DIR" \
       --exclude=print.pdf \
       "$HTML_OUTPUT/" "deploy@$SERVER:/var/www/$WEB_ROOT"
 
 # Now sync a commit snapshot and a review draft, if any
 # (See https://github.com/whatwg/html-build/issues/97 potential improvements to commit snapshots.)
 echo ""
-echo "Deploying commit snapshot..."
+echo "Deploying Commit Snapshot and Review Drafts, if any..."
 # --chmod=D755,F644 means read-write for user, read-only for others.
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --chmod=D755,F644 --compress --verbose \

@@ -220,7 +220,8 @@ else
 fi
 export HTML_SOURCE
 
-HTML_SHA="$(git --git-dir=$HTML_SOURCE/.git/ rev-parse HEAD)"
+HTML_GIT_DIR="--git-dir=$HTML_SOURCE/.git/"
+HTML_SHA="$(git "$HTML_GIT_DIR" rev-parse HEAD)"
 
 # From http://stackoverflow.com/a/12498485
 function relativePath {
@@ -389,9 +390,10 @@ function processSource {
       $QUIET || echo
       $QUIET || echo "Local wattsi is not present; trying the build server..."
 
-      # TODO fix build server
       CURL_ARGS=( https://build.whatwg.org/wattsi \
                   --form "source=@$1" \
+                  --form "sha=@$HTML_SHA" \
+                  --form "build=@$BUILD_TYPE" \
                   --form "caniuse=@$HTML_CACHE/caniuse.json" \
                   --form "w3cbugs=@$HTML_CACHE/w3cbugs.csv" \
                   --dump-header "$HTML_TEMP/wattsi-headers.txt" \
@@ -450,14 +452,18 @@ function processSource {
     exit "$WATTSI_RESULT"
   fi
 
+  function generateBacklinks {
+    perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-$1" > "$2/index.html";
+  }
+
   if [[ "$BUILD_TYPE" == "default" ]]; then
     # Singlepage HTML
-    perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
+    generateBacklinks "html" "$HTML_OUTPUT";
 
     # Singlepage Commit Snapshot
     COMMIT_DIR="$HTML_OUTPUT/commit-snapshots/$HTML_SHA"
     mkdir -p "$COMMIT_DIR"
-    perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-snap" > "$COMMIT_DIR/index.html";
+    generateBacklinks  "snap" "$COMMIT_DIR";
 
     cp -p  entities/out/entities.json "$HTML_OUTPUT"
     cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
@@ -483,14 +489,29 @@ Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
     YEARMONTH=$(basename "$SOURCE_LOCATION" .wattsi)
     NEWDIR="$HTML_OUTPUT/review-drafts/$YEARMONTH"
     mkdir -p "$NEWDIR"
-    perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-review" > "$NEWDIR/index.html";
+    generateBacklinks "review" "$NEWDIR";
   fi
 }
 
 processSource "source" "default"
 
-# Test
-processSource "review-drafts/2018-05.wattsi" "review"
+# This is based on https://github.com/whatwg/whatwg.org/pull/201 and should be kept synchronized
+# with that.
+for REVIEW_DRAFT in "$HTML_SOURCE"/review-drafts/*.wattsi; do
+  # http://mywiki.wooledge.org/BashPitfalls#line-80
+  if [[ ! -e "$REVIEW_DRAFT" ]]; then
+    continue
+  fi
+  RELATIVE_REVIEW_DRAFT=$(relativePath "$HTML_SOURCE" "$REVIEW_DRAFT")
+
+  CHANGED_FILES=$(git "$HTML_GIT_DIR" diff --name-only HEAD^ HEAD)
+  for CHANGED in $CHANGED_FILES; do # Omit quotes around variable to split on whitespace
+    if [[ "$RELATIVE_REVIEW_DRAFT" != "$CHANGED" ]]; then
+      continue
+    fi
+    processSource "$RELATIVE_REVIEW_DRAFT" "review"
+  done
+done
 
 $QUIET || echo
 $QUIET || echo "Success!"
