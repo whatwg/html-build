@@ -220,6 +220,9 @@ else
 fi
 export HTML_SOURCE
 
+HTML_GIT_DIR="--git-dir=$HTML_SOURCE/.git/"
+HTML_SHA="$(git "$HTML_GIT_DIR" rev-parse HEAD)"
+
 # From http://stackoverflow.com/a/12498485
 function relativePath {
   # both $1 and $2 are absolute paths beginning with /
@@ -300,9 +303,6 @@ $QUIET || echo "Linting the source file..."
   exit 1
 }
 
-rm -rf "$HTML_TEMP" && mkdir -p "$HTML_TEMP"
-rm -rf "$HTML_OUTPUT" && mkdir -p "$HTML_OUTPUT"
-
 if [ -d "$HTML_CACHE" ]; then
   PREV_BUILD_SHA=$( cat "$HTML_CACHE/last-build-sha.txt" 2>/dev/null || echo )
   CURRENT_BUILD_SHA=$( git rev-parse HEAD )
@@ -340,127 +340,170 @@ if [[ "$DO_UPDATE" == true || ! -f "$HTML_CACHE/w3cbugs.csv" ]]; then
     'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv&status_whiteboard=whatwg-resolved&status_whiteboard_type=notregexp&bug_file_loc=http&bug_file_loc_type=substring&product=WHATWG&product=HTML%20WG&product=CSS&product=WebAppsWG'
 fi
 
-$QUIET || echo "Pre-processing the source..."
-cp -p  entities/out/entities.inc "$HTML_CACHE"
-cp -p  entities/out/entities-dtd.url "$HTML_CACHE"
-cp -p  quotes/out/cldr.inc "$HTML_CACHE"
-if $VERBOSE; then
-  perl .pre-process-main.pl --verbose < "$HTML_SOURCE/source" > "$HTML_TEMP/source-expanded-1"
-else
-  perl .pre-process-main.pl < "$HTML_SOURCE/source" > "$HTML_TEMP/source-expanded-1"
-fi
-perl .pre-process-annotate-attributes.pl < "$HTML_TEMP/source-expanded-1" > "$HTML_TEMP/source-expanded-2" # this one could be merged
-perl .pre-process-tag-omission.pl < "$HTML_TEMP/source-expanded-2" | perl .pre-process-index-generator.pl > "$HTML_TEMP/source-whatwg-complete" # this one could be merged
+rm -rf "$HTML_OUTPUT" && mkdir -p "$HTML_OUTPUT"
 
-function runWattsi {
-  # Input arguments: $1 is the file to run wattsi on, $2 is a directory for wattsi to write output to
-  # Output:
-  # - Sets global variable $WATTSI_RESULT to an exit code (or equivalent, for HTTP version)
-  # - $HTML_TEMP/wattsi-output directory will contain the output from wattsi on success
-  # - $HTML_TEMP/wattsi-output.txt will contain the output from wattsi, on both success and failure
 
-  rm -rf "$2"
-  mkdir "$2"
+function processSource {
+  rm -rf "$HTML_TEMP" && mkdir -p "$HTML_TEMP"
 
-  WATTSI_ARGS=()
-  if $QUIET; then
-    WATTSI_ARGS+=( --quiet )
-  fi
-  WATTSI_ARGS+=( "$1" "$2" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv" )
-  if hash wattsi 2>/dev/null; then
-    if [ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]; then
-      echo
-      echo "Warning: Your wattsi version is out of date. You should to rebuild an"
-      echo "up-to-date wattsi binary from the wattsi sources."
-      echo
-    fi
-    LOCAL_WATTSI=true
-    WATTSI_RESULT="0"
-    wattsi "${WATTSI_ARGS[@]}" || WATTSI_RESULT=$?
+  $QUIET || echo "Pre-processing the source..."
+  SOURCE_LOCATION="$1"
+  BUILD_TYPE="$2"
+  cp -p  entities/out/entities.inc "$HTML_CACHE"
+  cp -p  entities/out/entities-dtd.url "$HTML_CACHE"
+  cp -p  quotes/out/cldr.inc "$HTML_CACHE"
+  if $VERBOSE; then
+    perl .pre-process-main.pl --verbose < "$HTML_SOURCE/$SOURCE_LOCATION" > "$HTML_TEMP/source-expanded-1"
   else
-    $QUIET || echo
-    $QUIET || echo "Local wattsi is not present; trying the build server..."
+    perl .pre-process-main.pl < "$HTML_SOURCE/$SOURCE_LOCATION" > "$HTML_TEMP/source-expanded-1"
+  fi
+  perl .pre-process-annotate-attributes.pl < "$HTML_TEMP/source-expanded-1" > "$HTML_TEMP/source-expanded-2" # this one could be merged
+  perl .pre-process-tag-omission.pl < "$HTML_TEMP/source-expanded-2" | perl .pre-process-index-generator.pl > "$HTML_TEMP/source-whatwg-complete" # this one could be merged
 
-    CURL_ARGS=( https://build.whatwg.org/wattsi \
-                --form "source=@$1" \
-                --form "caniuse=@$HTML_CACHE/caniuse.json" \
-                --form "w3cbugs=@$HTML_CACHE/w3cbugs.csv" \
-                --dump-header "$HTML_TEMP/wattsi-headers.txt" \
-                --output "$HTML_TEMP/wattsi-output.zip" )
-    if $VERBOSE; then
-      CURL_ARGS+=( --verbose )
-    elif $QUIET; then
-      CURL_ARGS+=( --silent )
+  function runWattsi {
+    # Input arguments: $1 is the file to run wattsi on, $2 is a directory for wattsi to write output
+    # to
+    # Output:
+    # - Sets global variable $WATTSI_RESULT to an exit code (or equivalent, for HTTP version)
+    # - $HTML_TEMP/wattsi-output directory will contain the output from wattsi on success
+    # - $HTML_TEMP/wattsi-output.txt will contain the output from wattsi, on both success and failure
+
+    rm -rf "$2"
+    mkdir "$2"
+
+    WATTSI_ARGS=()
+    if $QUIET; then
+      WATTSI_ARGS+=( --quiet )
     fi
-    curl "${CURL_ARGS[@]}"
-
-    # read exit code from the Wattsi-Exit-Code header and assume failure if not found
-    WATTSI_RESULT=1
-    while IFS=":" read -r NAME VALUE; do
-      if [ "$NAME" == "Wattsi-Exit-Code" ]; then
-        WATTSI_RESULT=$(echo "$VALUE" | tr -d ' \r\n')
-        break
+    WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv")
+    if hash wattsi 2>/dev/null; then
+      if [ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]; then
+        echo
+        echo "Warning: Your wattsi version is out of date. You should to rebuild an"
+        echo "up-to-date wattsi binary from the wattsi sources."
+        echo
       fi
-    done < "$HTML_TEMP/wattsi-headers.txt"
-
-    if [ "$WATTSI_RESULT" != "0" ]; then
-      mv "$HTML_TEMP/wattsi-output.zip" "$HTML_TEMP/wattsi-output.txt"
+      LOCAL_WATTSI=true
+      WATTSI_RESULT="0"
+      wattsi "${WATTSI_ARGS[@]}" || WATTSI_RESULT=$?
     else
-      UNZIP_ARGS=()
-      # Note: Don't use the -v flag; it doesn't work in combination with -d
-      if ! $VERBOSE; then
-        UNZIP_ARGS+=( -qq )
+      $QUIET || echo
+      $QUIET || echo "Local wattsi is not present; trying the build server..."
+
+      CURL_ARGS=( https://build.whatwg.org/wattsi \
+                  --form "source=@$1" \
+                  --form "sha=@$HTML_SHA" \
+                  --form "build=@$BUILD_TYPE" \
+                  --form "caniuse=@$HTML_CACHE/caniuse.json" \
+                  --form "w3cbugs=@$HTML_CACHE/w3cbugs.csv" \
+                  --dump-header "$HTML_TEMP/wattsi-headers.txt" \
+                  --output "$HTML_TEMP/wattsi-output.zip" )
+      if $VERBOSE; then
+        CURL_ARGS+=( --verbose )
+      elif $QUIET; then
+        CURL_ARGS+=( --silent )
       fi
-      UNZIP_ARGS+=( "$HTML_TEMP/wattsi-output.zip" -d "$2" )
-      unzip "${UNZIP_ARGS[@]}"
-      mv "$2/output.txt" "$HTML_TEMP/wattsi-output.txt"
+      curl "${CURL_ARGS[@]}"
+
+      # read exit code from the Wattsi-Exit-Code header and assume failure if not found
+      WATTSI_RESULT=1
+      while IFS=":" read -r NAME VALUE; do
+        if [ "$NAME" == "Wattsi-Exit-Code" ]; then
+          WATTSI_RESULT=$(echo "$VALUE" | tr -d ' \r\n')
+          break
+        fi
+      done < "$HTML_TEMP/wattsi-headers.txt"
+
+      if [ "$WATTSI_RESULT" != "0" ]; then
+        mv "$HTML_TEMP/wattsi-output.zip" "$HTML_TEMP/wattsi-output.txt"
+      else
+        UNZIP_ARGS=()
+        # Note: Don't use the -v flag; it doesn't work in combination with -d
+        if ! $VERBOSE; then
+          UNZIP_ARGS+=( -qq )
+        fi
+        UNZIP_ARGS+=( "$HTML_TEMP/wattsi-output.zip" -d "$2" )
+        unzip "${UNZIP_ARGS[@]}"
+        mv "$2/output.txt" "$HTML_TEMP/wattsi-output.txt"
+      fi
     fi
+  }
+
+  runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
+  if [[ "$WATTSI_RESULT" == "0" ]]; then
+    if [[ "$LOCAL_WATTSI" != true ]]; then
+      "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+    fi
+  else
+    if [[ "$LOCAL_WATTSI" != true ]]; then
+      "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+    fi
+    if [[ "$WATTSI_RESULT" == "65" ]]; then
+      echo
+      echo "There were errors. Running again to show the original line numbers."
+      echo
+      runWattsi "$HTML_SOURCE/SOURCE_LOCATION" "$HTML_TEMP/wattsi-raw-source-output"
+      if [[ "$LOCAL_WATTSI" != true ]]; then
+        grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+      fi
+    fi
+    echo
+    echo "There were errors. Stopping."
+    exit "$WATTSI_RESULT"
+  fi
+
+  function generateBacklinks {
+    perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-$1" > "$2/index.html";
+  }
+
+  if [[ "$BUILD_TYPE" == "default" ]]; then
+    # Singlepage HTML
+    generateBacklinks "html" "$HTML_OUTPUT";
+
+    # Singlepage Commit Snapshot
+    COMMIT_DIR="$HTML_OUTPUT/commit-snapshots/$HTML_SHA"
+    mkdir -p "$COMMIT_DIR"
+    generateBacklinks  "snap" "$COMMIT_DIR";
+
+    cp -p  entities/out/entities.json "$HTML_OUTPUT"
+    cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
+
+    # Multipage HTML and Dev Edition
+    rm -rf "$HTML_OUTPUT/multipage"
+    mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
+    mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
+    rm -rf "$HTML_TEMP"
+
+    echo "User-agent: *
+Disallow: /commit-snapshots/
+Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
+    cp -p  "$HTML_SOURCE/404.html" "$HTML_OUTPUT"
+    cp -p "$HTML_SOURCE/link-fixup.js" "$HTML_OUTPUT"
+    cp -p "$HTML_SOURCE/html-dfn.js" "$HTML_OUTPUT"
+    cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
+    cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
+    cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
+    cp -pR "$HTML_SOURCE/dev" "$HTML_OUTPUT"
+  else
+    # Singlepage Review Draft
+    YEARMONTH=$(basename "$SOURCE_LOCATION" .wattsi)
+    NEWDIR="$HTML_OUTPUT/review-drafts/$YEARMONTH"
+    mkdir -p "$NEWDIR"
+    generateBacklinks "review" "$NEWDIR";
   fi
 }
 
-runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
-if [[ "$WATTSI_RESULT" == "0" ]]; then
-  if [[ "$LOCAL_WATTSI" != true ]]; then
-    "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+processSource "source" "default"
+
+# This is based on https://github.com/whatwg/whatwg.org/pull/201 and should be kept synchronized
+# with that.
+CHANGED_FILES=$(git "$HTML_GIT_DIR" diff --name-only HEAD^ HEAD)
+for CHANGED in $CHANGED_FILES; do # Omit quotes around variable to split on whitespace
+  if ! [[ "$CHANGED" =~ ^review-drafts/.*.wattsi$ ]]; then
+    continue
   fi
-else
-  if [[ "$LOCAL_WATTSI" != true ]]; then
-    "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
-  fi
-  if [[ "$WATTSI_RESULT" == "65" ]]; then
-    echo
-    echo "There were errors. Running again to show the original line numbers."
-    echo
-    runWattsi "$HTML_SOURCE/source" "$HTML_TEMP/wattsi-raw-source-output"
-    if [[ "$LOCAL_WATTSI" != true ]]; then
-      grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
-    fi
-  fi
-  echo
-  echo "There were errors. Stopping."
-  exit "$WATTSI_RESULT"
-fi
-
-perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-html" > "$HTML_OUTPUT/index.html";
-
-cp -p  entities/out/entities.json "$HTML_OUTPUT"
-cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
-
-# multipage setup
-rm -rf "$HTML_OUTPUT/multipage"
-mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
-mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
-rm -rf "$HTML_TEMP"
-
-echo "User-agent: *
-Disallow: /commit-snapshots/" > "$HTML_OUTPUT/robots.txt"
-cp -p  "$HTML_SOURCE/404.html" "$HTML_OUTPUT"
-cp -p "$HTML_SOURCE/link-fixup.js" "$HTML_OUTPUT"
-cp -p "$HTML_SOURCE/html-dfn.js" "$HTML_OUTPUT"
-cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
-cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
-cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
-cp -pR "$HTML_SOURCE/dev" "$HTML_OUTPUT"
+  processSource "$CHANGED" "review"
+done
 
 $QUIET || echo
 $QUIET || echo "Success!"
