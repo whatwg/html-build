@@ -341,7 +341,9 @@ if [[ "$DO_UPDATE" == true || ! -f "$HTML_CACHE/w3cbugs.csv" ]]; then
 fi
 
 rm -rf "$HTML_OUTPUT" && mkdir -p "$HTML_OUTPUT"
-
+# Set these up so rsync will not complain about either being missing
+mkdir -p "$HTML_OUTPUT/commit-snapshots"
+mkdir -p "$HTML_OUTPUT/review-drafts"
 
 function processSource {
   rm -rf "$HTML_TEMP" && mkdir -p "$HTML_TEMP"
