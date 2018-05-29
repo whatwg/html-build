@@ -394,8 +394,8 @@ function processSource {
 
       CURL_ARGS=( https://build.whatwg.org/wattsi \
                   --form "source=@$1" \
-                  --form "sha=@$HTML_SHA" \
-                  --form "build=@$BUILD_TYPE" \
+                  --form "sha=$HTML_SHA" \
+                  --form "build=$BUILD_TYPE" \
                   --form "caniuse=@$HTML_CACHE/caniuse.json" \
                   --form "w3cbugs=@$HTML_CACHE/w3cbugs.csv" \
                   --dump-header "$HTML_TEMP/wattsi-headers.txt" \
