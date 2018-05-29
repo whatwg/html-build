@@ -42,7 +42,7 @@ eval "$(ssh-agent -s)"
 ssh-add html/deploy-key
 echo "$SERVER $SERVER_PUBLIC_KEY" > known_hosts
 
-# Sync, including deletes, but ignoring the commit-snapshots directory so we don't delete that.
+# Sync, including deletes, but ignoring the stuff we'll deploy below, so that we don't delete them.
 echo "Deploying build output..."
 # --chmod=D755,F644 means read-write for user, read-only for others.
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
@@ -58,7 +58,7 @@ echo "Deploying Commit Snapshot and Review Drafts, if any..."
 # --chmod=D755,F644 means read-write for user, read-only for others.
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --chmod=D755,F644 --compress --verbose \
-      "$COMMITS_DIR" "$REVIEW_DIR" "deploy@$SERVER:/var/www/$WEB_ROOT"
+      "$HTML_OUTPUT/$COMMITS_DIR" "$HTML_OUTPUT/$REVIEW_DIR" "deploy@$SERVER:/var/www/$WEB_ROOT"
 
 echo ""
 echo "Building PDF..."
