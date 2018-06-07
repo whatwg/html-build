@@ -444,7 +444,7 @@ function processSource {
       echo
       echo "There were errors. Running again to show the original line numbers."
       echo
-      runWattsi "$HTML_SOURCE/SOURCE_LOCATION" "$HTML_TEMP/wattsi-raw-source-output"
+      runWattsi "$HTML_SOURCE/$SOURCE_LOCATION" "$HTML_TEMP/wattsi-raw-source-output"
       if [[ "$LOCAL_WATTSI" != true ]]; then
         grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
       fi
