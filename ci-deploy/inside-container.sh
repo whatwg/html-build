@@ -16,7 +16,8 @@ SERVER_PUBLIC_KEY="ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzd
 HTML_OUTPUT="$(pwd)/output"
 export HTML_OUTPUT
 
-# Environment variables set from outside
+# Note: $TRAVIS_PULL_REQUEST is either a number or false, not true or false.
+# https://docs.travis-ci.com/user/environment-variables/#Default-Environment-Variables
 TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
 
 # Build the spec into the output directory
@@ -29,8 +30,6 @@ curl --remote-name --fail https://sideshowbarker.net/nightlies/jar/vnu.jar
 java -Xmx1g -jar vnu.jar --skip-non-html "$HTML_OUTPUT"
 echo ""
 
-# Note: $TRAVIS_PULL_REQUEST is either a number or false, not true or false.
-# https://docs.travis-ci.com/user/environment-variables/#Default-Environment-Variables
 if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
   echo "Skipping deploy for non-master"
   exit 0
