@@ -25,6 +25,8 @@ export HTML_TEMP
 HTML_OUTPUT=${HTML_OUTPUT:-$DIR/output}
 export HTML_OUTPUT
 
+SHA_OVERRIDE=${SHA_OVERRIDE:-}
+
 for arg in "$@"
 do
   case $arg in
@@ -220,8 +222,8 @@ else
 fi
 export HTML_SOURCE
 
-HTML_GIT_DIR="--git-dir=$HTML_SOURCE/.git/"
-HTML_SHA="$(git "$HTML_GIT_DIR" rev-parse HEAD)"
+HTML_GIT_DIR="$HTML_SOURCE/.git/"
+HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$HTML_GIT_DIR" rev-parse HEAD)}
 
 # From http://stackoverflow.com/a/12498485
 function relativePath {
@@ -284,7 +286,8 @@ if [ "$USE_DOCKER" == true ]; then
   DOCKER_ARGS=( --tag whatwg-html \
                 --build-arg "html_source_dir=$SOURCE_RELATIVE" \
                 --build-arg "verbose_or_quiet_flag=$VERBOSE_OR_QUIET_FLAG" \
-                --build-arg "no_update_flag=$NO_UPDATE_FLAG" )
+                --build-arg "no_update_flag=$NO_UPDATE_FLAG" \
+                --build-arg "sha_override=$HTML_SHA" )
   if $QUIET; then
     DOCKER_ARGS+=( --quiet )
   fi
@@ -497,15 +500,21 @@ Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
 
 processSource "source" "default"
 
-# This is based on https://github.com/whatwg/whatwg.org/pull/201 and should be kept synchronized
-# with that.
-CHANGED_FILES=$(git "$HTML_GIT_DIR" diff --name-only HEAD^ HEAD)
-for CHANGED in $CHANGED_FILES; do # Omit quotes around variable to split on whitespace
-  if ! [[ "$CHANGED" =~ ^review-drafts/.*.wattsi$ ]]; then
-    continue
-  fi
-  processSource "$CHANGED" "review"
-done
+if [[ -e "$HTML_GIT_DIR" ]]; then
+  # This is based on https://github.com/whatwg/whatwg.org/pull/201 and should be kept synchronized
+  # with that.
+  CHANGED_FILES=$(git --git-dir="$HTML_GIT_DIR" diff --name-only HEAD^ HEAD)
+  for CHANGED in $CHANGED_FILES; do # Omit quotes around variable to split on whitespace
+    if ! [[ "$CHANGED" =~ ^review-drafts/.*.wattsi$ ]]; then
+      continue
+    fi
+    processSource "$CHANGED" "review"
+  done
+else
+  echo ""
+  echo "Skipping review draft production as the .git directory is not present"
+  echo "(This always happens if you use the --docker option.)"
+fi
 
 $QUIET || echo
 $QUIET || echo "Success!"

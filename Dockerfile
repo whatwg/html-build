@@ -25,9 +25,11 @@ WORKDIR /whatwg/build
 
 ARG verbose_or_quiet_flag
 ARG no_update_flag
+ARG sha_override
 
 # no_update_flag doesn't really work; .cache directory is re-created empty each time
-RUN SKIP_BUILD_UPDATE_CHECK=true ./build.sh $verbose_or_quiet_flag $no_update_flag && \
+RUN SKIP_BUILD_UPDATE_CHECK=true SHA_OVERRIDE=$sha_override \
+    ./build.sh $verbose_or_quiet_flag $no_update_flag && \
     rm -rf /var/www/html && \
     mv output /var/www/html && \
     chmod -R o+rX /var/www/html && \
