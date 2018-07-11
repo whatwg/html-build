@@ -107,32 +107,7 @@ function main {
     fi
   fi
 
-  $QUIET || echo "Looking for the HTML source (set HTML_SOURCE to override)..."
-  if [[ $HTML_SOURCE == "" ]]; then
-    PARENT_DIR=$(dirname "$DIR")
-    if [[ -f "$PARENT_DIR/html/source" ]]; then
-      HTML_SOURCE=$PARENT_DIR/html
-      $QUIET || echo "Found $HTML_SOURCE (alongside html-build)..."
-    else
-      if [[ -f "$DIR/html/source" ]]; then
-        HTML_SOURCE=$DIR/html
-        $QUIET || echo "Found $HTML_SOURCE (inside html-build)..."
-      else
-        $QUIET || echo "Didn't find the HTML source on your system..."
-        chooseRepo
-      fi
-    fi
-  else
-    if [[ -f "$HTML_SOURCE/source" ]]; then
-      $QUIET || echo "Found $HTML_SOURCE (from HTML_SOURCE)..."
-    else
-      $QUIET || echo "Looked in the $HTML_SOURCE directory but didn't find HTML source there..."
-      HTML_SOURCE=""
-      chooseRepo
-    fi
-  fi
-
-  export HTML_SOURCE
+  findHTMLSource
 
   HTML_GIT_DIR="$HTML_SOURCE/.git/"
   HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$HTML_GIT_DIR" rev-parse HEAD)}
@@ -251,6 +226,44 @@ function main {
   $QUIET || echo "Success!"
 }
 
+# Finds the location of the HTML Standard, and stores it in the HTML_SOURCE variable.
+# It either guesses based on directory structure, or interactively prompts the user.
+# - Arguments: none
+# - Output:
+#   - Sets $HTML_SOURCE
+function findHTMLSource {
+  $QUIET || echo "Looking for the HTML source (set HTML_SOURCE to override)..."
+  if [[ $HTML_SOURCE == "" ]]; then
+    PARENT_DIR=$(dirname "$DIR")
+    if [[ -f "$PARENT_DIR/html/source" ]]; then
+      HTML_SOURCE=$PARENT_DIR/html
+      $QUIET || echo "Found $HTML_SOURCE (alongside html-build)..."
+    else
+      if [[ -f "$DIR/html/source" ]]; then
+        HTML_SOURCE=$DIR/html
+        $QUIET || echo "Found $HTML_SOURCE (inside html-build)..."
+      else
+        $QUIET || echo "Didn't find the HTML source on your system..."
+        chooseRepo
+      fi
+    fi
+  else
+    if [[ -f "$HTML_SOURCE/source" ]]; then
+      $QUIET || echo "Found $HTML_SOURCE (from HTML_SOURCE)..."
+    else
+      $QUIET || echo "Looked in the $HTML_SOURCE directory but didn't find HTML source there..."
+      HTML_SOURCE=""
+      chooseRepo
+    fi
+  fi
+
+  export HTML_SOURCE
+}
+
+# Interactively prompts the user for where their HTML source file is.
+# - Arguments: none
+# - Output:
+#   - Sets $HTML_SOURCE
 function chooseRepo {
   echo
   echo "What HTML source would you like to build from?"
@@ -309,6 +322,10 @@ function chooseRepo {
   fi
 }
 
+# Confirms the currently-set HTML_SOURCE with the user, or clones HTML_REPO into HTML_SOURCE
+# - Arguments: none
+# - Output:
+#   - $HTML_SOURCE will now point to a folder containing the HTML Standard
 function confirmRepo {
   if [[ $HTML_SOURCE != "" ]]; then
     if [[ -f "$HTML_SOURCE/source" ]]; then
@@ -350,10 +367,14 @@ function confirmRepo {
   fi
 }
 
+# Gives the relative path to $2 from $1
 # From http://stackoverflow.com/a/12498485
+# - Arguments:
+#   - $1: absolute path beginning with /
+#   - $2: absolute path beginning with /
+# - Output:
+#   - Echoes the relative path
 function relativePath {
-  # both $1 and $2 are absolute paths beginning with /
-  # returns relative path to $2 from $1
   local source=$1
   local target=$2
 
@@ -392,6 +413,12 @@ function relativePath {
   echo "$result"
 }
 
+# Performs a build of the HTML source file into the resulting output
+# - Arguments:
+#   - $1: the filename of the source file within HTML_SOURCE (e.g. "source")
+#   - $2: the build type, either "default" or "review"
+# - Output:
+#   - $HTML_OUTPUT will contain the built files
 function processSource {
   rm -rf "$HTML_TEMP" && mkdir -p "$HTML_TEMP"
 
@@ -469,15 +496,16 @@ Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
   fi
 }
 
+# Runs Wattsi on the given file, either locally or using the web service
+# - Arguments:
+#   - $1: the file to run Wattsi on
+#   - $2: the directory for Wattsi to write output to
+#   - $3: the URL for the syntax-highlighter server
+# - Output:
+#   - Sets $WATTSI_RESULT to the exit code
+#   - $HTML_TEMP/wattsi-output directory will contain the output from Wattsi on success
+#   - $HTML_TEMP/wattsi-output.txt will contain the output from Wattsi, on both success and failure
 function runWattsi {
-  # Input arguments:
-  # - $1 is the file to run Wattsi on
-  # - $2 is a directory for Wattsi to write output to
-  # - $3 is the URL for the syntax-highlighter server
-  # Output:
-  # - Sets global variable $WATTSI_RESULT to an exit code (or equivalent, for HTTP version)
-  # - $HTML_TEMP/wattsi-output directory will contain the output from wattsi on success
-  # - $HTML_TEMP/wattsi-output.txt will contain the output from wattsi, on both success and failure
 
   rm -rf "$2"
   mkdir "$2"
@@ -540,6 +568,13 @@ function runWattsi {
   fi
 }
 
+
+# Runs backlink generation post-processing on the output of Wattsi
+# Arguments:
+# - $1: the spec variant (e.g. "snap" or "html") to run on
+# - $2: The destination directory for the output file
+# Output:
+# - $2 will contain an index.html file derived from the given variant, with post-processing applied
 function generateBacklinks {
   perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-$1" > "$2/index.html";
 }
