@@ -98,61 +98,61 @@ if [[ "$DO_UPDATE" == true && "$SKIP_BUILD_UPDATE_CHECK" != true ]]; then
 fi
 
 function chooseRepo {
-echo
-echo "What HTML source would you like to build from?"
-echo
-echo "1) Use an existing clone on my local filesystem."
-echo "2) Create a clone from https://github.com/whatwg/html."
-echo "3) Create a clone from an existing fork, by GitHub username."
-echo "4) Create a clone from an existing fork, by custom URL."
-echo "5) Quit"
-echo
-read -r -e -p "Choose 1-5: " choice
-if [ "1" = "$choice" ]; then
-  read -r -e -p "Path to your existing clone: "
-  HTML_SOURCE=$(echo "$REPLY" | xargs) # trims leading/trailing space
-  if [[ "$HTML_SOURCE" = "" ]]; then
-    chooseRepo
-  fi
-  confirmRepo
-elif [ "2" = "$choice" ]; then
-  HTML_REPO=https://github.com/whatwg/html.git
-  confirmRepo
-elif [ "3" = "$choice" ]; then
   echo
-  read -r -e -p "GitHub username of fork owner: "
-  GH_USERNAME=$(echo "$REPLY" | xargs) # trims leading/trailing space
-  if [ -z "$GH_USERNAME" ]; then
-    chooseRepo
-  fi
+  echo "What HTML source would you like to build from?"
   echo
-  echo "Does a fork already exist at https://github.com/$GH_USERNAME/html?"
+  echo "1) Use an existing clone on my local filesystem."
+  echo "2) Create a clone from https://github.com/whatwg/html."
+  echo "3) Create a clone from an existing fork, by GitHub username."
+  echo "4) Create a clone from an existing fork, by custom URL."
+  echo "5) Quit"
   echo
-  read -r -e -p "Y or N? " yn
-  if [[ "y" = "$yn" || "Y" = "$yn" ]]; then
-    HTML_REPO="https://github.com/$GH_USERNAME/html.git"
+  read -r -e -p "Choose 1-5: " choice
+  if [ "1" = "$choice" ]; then
+    read -r -e -p "Path to your existing clone: "
+    HTML_SOURCE=$(echo "$REPLY" | xargs) # trims leading/trailing space
+    if [[ "$HTML_SOURCE" = "" ]]; then
+      chooseRepo
+    fi
     confirmRepo
-  else
+  elif [ "2" = "$choice" ]; then
+    HTML_REPO=https://github.com/whatwg/html.git
+    confirmRepo
+  elif [ "3" = "$choice" ]; then
     echo
-    echo "Before proceeding, first go to https://github.com/whatwg/html and create a fork."
+    read -r -e -p "GitHub username of fork owner: "
+    GH_USERNAME=$(echo "$REPLY" | xargs) # trims leading/trailing space
+    if [ -z "$GH_USERNAME" ]; then
+      chooseRepo
+    fi
+    echo
+    echo "Does a fork already exist at https://github.com/$GH_USERNAME/html?"
+    echo
+    read -r -e -p "Y or N? " yn
+    if [[ "y" = "$yn" || "Y" = "$yn" ]]; then
+      HTML_REPO="https://github.com/$GH_USERNAME/html.git"
+      confirmRepo
+    else
+      echo
+      echo "Before proceeding, first go to https://github.com/whatwg/html and create a fork."
+      exit
+    fi
+  elif [ "4" = "$choice" ]; then
+    echo
+    read -r -e -p "URL: "
+    REPLY=$(echo "$REPLY" | xargs) # trims leading/trailing space
+    if [ -z "$REPLY" ]; then
+      chooseRepo
+    fi
+    HTML_REPO=$REPLY
+    confirmRepo
+  elif [[ "5" = "$choice" || "q" = "$choice" || "Q" = "$choice" ]]; then
+    echo
+    echo "Can't build without a source repo to build from. Quitting..."
     exit
-  fi
-elif [ "4" = "$choice" ]; then
-  echo
-  read -r -e -p "URL: "
-  REPLY=$(echo "$REPLY" | xargs) # trims leading/trailing space
-  if [ -z "$REPLY" ]; then
+  else
     chooseRepo
   fi
-  HTML_REPO=$REPLY
-  confirmRepo
-elif [[ "5" = "$choice" || "q" = "$choice" || "Q" = "$choice" ]]; then
-  echo
-  echo "Can't build without a source repo to build from. Quitting..."
-  exit
-else
-  chooseRepo
-fi
 }
 
 function confirmRepo {
