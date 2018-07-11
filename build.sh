@@ -65,27 +65,7 @@ function main {
 
   clearCacheIfNecessary
 
-  CURL_ARGS=()
-  if ! $VERBOSE; then
-    CURL_ARGS+=( --silent )
-  fi
-
-  CURL_CANIUSE_ARGS=( "${CURL_ARGS[@]}" --output "$HTML_CACHE/caniuse.json" -k )
-  CURL_W3CBUGS_ARGS=( "${CURL_ARGS[@]}" --output "$HTML_CACHE/w3cbugs.csv" )
-
-  if [[ $DO_UPDATE == "true" || ! -f "$HTML_CACHE/caniuse.json" ]]; then
-    rm -f "$HTML_CACHE/caniuse.json"
-    $QUIET || echo "Downloading caniuse data..."
-    curl "${CURL_CANIUSE_ARGS[@]}" \
-      https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
-  fi
-
-  if [[ $DO_UPDATE == "true" || ! -f "$HTML_CACHE/w3cbugs.csv" ]]; then
-    rm -f "$HTML_CACHE/w3cbugs.csv"
-    $QUIET || echo "Downloading list of W3C bugzilla bugs..."
-    curl "${CURL_W3CBUGS_ARGS[@]}" \
-      'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv&status_whiteboard=whatwg-resolved&status_whiteboard_type=notregexp&bug_file_loc=http&bug_file_loc_type=substring&product=WHATWG&product=HTML%20WG&product=CSS&product=WebAppsWG'
-  fi
+  updateRemoteDataFiles
 
   rm -rf "$HTML_OUTPUT" && mkdir -p "$HTML_OUTPUT"
   # Set these up so rsync will not complain about either being missing
@@ -440,6 +420,34 @@ function clearCacheIfNecessary {
     fi
   else
     mkdir -p "$HTML_CACHE"
+  fi
+}
+
+# Updates the caniuse.json and w3cbugs.csv files, if either $DO_UPDATE is true or they are not yet cached.
+# Arguments: none
+# Output:
+# - $HTML_CACHE will contain usable caniuse.json and w3cbugs.csv files
+function updateRemoteDataFiles {
+  CURL_ARGS=()
+  if ! $VERBOSE; then
+    CURL_ARGS+=( --silent )
+  fi
+
+  CURL_CANIUSE_ARGS=( "${CURL_ARGS[@]}" --output "$HTML_CACHE/caniuse.json" -k )
+  CURL_W3CBUGS_ARGS=( "${CURL_ARGS[@]}" --output "$HTML_CACHE/w3cbugs.csv" )
+
+  if [[ $DO_UPDATE == "true" || ! -f "$HTML_CACHE/caniuse.json" ]]; then
+    rm -f "$HTML_CACHE/caniuse.json"
+    $QUIET || echo "Downloading caniuse data..."
+    curl "${CURL_CANIUSE_ARGS[@]}" \
+      https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
+  fi
+
+  if [[ $DO_UPDATE == "true" || ! -f "$HTML_CACHE/w3cbugs.csv" ]]; then
+    rm -f "$HTML_CACHE/w3cbugs.csv"
+    $QUIET || echo "Downloading list of W3C bugzilla bugs..."
+    curl "${CURL_W3CBUGS_ARGS[@]}" \
+      'https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv&status_whiteboard=whatwg-resolved&status_whiteboard_type=notregexp&bug_file_loc=http&bug_file_loc_type=substring&product=WHATWG&product=HTML%20WG&product=CSS&product=WebAppsWG'
   fi
 }
 
