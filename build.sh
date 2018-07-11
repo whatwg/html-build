@@ -63,20 +63,7 @@ function main {
     exit 1
   }
 
-  if [[ -d "$HTML_CACHE" ]]; then
-    PREV_BUILD_SHA=$( cat "$HTML_CACHE/last-build-sha.txt" 2>/dev/null || echo )
-    CURRENT_BUILD_SHA=$( git rev-parse HEAD )
-
-    if [[ $PREV_BUILD_SHA != "$CURRENT_BUILD_SHA" ]]; then
-      $QUIET || echo "Build tools have been updated since last run; clearing the cache..."
-      DO_UPDATE=true
-      rm -rf "$HTML_CACHE"
-      mkdir -p "$HTML_CACHE"
-      echo "$CURRENT_BUILD_SHA" > "$HTML_CACHE/last-build-sha.txt"
-    fi
-  else
-    mkdir -p "$HTML_CACHE"
-  fi
+  clearCacheIfNecessary
 
   CURL_ARGS=()
   if ! $VERBOSE; then
@@ -433,6 +420,27 @@ function doDockerBuild {
   docker build "${DOCKER_ARGS[@]}" .
   echo "Running server on http://localhost:8080"
   docker run --rm -it -p 8080:80 whatwg-html
+}
+
+# Clears the $HTML_CACHE directory if the build tools have been updated since last run.
+# Arguments: none
+# Output:
+# - $HTML_CACHE will be usable (possibly empty)
+function clearCacheIfNecessary {
+  if [[ -d "$HTML_CACHE" ]]; then
+    PREV_BUILD_SHA=$( cat "$HTML_CACHE/last-build-sha.txt" 2>/dev/null || echo )
+    CURRENT_BUILD_SHA=$( git rev-parse HEAD )
+
+    if [[ $PREV_BUILD_SHA != "$CURRENT_BUILD_SHA" ]]; then
+      $QUIET || echo "Build tools have been updated since last run; clearing the cache..."
+      DO_UPDATE=true
+      rm -rf "$HTML_CACHE"
+      mkdir -p "$HTML_CACHE"
+      echo "$CURRENT_BUILD_SHA" > "$HTML_CACHE/last-build-sha.txt"
+    fi
+  else
+    mkdir -p "$HTML_CACHE"
+  fi
 }
 
 # Performs a build of the HTML source file into the resulting output
