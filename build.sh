@@ -36,46 +36,7 @@ SHA_OVERRIDE=${SHA_OVERRIDE:-}
 HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080"
 
 function main {
-  for arg in "$@"
-  do
-    case $arg in
-      -c|--clean)
-        rm -rf "$HTML_CACHE"
-        exit 0
-        ;;
-      -h|--help)
-        echo "Usage: $0 [-c|--clean]"
-        echo "       $0 [-h|--help]"
-        echo "       $0 [-d|--docker]"
-        echo "       $0 [-n|--no-update] [-p|--no-post] [-q|--quiet] [-v|--verbose]"
-        echo
-        echo "  -c|--clean      Remove downloaded dependencies and generated files (then stop)."
-        echo "  -h|--help       Show this usage statement."
-        echo "  -n|--no-update  Don't update before building; just build."
-        echo "  -d|--docker     Use Docker to build in and serve from a container."
-        echo "  -q|--quiet      Don't emit any messages except errors/warnings."
-        echo "  -v|--verbose    Show verbose output from every build step."
-        exit 0
-        ;;
-      -n|--no-update|--no-updates)
-        DO_UPDATE=false
-        ;;
-      -d|--docker)
-        USE_DOCKER=true
-        ;;
-      -q|--quiet)
-        QUIET=true
-        VERBOSE=false
-        ;;
-      -v|--verbose)
-        VERBOSE=true
-        QUIET=false
-        set -vx
-        ;;
-      *)
-        ;;
-    esac
-  done
+  processCommandLineArgs "$@"
 
   # $SKIP_BUILD_UPDATE_CHECK is set inside the Dockerfile so that we don't check for updates both inside and outside
   # the Docker container.
@@ -224,6 +185,54 @@ function main {
 
   $QUIET || echo
   $QUIET || echo "Success!"
+}
+
+# Processes incoming command-line arguments
+# Arguments: all arguments to this shell script
+# Output:
+# - If the clean or help commands are given, perform them
+# - Otherwise, sets the $DO_UPDATE, $USE_DOCKER, $QUIET, and $VERBOSE variables appropriately
+function processCommandLineArgs {
+  for arg in "$@"
+  do
+    case $arg in
+      -c|--clean)
+        rm -rf "$HTML_CACHE"
+        exit 0
+        ;;
+      -h|--help)
+        echo "Usage: $0 [-c|--clean]"
+        echo "       $0 [-h|--help]"
+        echo "       $0 [-d|--docker]"
+        echo "       $0 [-n|--no-update] [-p|--no-post] [-q|--quiet] [-v|--verbose]"
+        echo
+        echo "  -c|--clean      Remove downloaded dependencies and generated files (then stop)."
+        echo "  -h|--help       Show this usage statement."
+        echo "  -n|--no-update  Don't update before building; just build."
+        echo "  -d|--docker     Use Docker to build in and serve from a container."
+        echo "  -q|--quiet      Don't emit any messages except errors/warnings."
+        echo "  -v|--verbose    Show verbose output from every build step."
+        exit 0
+        ;;
+      -n|--no-update|--no-updates)
+        DO_UPDATE=false
+        ;;
+      -d|--docker)
+        USE_DOCKER=true
+        ;;
+      -q|--quiet)
+        QUIET=true
+        VERBOSE=false
+        ;;
+      -v|--verbose)
+        VERBOSE=true
+        QUIET=false
+        set -vx
+        ;;
+      *)
+        ;;
+    esac
+  done
 }
 
 # Finds the location of the HTML Standard, and stores it in the HTML_SOURCE variable.
