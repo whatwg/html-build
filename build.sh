@@ -41,31 +41,8 @@ function main {
   # $SKIP_BUILD_UPDATE_CHECK is set inside the Dockerfile so that we don't check for updates both inside and outside
   # the Docker container.
   if [[ $DO_UPDATE == "true" && $SKIP_BUILD_UPDATE_CHECK != "true" ]]; then
-  git submodule update --init
-    $QUIET || echo "Checking if html-build is up to date..."
-    GIT_FETCH_ARGS=()
-    if ! $VERBOSE ; then
-      GIT_FETCH_ARGS+=( --quiet )
-    fi
-    # TODO: `git remote get-url origin` is nicer, but new in Git 2.7.
-    ORIGIN_URL=$(git config --get remote.origin.url)
-    GIT_FETCH_ARGS+=( "$ORIGIN_URL" master)
-    git fetch "${GIT_FETCH_ARGS[@]}"
-    NEW_COMMITS=$(git rev-list --count HEAD..FETCH_HEAD)
-    if [[ $NEW_COMMITS != "0" ]]; then
-      $QUIET || echo
-      echo -n "Your local branch is $NEW_COMMITS "
-      [[ $NEW_COMMITS == "1" ]] && echo -n "commit" || echo -n "commits"
-      echo " behind $ORIGIN_URL:"
-      git log --oneline HEAD..FETCH_HEAD
-      echo
-      echo "To update, run this command:"
-      echo
-      echo "  git pull --rebase origin master"
-      echo
-      echo "This check can be bypassed with the --no-update option."
-      exit 1
-    fi
+    git submodule update --init
+    checkHTMLBuildIsUpToDate
   fi
 
   findHTMLSource
@@ -232,6 +209,36 @@ function processCommandLineArgs {
         ;;
     esac
   done
+}
+
+# Checks if the html-build repository is up to date
+# Arguments: none
+# Output: will tell the user and exit the script with code 1 if not up to date
+function checkHTMLBuildIsUpToDate {
+  $QUIET || echo "Checking if html-build is up to date..."
+  GIT_FETCH_ARGS=()
+  if ! $VERBOSE ; then
+    GIT_FETCH_ARGS+=( --quiet )
+  fi
+  # TODO: `git remote get-url origin` is nicer, but new in Git 2.7.
+  ORIGIN_URL=$(git config --get remote.origin.url)
+  GIT_FETCH_ARGS+=( "$ORIGIN_URL" master)
+  git fetch "${GIT_FETCH_ARGS[@]}"
+  NEW_COMMITS=$(git rev-list --count HEAD..FETCH_HEAD)
+  if [[ $NEW_COMMITS != "0" ]]; then
+    $QUIET || echo
+    echo -n "Your local branch is $NEW_COMMITS "
+    [[ $NEW_COMMITS == "1" ]] && echo -n "commit" || echo -n "commits"
+    echo " behind $ORIGIN_URL:"
+    git log --oneline HEAD..FETCH_HEAD
+    echo
+    echo "To update, run this command:"
+    echo
+    echo "  git pull --rebase origin master"
+    echo
+    echo "This check can be bypassed with the --no-update option."
+    exit 1
+  fi
 }
 
 # Finds the location of the HTML Standard, and stores it in the HTML_SOURCE variable.
