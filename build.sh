@@ -51,33 +51,7 @@ function main {
   HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$HTML_GIT_DIR" rev-parse HEAD)}
 
   if [[ $USE_DOCKER == "true" ]]; then
-    if [[ $HTML_SOURCE != $(pwd)/* ]]; then # intentionally not quoting the RHS; we want expansion
-      echo "When using Docker, the HTML source must be checked out in a subdirectory of the html-build repo. Cannot continue."
-      exit 1
-    fi
-
-    # $SOURCE_RELATIVE helps on Windows with Git Bash, where /c/... is a symlink, which Docker doesn't like.
-    SOURCE_RELATIVE=$(relativePath "$(pwd)" "$HTML_SOURCE")
-
-    VERBOSE_OR_QUIET_FLAG=""
-    $QUIET && VERBOSE_OR_QUIET_FLAG+="--quiet"
-    $VERBOSE && VERBOSE_OR_QUIET_FLAG+="--verbose"
-
-    NO_UPDATE_FLAG="--no-update"
-    $DO_UPDATE && NO_UPDATE_FLAG=""
-
-    DOCKER_ARGS=( --tag whatwg-html \
-                  --build-arg "html_source_dir=$SOURCE_RELATIVE" \
-                  --build-arg "verbose_or_quiet_flag=$VERBOSE_OR_QUIET_FLAG" \
-                  --build-arg "no_update_flag=$NO_UPDATE_FLAG" \
-                  --build-arg "sha_override=$HTML_SHA" )
-    if $QUIET; then
-      DOCKER_ARGS+=( --quiet )
-    fi
-
-    docker build "${DOCKER_ARGS[@]}" .
-    echo "Running server on http://localhost:8080"
-    docker run --rm -it -p 8080:80 whatwg-html
+    doDockerBuild
     exit 0
   fi
 
@@ -426,6 +400,39 @@ function relativePath {
   fi
 
   echo "$result"
+}
+
+# Performs the build using Docker, essentially running this script again inside the container.
+# Arguments: none
+# Output: A web server with the build output will be running inside the Docker container
+function doDockerBuild {
+  if [[ $HTML_SOURCE != $(pwd)/* ]]; then
+    echo "When using Docker, the HTML source must be checked out in a subdirectory of the html-build repo. Cannot continue."
+    exit 1
+  fi
+
+  # $SOURCE_RELATIVE helps on Windows with Git Bash, where /c/... is a symlink, which Docker doesn't like.
+  SOURCE_RELATIVE=$(relativePath "$(pwd)" "$HTML_SOURCE")
+
+  VERBOSE_OR_QUIET_FLAG=""
+  $QUIET && VERBOSE_OR_QUIET_FLAG+="--quiet"
+  $VERBOSE && VERBOSE_OR_QUIET_FLAG+="--verbose"
+
+  NO_UPDATE_FLAG="--no-update"
+  $DO_UPDATE && NO_UPDATE_FLAG=""
+
+  DOCKER_ARGS=( --tag whatwg-html \
+                --build-arg "html_source_dir=$SOURCE_RELATIVE" \
+                --build-arg "verbose_or_quiet_flag=$VERBOSE_OR_QUIET_FLAG" \
+                --build-arg "no_update_flag=$NO_UPDATE_FLAG" \
+                --build-arg "sha_override=$HTML_SHA" )
+  if $QUIET; then
+    DOCKER_ARGS+=( --quiet )
+  fi
+
+  docker build "${DOCKER_ARGS[@]}" .
+  echo "Running server on http://localhost:8080"
+  docker run --rm -it -p 8080:80 whatwg-html
 }
 
 # Performs a build of the HTML source file into the resulting output
