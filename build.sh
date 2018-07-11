@@ -196,20 +196,19 @@ function processCommandLineArgs {
   for arg in "$@"
   do
     case $arg in
-      -c|--clean)
+      clean)
         rm -rf "$HTML_CACHE"
         exit 0
         ;;
-      -h|--help)
-        echo "Usage: $0 [-c|--clean]"
-        echo "       $0 [-h|--help]"
-        echo "       $0 [-d|--docker]"
-        echo "       $0 [-n|--no-update] [-p|--no-post] [-q|--quiet] [-v|--verbose]"
+      help)
+        echo "Commands:"
+        echo "  $0        Build the HTML Standard."
+        echo "  $0 clean  Remove downloaded dependencies and generated files (then stop)."
+        echo "  $0 help   Show this usage statement."
         echo
-        echo "  -c|--clean      Remove downloaded dependencies and generated files (then stop)."
-        echo "  -h|--help       Show this usage statement."
-        echo "  -n|--no-update  Don't update before building; just build."
+        echo "Build options:"
         echo "  -d|--docker     Use Docker to build in and serve from a container."
+        echo "  -n|--no-update  Don't update before building; just build."
         echo "  -q|--quiet      Don't emit any messages except errors/warnings."
         echo "  -v|--verbose    Show verbose output from every build step."
         exit 0
