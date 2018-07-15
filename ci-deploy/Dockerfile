@@ -3,7 +3,7 @@
 FROM debian:sid
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl rsync git unzip fp-compiler default-jre
+    apt-get install -y ca-certificates curl rsync git unzip fp-compiler fp-units-fcl default-jre
 
 ADD wattsi /whatwg/wattsi
 
