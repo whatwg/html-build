@@ -3,12 +3,12 @@ FROM debian:sid
 ## dependency installation: nginx, wattsi, and other build tools
 ## cleanup freepascal since it is no longer needed after wattsi build
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl git unzip fp-compiler nginx && \
+    apt-get install -y ca-certificates curl git unzip fp-compiler fp-units-fcl nginx && \
     git clone https://github.com/whatwg/wattsi.git /whatwg/wattsi && \
     cd /whatwg/wattsi && \
     /whatwg/wattsi/build.sh && \
     cp /whatwg/wattsi/bin/wattsi /bin/ && \
-    apt-get purge -y fp-compiler && \
+    apt-get purge -y fp-compiler fp-units-fcl && \
     apt-get autoremove -y && \
     rm -rf /etc/nginx/sites-enabled/* && \
     rm -rf /var/lib/apt/lists/*
