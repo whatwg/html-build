@@ -3,22 +3,26 @@
 FROM debian:sid
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl rsync git unzip fp-compiler fp-units-fcl fp-units-net libc6-dev default-jre
+    apt-get install -y ca-certificates curl rsync git unzip \
+    fp-compiler fp-units-fcl fp-units-net libc6-dev         \
+    default-jre                                             \
+    libfontconfig1 libgomp1 libxml2                         \
+    fonts-dejavu fonts-droid-fallback fonts-liberation fonts-symbola fonts-unfonts-core
 
-ADD wattsi /whatwg/wattsi
-
-RUN cd /whatwg/wattsi && \
-    /whatwg/wattsi/build.sh
-ENV PATH="/whatwg/wattsi/bin:${PATH}"
-
-ADD https://www.princexml.com/download/prince-11.3-linux-generic-x86_64.tar.gz /whatwg/prince.tar.gz
+# Dependency lines above are:
+# - General
+# - Wattsi
+# - validator
+# - Prince
+# - fonts
 
 # Dependecies of prince_11.3-1_debian8.0_amd64.deb (not used) are libc6 libcurl3 libfontconfig1
 # libfreetype6 libgif4 libgomp1 libjpeg62-turbo libpng12-0 libssl1.0.0 libtiff5 libxml2 zlib1g.
-# Install the subset of that that's needed to make prince work and fonts.
-RUN apt-get update && apt-get install -y libfontconfig1 libgomp1 libxml2 \
-    fonts-dejavu fonts-droid-fallback fonts-liberation fonts-symbola fonts-unfonts-core && \
-    cd /whatwg && \
+# Above we install only the subset that's needed to make Prince work.
+
+ADD https://www.princexml.com/download/prince-11.3-linux-generic-x86_64.tar.gz /whatwg/prince.tar.gz
+
+RUN cd /whatwg && \
     tar xzf prince.tar.gz && \
     echo /whatwg/prince | /whatwg/prince-11.3-linux-generic-x86_64/install.sh && \
     echo '@font-face { font-family: serif; src: local("Symbola") }' >> /whatwg/prince/lib/prince/style/fonts.css && \
@@ -32,6 +36,12 @@ RUN cd /whatwg && \
     mv pdfsizeopt_libexec/* pdfsizeopt/bin/ && \
     rm -rf pdfsizeopt_libexec.tar.gz pdfsizeopt_libexec
 ENV PATH="/whatwg/pdfsizeopt/bin:${PATH}"
+
+ADD wattsi /whatwg/wattsi
+
+RUN cd /whatwg/wattsi && \
+    /whatwg/wattsi/build.sh
+ENV PATH="/whatwg/wattsi/bin:${PATH}"
 
 ADD html-build /whatwg/html-build
 
