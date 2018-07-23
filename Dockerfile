@@ -3,7 +3,7 @@ FROM debian:sid
 ## dependency installation: nginx, wattsi, and other build tools
 ## cleanup freepascal since it is no longer needed after wattsi build
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl git unzip fp-compiler fp-units-fcl fp-units-net libc6-dev nginx python2.7 python-pip && \
+    apt-get install -y ca-certificates curl git unzip fp-compiler fp-units-fcl fp-units-net libc6-dev nginx && \
     git clone https://github.com/whatwg/wattsi.git /whatwg/wattsi && \
     cd /whatwg/wattsi && \
     /whatwg/wattsi/build.sh && \

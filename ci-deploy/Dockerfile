@@ -7,7 +7,6 @@ RUN apt-get update && \
     fp-compiler fp-units-fcl fp-units-net libc6-dev         \
     default-jre                                             \
     libfontconfig1 libgomp1 libxml2                         \
-    python2.7 python-pip                                    \
     fonts-dejavu fonts-droid-fallback fonts-liberation fonts-symbola fonts-unfonts-core
 
 # Dependency lines above are:
@@ -15,7 +14,6 @@ RUN apt-get update && \
 # - Wattsi
 # - validator
 # - Prince
-# - Highlighter
 # - fonts
 
 # Dependecies of prince_11.3-1_debian8.0_amd64.deb (not used) are libc6 libcurl3 libfontconfig1
