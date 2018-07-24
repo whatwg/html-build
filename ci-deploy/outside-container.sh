@@ -16,13 +16,6 @@ TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
 # - DOCKER_PASSWORD is set from the outside
 # - ENCRYPTION_LABEL is set from the outside
 
-# Initialize the highlighter submodule for html-build
-(
-  cd html-build
-  git submodule init
-  git submodule update
-)
-
 git clone --depth 1 https://github.com/whatwg/wattsi.git wattsi
 
 git clone --depth 1 https://github.com/pts/pdfsizeopt.git pdfsizeopt
