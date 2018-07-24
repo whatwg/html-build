@@ -72,6 +72,7 @@ done
 # $SKIP_BUILD_UPDATE_CHECK is set inside the Dockerfile so that we don't check for updates both inside and outside
 # the Docker container.
 if [[ "$DO_UPDATE" == true && "$SKIP_BUILD_UPDATE_CHECK" != true ]]; then
+  git submodule update --init
   $QUIET || echo "Checking if html-build is up to date..."
   GIT_FETCH_ARGS=()
   if ! $VERBOSE ; then
