@@ -26,6 +26,7 @@ HTML_OUTPUT=${HTML_OUTPUT:-$DIR/output}
 export HTML_OUTPUT
 
 SHA_OVERRIDE=${SHA_OVERRIDE:-}
+HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080"
 
 for arg in "$@"
 do
@@ -366,8 +367,10 @@ function processSource {
   perl .pre-process-tag-omission.pl < "$HTML_TEMP/source-expanded-2" | perl .pre-process-index-generator.pl > "$HTML_TEMP/source-whatwg-complete" # this one could be merged
 
   function runWattsi {
-    # Input arguments: $1 is the file to run wattsi on, $2 is a directory for wattsi to write output
-    # to
+    # Input arguments:
+    # - $1 is the file to run Wattsi on
+    # - $2 is a directory for Wattsi to write output to
+    # - $3 is the URL for the syntax-highlighter server
     # Output:
     # - Sets global variable $WATTSI_RESULT to an exit code (or equivalent, for HTTP version)
     # - $HTML_TEMP/wattsi-output directory will contain the output from wattsi on success
@@ -380,9 +383,9 @@ function processSource {
     if $QUIET; then
       WATTSI_ARGS+=( --quiet )
     fi
-    WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv")
+    WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" "$HTML_CACHE/caniuse.json" "$HTML_CACHE/w3cbugs.csv" "$HIGHLIGHT_SERVER_URL" )
     if hash wattsi 2>/dev/null; then
-      if [ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]; then
+      if [[ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]]; then
         echo
         echo "Warning: Your wattsi version is out of date. You should to rebuild an"
         echo "up-to-date wattsi binary from the wattsi sources."
@@ -434,7 +437,14 @@ function processSource {
     fi
   }
 
-  runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
+  # Setting PYTHONPATH is a workaround for https://github.com/whatwg/html-build/issues/169.
+  # See also https://github.com/tabatkins/highlighter/issues/5 and
+  # https://bitbucket.org/birkenfeld/pygments-main/issues/1448.
+  export PYTHONPATH="$DIR/highlighter/highlighter/pygments:$PYTHONPATH"
+  "$DIR/highlighter/server.py" &
+  HIGHLIGHT_SERVER_PID=$!
+
+  runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output" "$HIGHLIGHT_SERVER_URL"
   if [[ "$WATTSI_RESULT" == "0" ]]; then
     if [[ "$LOCAL_WATTSI" != true ]]; then
       "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
@@ -456,6 +466,9 @@ function processSource {
     echo "There were errors. Stopping."
     exit "$WATTSI_RESULT"
   fi
+  kill "$HIGHLIGHT_SERVER_PID"
+  # suppresses 'Terminated: 15 "$DIR/highlighter/server.py"' message
+  wait "$HIGHLIGHT_SERVER_PID" 2>/dev/null || # ignore non-zero exit code
 
   function generateBacklinks {
     perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-$1" > "$2/index.html";
