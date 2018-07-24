@@ -1,0 +1,3 @@
+[submodule "highlighter"]
+	path = highlighter
+	url = git://github.com/tabatkins/highlighter.git

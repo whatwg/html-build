@@ -22,7 +22,7 @@ To build locally, you'll need the following commands installed on your system:
 
 - `curl`, `grep`, `perl`, `unzip`
 
-Optionally, for faster builds, you can install [Wattsi](https://github.com/whatwg/wattsi). If you don't bother with that, the build will use [Wattsi Server](https://github.com/domenic/wattsi-server), which requires an internet connection.
+Optionally, for faster builds, you can install [Wattsi](https://github.com/whatwg/wattsi) and Python 2.7 (necessary for applying syntax highlighting to `pre` contents). If you don't bother with that, the build will use [Wattsi Server](https://github.com/domenic/wattsi-server), which requires an internet connection.
 
 ### Running the build
 
