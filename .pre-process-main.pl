@@ -44,10 +44,12 @@ while (@lines) {
     if ($line =~ m|^(.*)<!--BOILERPLATE ([-.a-z0-9]+)-->(.*)\n$|os) {
         unshift @lines, split("\n", $1 . `cat $ENV{'HTML_CACHE'}/$2` . $3);
         next;
-    } elsif ($line =~ m!^( *)<pre[^>]*>(?:<code[^>]*>)?EXAMPLE (offline/|workers/|canvas/)((?:[-a-z0-9]+/){1,2}[-a-z0-9]+.[-a-z0-9]+)(?:</code>)?</pre> *\n$!os) {
+    } elsif ($line =~ m!^( *)(<pre[^>]*>(?:<code[^>]*>)?)EXAMPLE (offline/|workers/|canvas/)((?:[-a-z0-9]+/){1,2}[-a-z0-9]+.[-a-z0-9]+)((?:</code>)?</pre>) *\n$!os) {
         my $indent = $1;
-        my $folder = $2;
-        my $example = $3;
+        my $starttags = $2;
+        my $folder = $3;
+        my $example = $4;
+        my $endtags = $5;
 
         my $data;
         my $fh;
@@ -61,7 +63,7 @@ while (@lines) {
 
         $data =~ s/&/&amp;/gos;
         $data =~ s/</&lt;/gos;
-        unshift @lines, split("\n", "$indent<pre>$data</pre>");
+        unshift @lines, split("\n", "$indent$starttags$data$endtags");
         next;
     } elsif ($line =~ m|^ *<p>The <code>([^<]+)</code> element <span>represents</span> (.*)</p> *\n$|os) {
         $represents->{$1} = "\u$2";
