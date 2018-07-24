@@ -44,7 +44,7 @@ while (@lines) {
     if ($line =~ m|^(.*)<!--BOILERPLATE ([-.a-z0-9]+)-->(.*)\n$|os) {
         unshift @lines, split("\n", $1 . `cat $ENV{'HTML_CACHE'}/$2` . $3);
         next;
-    } elsif ($line =~ m!^( *)<pre>EXAMPLE (offline/|workers/|canvas/)((?:[-a-z0-9]+/){1,2}[-a-z0-9]+.[-a-z0-9]+)</pre> *\n$!os) {
+    } elsif ($line =~ m!^( *)<pre[^>]*>(?:<code[^>]*>)?EXAMPLE (offline/|workers/|canvas/)((?:[-a-z0-9]+/){1,2}[-a-z0-9]+.[-a-z0-9]+)(?:</code>)?</pre> *\n$!os) {
         my $indent = $1;
         my $folder = $2;
         my $example = $3;
