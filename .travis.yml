@@ -1,8 +1,13 @@
 language: bash
+sudo: required
+services:
+  - docker
 
 script:
   - shellcheck *.sh
   - shellcheck ci-deploy/*.sh
+  - git clone https://github.com/whatwg/html.git &&
+    IS_TEST_OF_HTML_BUILD_ITSELF=true bash ./ci-deploy/outside-container.sh
 
 branches:
   only:
