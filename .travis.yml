@@ -7,7 +7,7 @@ script:
   - shellcheck *.sh
   - shellcheck ci-deploy/*.sh
   - cd .. &&
-    git clone https://github.com/whatwg/html.git --depth 1 &&
+    git clone https://github.com/whatwg/html.git --depth 2 &&
     IS_TEST_OF_HTML_BUILD_ITSELF=true bash ./html-build/ci-deploy/outside-container.sh
 
 branches:
