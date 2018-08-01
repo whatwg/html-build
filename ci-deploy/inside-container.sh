@@ -35,7 +35,7 @@ if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
   echo "Skipping deploy for non-master"
   exit 0
 fi
-if [[ "$IS_TEST_OF_HTML_BUILD_ITSELF" == "false" ]]; then
+if [[ "$IS_TEST_OF_HTML_BUILD_ITSELF" == "true" ]]; then
   echo "Skipping deploy for html-build testing purposes"
   exit 0
 fi

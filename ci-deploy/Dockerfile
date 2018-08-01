@@ -53,6 +53,7 @@ ADD html-build /whatwg/html-build
 ENV HTML_SOURCE /whatwg/html
 
 ARG travis_pull_request
+ARG is_test_of_html_build_itself
 ENV TRAVIS_PULL_REQUEST=${travis_pull_request}
 ENV IS_TEST_OF_HTML_BUILD_ITSELF=${is_test_of_html_build_itself}
 
