@@ -33,7 +33,7 @@ export HTML_TEMP
 # Used specifically when the Dockerfile calls this script
 SKIP_BUILD_UPDATE_CHECK=${SKIP_BUILD_UPDATE_CHECK:-false}
 SHA_OVERRIDE=${SHA_OVERRIDE:-}
-HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080"
+HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080" # this needs to be coordinated with the highlighter submodule
 
 function main {
   processCommandLineArgs "$@"
@@ -55,7 +55,6 @@ function main {
     exit 0
   fi
 
-
   $QUIET || echo "Linting the source file..."
   ./lint.sh "$HTML_SOURCE/source" || {
     echo
@@ -72,12 +71,7 @@ function main {
   mkdir -p "$HTML_OUTPUT/commit-snapshots"
   mkdir -p "$HTML_OUTPUT/review-drafts"
 
-  # Setting PYTHONPATH is a workaround for https://github.com/whatwg/html-build/issues/169.
-  # See also https://github.com/tabatkins/highlighter/issues/5 and
-  # https://bitbucket.org/birkenfeld/pygments-main/issues/1448.
-  export PYTHONPATH="$DIR/highlighter/highlighter/pygments${PYTHONPATH:+:$PYTHONPATH}"
-  "$DIR/highlighter/server.py" &
-  HIGHLIGHT_SERVER_PID=$!
+  startHighlightServer
 
   processSource "source" "default"
 
@@ -97,9 +91,7 @@ function main {
     echo "(This always happens if you use the --docker option.)"
   fi
 
-  kill "$HIGHLIGHT_SERVER_PID"
-  # suppresses 'Terminated: 15 "$DIR/highlighter/server.py"' message
-  wait "$HIGHLIGHT_SERVER_PID" 2>/dev/null || # ignore non-zero exit code
+  stopHighlightServer
 
   $QUIET || echo
   $QUIET || echo "Success!"
@@ -606,7 +598,6 @@ function runWattsi {
   fi
 }
 
-
 # Runs backlink generation post-processing on the output of Wattsi
 # Arguments:
 # - $1: the spec variant (e.g. "snap" or "html") to run on
@@ -615,6 +606,30 @@ function runWattsi {
 # - $2 will contain an index.html file derived from the given variant, with post-processing applied
 function generateBacklinks {
   perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-$1" > "$2/index.html";
+}
+
+# Starts the syntax-highlighting Python server
+# Arguments: none
+# Output:
+# - A server will be running in the background, at $HIGHLIGHT_SERVER_URL
+# - $HIGHLIGHT_SERVER_PID will be set for later use by stopHighlightServer
+function startHighlightServer {
+  # Setting PYTHONPATH is a workaround for https://github.com/whatwg/html-build/issues/169.
+  # See also https://github.com/tabatkins/highlighter/issues/5 and
+  # https://bitbucket.org/birkenfeld/pygments-main/issues/1448.
+  export PYTHONPATH="$DIR/highlighter/highlighter/pygments${PYTHONPATH:+:$PYTHONPATH}"
+  "$DIR/highlighter/server.py" &
+  HIGHLIGHT_SERVER_PID=$!
+}
+
+# Stops the syntax-highlighting Python server
+# Arguments: none
+# Output: the server will be stopped, if it is running. Failures to stop will be suppressed.
+function stopHighlightServer {
+  kill "$HIGHLIGHT_SERVER_PID" 2>/dev/null || true
+
+  # This suppresses a 'Terminated: 15 "$DIR/highlighter/server.py"' message
+  wait "$HIGHLIGHT_SERVER_PID" 2>/dev/null || true
 }
 
 main "$@"
