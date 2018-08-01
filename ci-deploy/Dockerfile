@@ -54,6 +54,7 @@ ENV HTML_SOURCE /whatwg/html
 
 ARG travis_pull_request
 ENV TRAVIS_PULL_REQUEST=${travis_pull_request}
+ENV IS_TEST_OF_HTML_BUILD_ITSELF=${is_test_of_html_build_itself}
 
 ENV SKIP_BUILD_UPDATE_CHECK=true
 ENTRYPOINT ["bash", "/whatwg/html-build/ci-deploy/inside-container.sh"]

@@ -19,6 +19,7 @@ export HTML_OUTPUT
 # Note: $TRAVIS_PULL_REQUEST is either a number or false, not true or false.
 # https://docs.travis-ci.com/user/environment-variables/#Default-Environment-Variables
 TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
+IS_TEST_OF_HTML_BUILD_ITSELF=${IS_TEST_OF_HTML_BUILD_ITSELF:-false}
 
 # Build the spec into the output directory
 ./html-build/build.sh
@@ -32,6 +33,10 @@ echo ""
 
 if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
   echo "Skipping deploy for non-master"
+  exit 0
+fi
+if [[ "$IS_TEST_OF_HTML_BUILD_ITSELF" == "false" ]]; then
+  echo "Skipping deploy for html-build testing purposes"
   exit 0
 fi
 
