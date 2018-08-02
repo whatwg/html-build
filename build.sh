@@ -618,7 +618,9 @@ function startHighlightServer {
   # See also https://github.com/tabatkins/highlighter/issues/5 and
   # https://bitbucket.org/birkenfeld/pygments-main/issues/1448.
   export PYTHONPATH="$DIR/highlighter/highlighter/pygments${PYTHONPATH:+:$PYTHONPATH}"
-  "$DIR/highlighter/server.py" &
+  HIGHLIGHT_SERVER_ARGS=()
+  $QUIET && HIGHLIGHT_SERVER_ARGS+=( --quiet )
+  "$DIR/highlighter/server.py" ${HIGHLIGHT_SERVER_ARGS[@]+"${HIGHLIGHT_SERVER_ARGS[@]}"} &
   HIGHLIGHT_SERVER_PID=$!
 }
 
