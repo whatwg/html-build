@@ -620,6 +620,7 @@ function startHighlightServer {
   export PYTHONPATH="$DIR/highlighter/highlighter/pygments${PYTHONPATH:+:$PYTHONPATH}"
   HIGHLIGHT_SERVER_ARGS=()
   $QUIET && HIGHLIGHT_SERVER_ARGS+=( --quiet )
+  # shellcheck disable=SC2068
   "$DIR/highlighter/server.py" ${HIGHLIGHT_SERVER_ARGS[@]+"${HIGHLIGHT_SERVER_ARGS[@]}"} &
   HIGHLIGHT_SERVER_PID=$!
 }
