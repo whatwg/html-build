@@ -552,10 +552,10 @@ function runWattsi {
       echo "up-to-date wattsi binary from the wattsi sources."
       echo
     fi
-    LOCAL_WATTSI=true
     WATTSI_RESULT="0"
     wattsi "${WATTSI_ARGS[@]}" || WATTSI_RESULT=$?
   else
+    LOCAL_WATTSI=false
     $QUIET || echo
     $QUIET || echo "Local wattsi is not present; trying the build server..."
 
