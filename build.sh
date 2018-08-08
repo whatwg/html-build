@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 DIR=$(pwd)
 
 # The latest required version of Wattsi. Update this if you change how ./build.sh invokes Wattsi.
-WATTSI_LATEST=70
+WATTSI_LATEST=74
 
 # Shared state variables throughout this script
 LOCAL_WATTSI=true
@@ -535,7 +535,7 @@ function runWattsi {
   if $QUIET; then
     WATTSI_ARGS+=( --quiet )
   fi
-  WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" "$HTML_CACHE/caniuse.json" "$HIGHLIGHT_SERVER_URL" )
+  WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" "$HTML_CACHE/caniuse.json" "$DIR/mdn/id-map.json" "$HIGHLIGHT_SERVER_URL" )
   if hash wattsi 2>/dev/null; then
     if [[ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]]; then
       echo
