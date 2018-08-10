@@ -17,6 +17,7 @@ USE_DOCKER=false
 VERBOSE=false
 QUIET=false
 HTML_SHA=""
+HIGHLIGHT_SERVER_PID=""
 
 # Can be set from the outside to customize the script, but the defaults are usually fine. (Only
 # $HTML_SOURCE is documented.) $HTML_SOURCE will be determined inside the main function.
@@ -90,8 +91,6 @@ function main {
     echo "Skipping review draft production as the .git directory is not present"
     echo "(This always happens if you use the --docker option.)"
   fi
-
-  stopHighlightServer
 
   $QUIET || echo
   $QUIET || echo "Success!"
@@ -623,16 +622,20 @@ function startHighlightServer {
   # shellcheck disable=SC2068
   "$DIR/highlighter/server.py" ${HIGHLIGHT_SERVER_ARGS[@]+"${HIGHLIGHT_SERVER_ARGS[@]}"} &
   HIGHLIGHT_SERVER_PID=$!
+
+  trap stopHighlightServer EXIT
 }
 
 # Stops the syntax-highlighting Python server
 # Arguments: none
 # Output: the server will be stopped, if it is running. Failures to stop will be suppressed.
 function stopHighlightServer {
-  kill "$HIGHLIGHT_SERVER_PID" 2>/dev/null || true
+  if [[ $HIGHLIGHT_SERVER_PID != "" ]]; then
+    kill "$HIGHLIGHT_SERVER_PID" 2>/dev/null || true
 
-  # This suppresses a 'Terminated: 15 "$DIR/highlighter/server.py"' message
-  wait "$HIGHLIGHT_SERVER_PID" 2>/dev/null || true
+    # This suppresses a 'Terminated: 15 "$DIR/highlighter/server.py"' message
+    wait "$HIGHLIGHT_SERVER_PID" 2>/dev/null || true
+  fi
 }
 
 main "$@"
