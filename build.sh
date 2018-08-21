@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 DIR=$(pwd)
 
 # The latest required version of Wattsi. Update this if you change how ./build.sh invokes Wattsi.
-WATTSI_LATEST=67
+WATTSI_LATEST=69
 
 # Shared state variables throughout this script
 LOCAL_WATTSI=true
