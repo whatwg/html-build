@@ -66,6 +66,7 @@ function main {
   clearCacheIfNecessary
 
   updateCanIUseFile
+  updateW3CBugsCSVFile
 
   rm -rf "$HTML_OUTPUT" && mkdir -p "$HTML_OUTPUT"
   # Set these up so rsync will not complain about either being missing
@@ -434,6 +435,26 @@ function updateCanIUseFile {
   fi
 }
 
+# Updates the w3cbugs.csv file, if either $DO_UPDATE is true or the file is not yet cached.
+# Arguments: none
+# Output:
+# - $HTML_CACHE will contain a usable w3cbugs.csv file
+function updateW3CBugsCSVFile {
+  CURL_ARGS=()
+  if ! $VERBOSE; then
+    CURL_ARGS+=( --silent )
+  fi
+
+  CURL_W3CBUGS_ARGS=( "${CURL_ARGS[@]}" --output "$HTML_CACHE/w3cbugs.csv" -k )
+
+  if [[ $DO_UPDATE == "true" || ! -f "$HTML_CACHE/w3cbugs.csv" ]]; then
+    rm -f "$HTML_CACHE/w3cbugs.csv"
+    $QUIET || echo "Downloading w3cbugs.csv data..."
+    curl "${CURL_W3CBUGS_ARGS[@]}" \
+      https://www.w3.org/Bugs/Public/buglist.cgi?columnlist=bug_file_loc,short_desc&query_format=advanced&resolution=---&ctype=csv
+  fi
+}
+
 # Performs a build of the HTML source file into the resulting output
 # - Arguments:
 #   - $1: the filename of the source file within HTML_SOURCE (e.g. "source")
@@ -555,6 +576,7 @@ function runWattsi {
                 --form "sha=$HTML_SHA" \
                 --form "build=$BUILD_TYPE" \
                 --form "caniuse=@$HTML_CACHE/caniuse.json" \
+                --form "w3cbugs=@$HTML_CACHE/w3cbugs.csv" \
                 --dump-header "$HTML_TEMP/wattsi-headers.txt" \
                 --output "$HTML_TEMP/wattsi-output.zip" )
     if $VERBOSE; then
