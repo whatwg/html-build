@@ -550,7 +550,10 @@ function runWattsi {
     $QUIET || echo
     $QUIET || echo "Local wattsi is not present; trying the build server..."
 
-    CURL_ARGS=( https://build.whatwg.org/wattsi \
+    # TODO: change back to build.whatwg.org and remove --insecure flag once the server switch
+    # completes.
+    CURL_ARGS=( https://whatwg-build-1215892844.us-east-1.elb.amazonaws.com/wattsi \
+                --insecure
                 --form "source=@$1" \
                 --form "sha=$HTML_SHA" \
                 --form "build=$BUILD_TYPE" \
