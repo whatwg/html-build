@@ -550,10 +550,7 @@ function runWattsi {
     $QUIET || echo
     $QUIET || echo "Local wattsi is not present; trying the build server..."
 
-    # TODO: change back to build.whatwg.org and remove --insecure flag once the server switch
-    # completes.
-    CURL_ARGS=( https://whatwg-build-1215892844.us-east-1.elb.amazonaws.com/wattsi \
-                --insecure
+    CURL_ARGS=( https://build.whatwg.org/wattsi \
                 --form "source=@$1" \
                 --form "sha=$HTML_SHA" \
                 --form "build=$BUILD_TYPE" \
@@ -570,10 +567,12 @@ function runWattsi {
     # read exit code from the Wattsi-Exit-Code header and assume failure if not found
     WATTSI_RESULT=1
     while IFS=":" read -r NAME VALUE; do
+      shopt -s nocasematch
       if [[ $NAME == "Wattsi-Exit-Code" ]]; then
         WATTSI_RESULT=$(echo "$VALUE" | tr -d ' \r\n')
         break
       fi
+      shopt -u nocasematch
     done < "$HTML_TEMP/wattsi-headers.txt"
 
     if [[ $WATTSI_RESULT != "0" ]]; then
