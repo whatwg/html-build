@@ -16,6 +16,7 @@ MATCHES=$(grep -ni 'xxx' "$1" | perl -lpe 'print "\nPossible incomplete sections
   grep -niE '\s+$' "$1" | perl -lpe 'print "\nTrailing whitespace:" if $. == 1'
   perl -ne '$/ = "\n\n"; print "$_" if (/class="?(note|example).+(\n.+)*\s+(should|must|may|optional|recommended)(\s|$)/mi)' "$1" | perl -lpe 'print "\nRFC2119 keyword in example or note (use: might, can, has to, or override with <!--non-normative-->must):" if $. == 1'
   perl -ne '$line++; $in_domintro = 1 if (/^  <dl class="domintro">$/); print "$line: $_" if ($in_domintro && /\s+(should|must|may|optional|recommended)(\s|$)/i); $in_domintro = 0 if (/^  <\/dl>$/)' "$1" | perl -lpe 'print "\nRFC2119 keyword in domintro (use: might, can, has to, or override with <!--non-normative-->must):" if $. == 1'
+  grep -ni 'class="idl"' "$1" | grep -vF '<code class="idl" data-x="">' | perl -lpe 'print "\nIrregular use of class=\"idl\":" if $. == 1'
   )
 
 if [ -n "$MATCHES" ]; then
