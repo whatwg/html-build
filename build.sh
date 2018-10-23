@@ -572,7 +572,7 @@ function runWattsi {
                 --form "sha=$HTML_SHA" \
                 --form "build=$BUILD_TYPE" \
                 --form "caniuse=@$HTML_CACHE/caniuse.json" \
-                --form "mdn=@HTML_CACHE/mdn-spec-links-html.json" \
+                --form "mdn=@$HTML_CACHE/mdn-spec-links-html.json" \
                 --dump-header "$HTML_TEMP/wattsi-headers.txt" \
                 --output "$HTML_TEMP/wattsi-output.zip" )
     if $VERBOSE; then
