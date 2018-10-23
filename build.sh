@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 DIR=$(pwd)
 
 # The latest required version of Wattsi. Update this if you change how ./build.sh invokes Wattsi.
-WATTSI_LATEST=70
+WATTSI_LATEST=76
 
 # Shared state variables throughout this script
 LOCAL_WATTSI=true
@@ -65,7 +65,7 @@ function main {
 
   clearCacheIfNecessary
 
-  updateCanIUseFile
+  updateRemoteDataFiles
 
   rm -rf "$HTML_OUTPUT" && mkdir -p "$HTML_OUTPUT"
   # Set these up so rsync will not complain about either being missing
@@ -414,17 +414,22 @@ function clearCacheIfNecessary {
   fi
 }
 
-# Updates the caniuse.json file, if either $DO_UPDATE is true or the file is not yet cached.
+# Updates the caniuse.json and mdn-spec-links-html.json files, if either
+# $DO_UPDATE is true or they are not yet cached.
 # Arguments: none
 # Output:
 # - $HTML_CACHE will contain a usable caniuse.json file
-function updateCanIUseFile {
+function updateRemoteDataFiles {
   CURL_ARGS=()
   if ! $VERBOSE; then
     CURL_ARGS+=( --silent )
   fi
 
-  CURL_CANIUSE_ARGS=( "${CURL_ARGS[@]}" --output "$HTML_CACHE/caniuse.json" -k )
+  CURL_CANIUSE_ARGS=( "${CURL_ARGS[@]}" \
+    --output "$HTML_CACHE/caniuse.json" -k )
+  CURL_MDN_SPEC_LINKS_ARGS=( "${CURL_ARGS[@]}" \
+    --output "$HTML_CACHE/mdn-spec-links-html.json" -k )
+
 
   if [[ $DO_UPDATE == "true" || ! -f "$HTML_CACHE/caniuse.json" ]]; then
     rm -f "$HTML_CACHE/caniuse.json"
@@ -432,6 +437,15 @@ function updateCanIUseFile {
     curl "${CURL_CANIUSE_ARGS[@]}" \
       https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
   fi
+
+  if [[ $DO_UPDATE == "true" \
+      || ! -f "$HTML_CACHE/mdn-spec-links-html.json" ]]; then
+    rm -f "$HTML_CACHE/mdn-spec-links-html.json"
+    $QUIET || echo "Downloading mdn-spec-links/html.json..."
+    curl "${CURL_MDN_SPEC_LINKS_ARGS[@]}" \
+      https://raw.githubusercontent.com/w3c/mdn-spec-links/master/html.json
+  fi
+
 }
 
 # Performs a build of the HTML source file into the resulting output
@@ -535,7 +549,10 @@ function runWattsi {
   if $QUIET; then
     WATTSI_ARGS+=( --quiet )
   fi
-  WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" "$HTML_CACHE/caniuse.json" "$HIGHLIGHT_SERVER_URL" )
+  WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" \
+    "$HTML_CACHE/caniuse.json" \
+    "$HTML_CACHE/mdn-spec-links-html.json" \
+    "$HIGHLIGHT_SERVER_URL" )
   if hash wattsi 2>/dev/null; then
     if [[ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]]; then
       echo
@@ -555,6 +572,7 @@ function runWattsi {
                 --form "sha=$HTML_SHA" \
                 --form "build=$BUILD_TYPE" \
                 --form "caniuse=@$HTML_CACHE/caniuse.json" \
+                --form "mdn=@$HTML_CACHE/mdn-spec-links-html.json" \
                 --dump-header "$HTML_TEMP/wattsi-headers.txt" \
                 --output "$HTML_TEMP/wattsi-output.zip" )
     if $VERBOSE; then
