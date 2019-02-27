@@ -50,7 +50,7 @@ while (defined($_ = <>)) {
                 # ignore...
             }
         } elsif ($mode eq 'index-in') {
-            if ($_ =~ m!^          <code data-x="([^"]+)">[^<]*</code>;?\n$!os) {
+            if ($_ =~ m!^          <(?:code|span) data-x="([^"]+)">[^<]*</(?:code|span)>;?\n$!os) {
                 $attributes{$1} = 1;
             } elsif ($_ =~ m@^     <td> (.+?)(?:<!--or: (.+)-->)?\n$@os) {
                 local $" = ', ';
