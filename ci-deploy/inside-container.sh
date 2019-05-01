@@ -27,7 +27,7 @@ IS_TEST_OF_HTML_BUILD_ITSELF=${IS_TEST_OF_HTML_BUILD_ITSELF:-false}
 # Conformance-check the result
 echo ""
 echo "Downloading and running conformance checker..."
-curl --remote-name --fail https://sideshowbarker.net/nightlies/jar/vnu.jar
+curl --remote-name --fail --location https://github.com/validator/validator/releases/download/jar/vnu.jar
 java -Xmx1g -jar vnu.jar --skip-non-html "$HTML_OUTPUT"
 echo ""
 
