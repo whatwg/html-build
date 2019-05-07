@@ -420,7 +420,7 @@ function clearCacheIfNecessary {
 # Output:
 # - $HTML_CACHE will contain a usable caniuse.json file
 function updateRemoteDataFiles {
-  CURL_ARGS=()
+  CURL_ARGS=( --retry 2 )
   if ! $VERBOSE; then
     CURL_ARGS+=( --silent )
   fi
