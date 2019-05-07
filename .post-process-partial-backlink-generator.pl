@@ -6,10 +6,10 @@ my @lines = ();
 my %definitions;
 my $inpre = 0;
 while (<>) {
-    $inpre = 1 if /<pre class=idl>/os;
-    if ($inpre && /(partial )?interface <(span|dfn|a href=#[^ >]*) id=([^ >]*).*?>([^<:]*)?<\/(span|dfn|a)>(.*<!-- not obsolete -->)?/os) {
-        my ($partial, $id, $name, $notobs) = ($1, $3, $4, $6);
-        $notobs = $name eq 'NavigatorID'; # XXX hack for now
+    $inpre = 1 if /<pre><code class='idl'>/os;
+    if ($inpre && /(<c- b>partial<\/c-> )?<c- b>interface<\/c-> <(?:span|dfn|a href='#[^ >]*')(?: data-lt[^ ]*)? id='([^ >]*)'.*?><c- g>([^<:]*)?<\/c-><\/(span|dfn|a)>/os) {
+        my ($partial, $id, $name) = ($1, $2, $3);
+        my $notobs = 0; # XXX we can use this to avoid implying a partial interface is obsolete. Unused at the moment.
         $definitions{$name} = { } unless defined $definitions{$name};
         if ($partial) {
             $definitions{$name}{partial} = [] unless exists $definitions{$name}{partial};
@@ -19,7 +19,7 @@ while (<>) {
             $definitions{$name}{primary} = $id;
         }
     }
-    $inpre = 0 if /<\/pre>/os;
+    $inpre = 0 if /<\/code><\/pre>/os;
     push(@lines, $_);
 }
 
@@ -27,10 +27,10 @@ die if $inpre;
 
 my $current = '';
 foreach (@lines) {
-    $inpre = 1 if /<pre class=idl>/os;
+    $inpre = 1 if /<pre><code class='idl'>/os;
     if ($inpre) {
-        if (/(partial )?interface <(span|dfn|a href=#[^ >]*) id=([^ >]*).*?>([^<:]*)?<\/(span|dfn|a)>/os) {
-            my ($partial, $id, $name) = ($1, $3, $4);
+        if (/(<c- b>partial<\/c-> )?<c- b>interface<\/c-> <(?:span|dfn|a href='#[^ >]*')(?: data-lt[^ ]*)? id='([^ >]*)'.*?><c- g>([^<:]*)?<\/c-><\/(span|dfn|a)>/os) {
+            my ($partial, $id, $name) = ($1, $2, $3);
             die if $current;
             $current = $name unless $partial;
         }
@@ -47,6 +47,6 @@ foreach (@lines) {
             $current = '';
         }
     }
-    $inpre = 0 if /<\/pre>/os;
+    $inpre = 0 if /<\/code><\/pre>/os;
     print $_;
 }
