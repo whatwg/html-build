@@ -27,8 +27,9 @@ IS_TEST_OF_HTML_BUILD_ITSELF=${IS_TEST_OF_HTML_BUILD_ITSELF:-false}
 # Conformance-check the result
 echo ""
 echo "Downloading and running conformance checker..."
-curl --retry 2 --remote-name --fail --location https://github.com/validator/validator/releases/download/jar/vnu.jar
-java -Xmx1g -jar vnu.jar --skip-non-html "$HTML_OUTPUT"
+curl --retry 2 --remote-name --fail --location https://github.com/validator/validator/releases/download/linux/vnu.linux.zip
+unzip vnu.linux.zip
+./vnu-runtime-image/bin/java -Xmx1g -m vnu/nu.validator.client.SimpleCommandLineValidator --skip-non-html "$HTML_OUTPUT"
 echo ""
 
 if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
