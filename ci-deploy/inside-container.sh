@@ -29,6 +29,7 @@ echo ""
 echo "Downloading and running conformance checker..."
 curl --retry 2 --remote-name --fail --location https://github.com/validator/validator/releases/download/linux/vnu.linux.zip
 unzip vnu.linux.zip
+# the -Xmx1g argument sets the size of the Java heap space to 1 gigabyte
 ./vnu-runtime-image/bin/java -Xmx1g -m vnu/nu.validator.client.SimpleCommandLineValidator --skip-non-html "$HTML_OUTPUT"
 echo ""
 
