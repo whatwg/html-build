@@ -14,6 +14,12 @@ git clone https://github.com/whatwg/html-build.git && cd html-build
 
 You then have a decision to make as to how you want to do your builds: locally, on your computer, or using a [Docker](https://www.docker.com/) container. We suggest going the Docker route if and only if you are already comfortable with Docker.
 
+To update submodules, run:
+
+```
+git submodule update --init --recursive
+```
+
 ## Building locally
 
 ### Prerequisites
