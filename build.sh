@@ -10,7 +10,7 @@ DIR=$(pwd)
 # The latest required version of Wattsi. Update this and the fallback in
 # https://github.com/whatwg/wattsi/blob/master/src/build.sh if you change how ./build.sh invokes
 # Wattsi.
-WATTSI_LATEST=76
+WATTSI_LATEST=81
 
 # Shared state variables throughout this script
 LOCAL_WATTSI=true
