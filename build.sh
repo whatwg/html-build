@@ -27,7 +27,7 @@ HTML_SOURCE=${HTML_SOURCE:-}
 HTML_CACHE=${HTML_CACHE:-$DIR/.cache}
 HTML_TEMP=${HTML_TEMP:-$DIR/.temp}
 HTML_OUTPUT=${HTML_OUTPUT:-$DIR/output}
-HTML_GIT_CLONE_OPTIONS=${HTML_GIT_CLONE_OPTIONS:-"--depth=1"}
+HTML_GIT_CLONE_OPTIONS=${HTML_GIT_CLONE_OPTIONS:-"--depth=2"}
 
 # These are used by child scripts, and so we export them
 export HTML_CACHE
