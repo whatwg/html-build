@@ -30,7 +30,9 @@ while (defined($_ = <>)) {
                 if (not exists $instances{$key}) {
                     $instances{$key} = [];
                 }
-                push(@{$instances{$key}}, { line => $line, special => $special });
+                if ($notes !~ m@<!-- no-annotate -->@os) {
+                    push(@{$instances{$key}}, { line => $line, special => $special });
+                }
             } elsif ($_ =~ m/^   <!--.*-->\n$/os) {
                 # ignore
             } elsif ($_ eq "   <dd>Any other attribute that has no namespace (see prose).</dd>\n") {
@@ -38,12 +40,18 @@ while (defined($_ = <>)) {
             } elsif ($_ =~ m!^   <dt>!o) {
                 $mode = 'bored';
             } else {
-                die "mode=$mode saw: $_";
+                # ignore
             }
         } elsif ($mode eq 'index') {
             if ($_ eq "  </table>\n") {
-               $mode = 'end';
-            } elsif ($_ =~ m!^     <td> <code data-x="([^"]+)">[^<]*</code>;?\n$!os) {
+                $mode = 'end';
+            } elsif ($_ eq "    <tr>\n") {
+                $mode = 'tr';
+            } else {
+                # ignore...
+            }
+        } elsif ($mode eq 'tr') {
+            if ($_ =~ m!^     <td> <(?:code|span) data-x="([^"]+)">[^<]*</(?:code|span)>;?\n$!os) {
                 $attributes{$1} = 1;
                 $mode = 'index-in';
             } else {
@@ -57,7 +65,6 @@ while (defined($_ = <>)) {
                 my $description = $1;
                 my $altdescription = $2;
                 foreach my $key (keys %attributes) {
-                    die "can't find instance of $key\n" unless exists $instances{$key} and scalar @{$instances{$key}};
                     foreach my $entry (@{$instances{$key}}) {
                         my $line = $entry->{line};
                         if ($entry->{special} eq 'global') {
