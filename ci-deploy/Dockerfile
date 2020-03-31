@@ -1,6 +1,6 @@
 # This Dockerfile is just used to run on Travis CI in an environment that can easily and repeatedly
 # install our build dependencies.
-FROM debian:sid
+FROM debian:stable
 
 RUN apt-get update && \
     apt-get install -y ca-certificates curl rsync git unzip \
