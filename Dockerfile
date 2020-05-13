@@ -1,4 +1,4 @@
-FROM debian:sid
+FROM debian:stable
 
 ## dependency installation: nginx, wattsi, and other build tools
 ## cleanup freepascal since it is no longer needed after wattsi build
