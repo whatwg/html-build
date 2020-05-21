@@ -29,7 +29,7 @@ for entity in document.getElementsByTagName('entity'):
         value1 = value[1:6];
         value2 = value[7:];
         glyph = '<span data-x="" class="glyph compound">&#x' + value1 + ';&#x' + value2 + ';</span>'
-        print '     <tr id="entity-' + name + '"> <td> <code data-x="">' + name + ';</code> </td> <td> U+' + value1 + ' U+' + value2 + ' </td> <td> ' + glyph + ' </td> </tr>';
+        print('     <tr id="entity-' + name + '"> <td> <code data-x="">' + name + ';</code> </td> <td> U+' + value1 + ' U+' + value2 + ' </td> <td> ' + glyph + ' </td> </tr>');
       else:
         if (value[1:] in ['020DC', '00311', '020DB', '020DB']):
           glyph = '<span data-x="" class="glyph composition">&#x025CC;' + '&#x' + value[1:] + ';</span>'
@@ -37,4 +37,4 @@ for entity in document.getElementsByTagName('entity'):
           glyph = '<span data-x="" class="glyph control">&#x024' + value[4:] + ';</span>'
         else:
           glyph = '<span data-x="" class="glyph">&#x' + value[1:] + ';</span>'
-        print '     <tr id="entity-' + name + '"> <td> <code data-x="">' + name + ';</code> </td> <td> U+' + value[1:] + ' </td> <td> ' + glyph + ' </td> </tr>';
+        print('     <tr id="entity-' + name + '"> <td> <code data-x="">' + name + ';</code> </td> <td> U+' + value[1:] + ' </td> <td> ' + glyph + ' </td> </tr>');
