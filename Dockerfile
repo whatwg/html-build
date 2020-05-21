@@ -1,15 +1,16 @@
 FROM debian:stable
 
-## dependency installation: nginx, wattsi, and other build tools
-## cleanup freepascal since it is no longer needed after wattsi build
+## dependency installation: nginx and other build tools
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl git unzip nginx python2.7 python-pip && \
+    apt-get install -y ca-certificates curl git unzip nginx python3 python3-pip && \
     rm -rf /etc/nginx/sites-enabled/* && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
 
 ADD . /whatwg/build
+
+RUN pip3 install bs-highlighter
 
 ARG html_source_dir
 ADD $html_source_dir /whatwg/html

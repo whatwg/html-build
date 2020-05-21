@@ -36,7 +36,7 @@ export HTML_TEMP
 # Used specifically when the Dockerfile calls this script
 SKIP_BUILD_UPDATE_CHECK=${SKIP_BUILD_UPDATE_CHECK:-false}
 SHA_OVERRIDE=${SHA_OVERRIDE:-}
-HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080" # this needs to be coordinated with the highlighter submodule
+HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080" # this needs to be coordinated with the bs-highlighter package
 
 function main {
   processCommandLineArgs "$@"
@@ -44,8 +44,11 @@ function main {
   # $SKIP_BUILD_UPDATE_CHECK is set inside the Dockerfile so that we don't check for updates both inside and outside
   # the Docker container.
   if [[ $DO_UPDATE == "true" && $SKIP_BUILD_UPDATE_CHECK != "true" ]]; then
-    git submodule update --init
     checkHTMLBuildIsUpToDate
+    # If we're using Docker then this will be installed inside the container.
+    if [[ $USE_DOCKER != "true" ]]; then
+      pip3 install bs-highlighter
+    fi
   fi
 
   findHTMLSource
@@ -627,14 +630,10 @@ function generateBacklinks {
 # - A server will be running in the background, at $HIGHLIGHT_SERVER_URL
 # - $HIGHLIGHT_SERVER_PID will be set for later use by stopHighlightServer
 function startHighlightServer {
-  # Setting PYTHONPATH is a workaround for https://github.com/whatwg/html-build/issues/169.
-  # See also https://github.com/tabatkins/highlighter/issues/5 and
-  # https://bitbucket.org/birkenfeld/pygments-main/issues/1448.
-  export PYTHONPATH="$DIR/highlighter/highlighter/pygments${PYTHONPATH:+:$PYTHONPATH}"
   HIGHLIGHT_SERVER_ARGS=()
   $QUIET && HIGHLIGHT_SERVER_ARGS+=( --quiet )
   # shellcheck disable=SC2068
-  "$DIR/highlighter/server.py" ${HIGHLIGHT_SERVER_ARGS[@]+"${HIGHLIGHT_SERVER_ARGS[@]}"} &
+  bs-highlighter-server ${HIGHLIGHT_SERVER_ARGS[@]+"${HIGHLIGHT_SERVER_ARGS[@]}"} &
   HIGHLIGHT_SERVER_PID=$!
 
   trap stopHighlightServer EXIT
