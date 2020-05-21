@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get install -y ca-certificates curl rsync git unzip \
     default-jre                                             \
     libfontconfig1 libgomp1 libxml2                         \
-    python2.7 python-pip                                    \
+    python3 python3-pip                                     \
     fonts-dejavu fonts-droid-fallback fonts-liberation fonts-symbola fonts-unfonts-core
 
 # Dependency lines above are:
@@ -15,6 +15,8 @@ RUN apt-get update && \
 # - Prince
 # - Highlighter
 # - fonts
+
+RUN pip3 install bs-highlighter
 
 # Dependecies of prince_11.3-1_debian8.0_amd64.deb (not used) are libc6 libcurl3 libfontconfig1
 # libfreetype6 libgif4 libgomp1 libjpeg62-turbo libpng12-0 libssl1.0.0 libtiff5 libxml2 zlib1g.

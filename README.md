@@ -8,7 +8,7 @@ Make sure you have `git` installed on your system, and you are using a Bash shel
 
 Then, clone this ([html-build](https://github.com/whatwg/html-build)) repo:
 
-```
+```bash
 git clone https://github.com/whatwg/html-build.git && cd html-build
 ```
 
@@ -22,13 +22,13 @@ To build locally, you'll need the following commands installed on your system:
 
 - `curl`, `grep`, `perl`, `unzip`
 
-Optionally, for faster builds, you can install [Wattsi](https://github.com/whatwg/wattsi) and Python 2.7 (necessary for applying syntax highlighting to `pre` contents). If you don't bother with that, the build will use [Wattsi Server](https://github.com/domenic/wattsi-server), which requires an internet connection.
+Optionally, for faster builds, you can install [Wattsi](https://github.com/whatwg/wattsi) and Python 3.7+ (necessary for applying syntax highlighting to `pre` contents). If you don't bother with that, the build will use [Wattsi Server](https://github.com/domenic/wattsi-server), which requires an internet connection.
 
 ### Running the build
 
 Run the `build.sh` script from inside your `html-build` working directory, like this:
 
-```
+```bash
 ./build.sh
 ```
 
@@ -59,7 +59,7 @@ The Dockerized version of the build allows you to run the build entirely inside 
 
 To perform a Dockerized build, use the `--docker` flag:
 
-```
+```bash
 ./build.sh --docker
 ```
 
@@ -73,13 +73,13 @@ Note that due to the way Docker works, the HTML source repository must be contai
 
 Your clone doesn't need the HTML standard's complete revision history just for you to build the spec and contribute patches. So, if you use `build.sh` to create the clone, we don't start you out with a clone of the history. That makes your first build finish much faster. And if later you decide you do want to clone the complete history, you can still get it, by doing this:
 
-```
+```bash
 cd ./html && git fetch --unshallow
 ```
 
 That said, if you really do want to *start out* with the complete history of the repo, then run the build script for the first time like this:
 
-```
+```bash
 HTML_GIT_CLONE_OPTIONS="" ./build.sh
 ```
 

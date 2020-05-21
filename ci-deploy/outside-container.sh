@@ -17,13 +17,6 @@ IS_TEST_OF_HTML_BUILD_ITSELF=${IS_TEST_OF_HTML_BUILD_ITSELF:-false}
 # - DOCKER_PASSWORD is set from the outside
 # - ENCRYPTION_LABEL is set from the outside
 
-# Initialize the highlighter submodule for html-build
-(
-  cd html-build
-  git submodule init
-  git submodule update
-)
-
 git clone --depth 1 https://github.com/pts/pdfsizeopt.git pdfsizeopt
 
 # Copy the Docker-related stuff into the working (grandparent) directory.
