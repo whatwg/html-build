@@ -45,4 +45,4 @@ for entity in document.getElementsByTagName('entity'):
       else:
         codes = str(int(value[1:], 16))
         glyphs = codePointToString(int(value[1:], 16))
-      print '  "&' + name + ';": { "codepoints": [' + codes + '], "characters": "' + glyphs + '" },'
+      print('  "&' + name + ';": { "codepoints": [' + codes + '], "characters": "' + glyphs + '" },')
