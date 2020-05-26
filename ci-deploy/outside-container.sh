@@ -24,8 +24,6 @@ IS_TEST_OF_HTML_BUILD_ITSELF=${IS_TEST_OF_HTML_BUILD_ITSELF:-false}
   git submodule update
 )
 
-git clone --depth 1 https://github.com/whatwg/wattsi.git wattsi
-
 git clone --depth 1 https://github.com/pts/pdfsizeopt.git pdfsizeopt
 
 # Copy the Docker-related stuff into the working (grandparent) directory.

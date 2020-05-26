@@ -4,7 +4,6 @@ FROM debian:stable
 
 RUN apt-get update && \
     apt-get install -y ca-certificates curl rsync git unzip \
-    fp-compiler fp-units-fcl fp-units-net libc6-dev         \
     default-jre                                             \
     libfontconfig1 libgomp1 libxml2                         \
     python2.7 python-pip                                    \
@@ -12,7 +11,6 @@ RUN apt-get update && \
 
 # Dependency lines above are:
 # - General
-# - Wattsi
 # - validator
 # - Prince
 # - Highlighter
@@ -39,11 +37,7 @@ RUN cd /whatwg && \
     rm -rf pdfsizeopt_libexec.tar.gz pdfsizeopt_libexec
 ENV PATH="/whatwg/pdfsizeopt/bin:${PATH}"
 
-ADD wattsi /whatwg/wattsi
-
-RUN cd /whatwg/wattsi && \
-    /whatwg/wattsi/build.sh
-ENV PATH="/whatwg/wattsi/bin:${PATH}"
+COPY --from=whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
 
 ADD html-build /whatwg/html-build
 
