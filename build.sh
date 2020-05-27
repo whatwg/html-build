@@ -41,14 +41,13 @@ HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080" # this needs to be coordinated with
 function main {
   processCommandLineArgs "$@"
 
+  checkWattsi
+  ensureHighlighterInstalled
+
   # $SKIP_BUILD_UPDATE_CHECK is set inside the Dockerfile so that we don't check for updates both inside and outside
   # the Docker container.
   if [[ $DO_UPDATE == "true" && $SKIP_BUILD_UPDATE_CHECK != "true" ]]; then
     checkHTMLBuildIsUpToDate
-    # If we're using Docker then this will be installed inside the container.
-    if [[ $USE_DOCKER != "true" ]]; then
-      pip3 install bs-highlighter
-    fi
   fi
 
   findHTMLSource
@@ -175,6 +174,24 @@ function checkHTMLBuildIsUpToDate {
     echo
     echo "This check can be bypassed with the --no-update option."
     exit 1
+  fi
+}
+
+# Tries to install the bs-highlighter Python package if necessary
+# - Arguments: none
+# - Output:
+#   - Either bs-highlighter-server will be in the $PATH, or a warning will be echoed
+function ensureHighlighterInstalled {
+  # If we're using Docker then this will be installed inside the container.
+  # If we're not using local Wattsi then we won't use the local highlighter.
+  if [[ $USE_DOCKER != "true" && $LOCAL_WATTSI == "true" ]]; then
+    if hash pip3 2>/dev/null; then
+      if ! hash bs-highlighter-server 2>/dev/null; then
+        pip3 install bs-highlighter
+      fi
+    else
+      LOCAL_WATTSI="false"
+    fi
   fi
 }
 
@@ -537,6 +554,25 @@ Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
   fi
 }
 
+# Checks if Wattsi is available and up to date
+# - Arguments: none
+# - Output:
+#   - Sets $LOCAL_WATTSI to true or false
+#   - Echoes a warning if Wattsi is out of date according to $WATTSI_LATEST
+function checkWattsi {
+  if hash wattsi 2>/dev/null; then
+    if [[ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]]; then
+      echo
+      echo "Warning: Your wattsi version is out of date. You should to rebuild an"
+      echo "up-to-date wattsi binary from the wattsi sources."
+      echo
+    fi
+    LOCAL_WATTSI=true
+  else
+    LOCAL_WATTSI=false
+  fi
+}
+
 # Runs Wattsi on the given file, either locally or using the web service
 # - Arguments:
 #   - $1: the file to run Wattsi on
@@ -547,7 +583,6 @@ Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
 #   - $HTML_TEMP/wattsi-output directory will contain the output from Wattsi on success
 #   - $HTML_TEMP/wattsi-output.txt will contain the output from Wattsi, on both success and failure
 function runWattsi {
-
   rm -rf "$2"
   mkdir "$2"
 
@@ -559,19 +594,12 @@ function runWattsi {
     "$HTML_CACHE/caniuse.json" \
     "$HTML_CACHE/mdn-spec-links-html.json" \
     "$HIGHLIGHT_SERVER_URL" )
-  if hash wattsi 2>/dev/null; then
-    if [[ "$(wattsi --version | cut -d' ' -f2)" -lt "$WATTSI_LATEST" ]]; then
-      echo
-      echo "Warning: Your wattsi version is out of date. You should to rebuild an"
-      echo "up-to-date wattsi binary from the wattsi sources."
-      echo
-    fi
+  if [[ "$LOCAL_WATTSI" == "true" ]]; then
     WATTSI_RESULT="0"
     wattsi "${WATTSI_ARGS[@]}" || WATTSI_RESULT=$?
   else
-    LOCAL_WATTSI=false
     $QUIET || echo
-    $QUIET || echo "Local wattsi is not present; trying the build server..."
+    $QUIET || echo "Local wattsi or pip3 are not present; trying the build server..."
 
     CURL_ARGS=( https://build.whatwg.org/wattsi \
                 --form "source=@$1" \
@@ -624,19 +652,20 @@ function generateBacklinks {
   perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-$1" > "$2/index.html";
 }
 
-# Starts the syntax-highlighting Python server
+# Starts the syntax-highlighting Python server, when appropriate
 # Arguments: none
-# Output:
+# Output: if the server is necessary, then
 # - A server will be running in the background, at $HIGHLIGHT_SERVER_URL
 # - $HIGHLIGHT_SERVER_PID will be set for later use by stopHighlightServer
 function startHighlightServer {
-  HIGHLIGHT_SERVER_ARGS=()
-  $QUIET && HIGHLIGHT_SERVER_ARGS+=( --quiet )
-  # shellcheck disable=SC2068
-  bs-highlighter-server ${HIGHLIGHT_SERVER_ARGS[@]+"${HIGHLIGHT_SERVER_ARGS[@]}"} &
-  HIGHLIGHT_SERVER_PID=$!
+  if [[ "$LOCAL_WATTSI" == "true" ]]; then
+    HIGHLIGHT_SERVER_ARGS=()
+    $QUIET && HIGHLIGHT_SERVER_ARGS+=( --quiet )
+    bs-highlighter-server ${HIGHLIGHT_SERVER_ARGS[@]+"${HIGHLIGHT_SERVER_ARGS[@]}"} &
+    HIGHLIGHT_SERVER_PID=$!
 
-  trap stopHighlightServer EXIT
+    trap stopHighlightServer EXIT
+  fi
 }
 
 # Stops the syntax-highlighting Python server
