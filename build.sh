@@ -18,6 +18,7 @@ DO_UPDATE=true
 USE_DOCKER=false
 VERBOSE=false
 QUIET=false
+SERVE=false
 HTML_SHA=""
 HIGHLIGHT_SERVER_PID=""
 
@@ -40,6 +41,8 @@ BUILD_SHA_OVERRIDE=${BUILD_SHA_OVERRIDE:-}
 
 # This needs to be coordinated with the bs-highlighter package
 HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080"
+
+SERVE_PORT=8080
 
 function main {
   processCommandLineArgs "$@"
@@ -101,6 +104,12 @@ function main {
 
   $QUIET || echo
   $QUIET || echo "Success!"
+
+  if [[ $SERVE == "true" ]]; then
+    stopHighlightServer
+    cd "$HTML_OUTPUT"
+    python3 -m http.server "$SERVE_PORT"
+  fi
 }
 
 # Processes incoming command-line arguments
@@ -124,6 +133,7 @@ function processCommandLineArgs {
         echo
         echo "Build options:"
         echo "  -d|--docker     Use Docker to build in a container."
+        echo "  -s|--serve      After building, serve the results on http://localhost:$SERVE_PORT."
         echo "  -n|--no-update  Don't update before building; just build."
         echo "  -q|--quiet      Don't emit any messages except errors/warnings."
         echo "  -v|--verbose    Show verbose output from every build step."
@@ -143,6 +153,9 @@ function processCommandLineArgs {
         VERBOSE=true
         QUIET=false
         set -vx
+        ;;
+      -s|--serve)
+        SERVE=true
         ;;
       *)
         ;;
@@ -393,10 +406,13 @@ function doDockerBuild {
 
   docker build "${DOCKER_BUILD_ARGS[@]}" .
 
-  DOCKER_RUN_ARGS=( whatwg-html )
+  DOCKER_RUN_ARGS=()
+  $SERVE && DOCKER_RUN_ARGS+=( --publish "$SERVE_PORT:$SERVE_PORT" )
+  DOCKER_RUN_ARGS+=( whatwg-html )
   $QUIET && DOCKER_RUN_ARGS+=( --quiet )
   $VERBOSE && DOCKER_RUN_ARGS+=( --verbose )
   $DO_UPDATE || DOCKER_RUN_ARGS+=( --no-update )
+  $SERVE && DOCKER_RUN_ARGS+=( --serve )
 
   # Pass in the html-build SHA (since there's no .git directory inside the container)
   docker run --rm --interactive --tty \
