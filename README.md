@@ -52,6 +52,8 @@ If you get permissions errors on Windows, you need to first [configure](https://
 
 After you complete the build steps above, the build will run and generate the single-page version of the spec, the multipage version, and more. If all goes well, you should very soon have an `output/` directory containing important files like `index.html`, `multipage/`, and `dev/`.
 
+You can also use the `--serve` option to `build.sh` to automatically serve the results on `https://localhost:8080/` after building (as long as you Python 3.7+ installed).
+
 Now you're ready to edit the `html/source` file—and after you make your changes, you can run the `build.sh` script again to see the new output.
 
 ## A note on Git history
