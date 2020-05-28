@@ -1,5 +1,6 @@
-.git/
-.cache/
-.temp/
-output/
-html/.git/
+*
+!entities/out
+!quotes/out
+!*.pl
+!build.sh
+!lint.sh
