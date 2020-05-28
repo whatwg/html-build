@@ -34,28 +34,9 @@ Run the `build.sh` script from inside your `html-build` working directory, like 
 
 The first time this runs, it will ask for your input on where to clone the HTML source from, or where on your system to find it if you've already done that. If you're working to submit a pull request to [whatwg/html](https://github.com/whatwg/html), be sure to give it the URL of your fork.
 
-### Output
-
-After you complete the build steps above, the build will run and generate the single-page version of the spec, the multipage version, and more. If all goes well, you should very soon have all the following in your `output/` directory:
-
-- `404.html`
-- `demos/*`
-- `dev/*`
-- `entities.json`
-- `fonts/*`
-- `html-dfn.js`
-- `images/*`
-- `index.html`
-- `link-fixup.js`
-- `multipage/*`
-- `robots.txt`
-- `xrefs.json`
-
-Now you're ready to edit the `html/source` file—and after you make your changes, you can run the `build.sh` script again to see the new output.
-
 ## Building using a Docker container
 
-The Dockerized version of the build allows you to run the build entirely inside a "container" (lightweight virtual machine). This includes tricky dependencies like a local copy of Wattsi, as well an HTTP server setup similar to that of https://html.spec.whatwg.org.
+The Dockerized version of the build allows you to run the build entirely inside a "container" (lightweight virtual machine). This includes tricky dependencies like a local copy of Wattsi and Python.
 
 To perform a Dockerized build, use the `--docker` flag:
 
@@ -65,9 +46,13 @@ To perform a Dockerized build, use the `--docker` flag:
 
 The first time you do this, Docker will download a bunch of stuff to set up the container properly, but subsequent runs will simply build the standard and be very fast.
 
-After building the standard, this will launch a HTTP server that allows you to view the result at `http://localhost:8080`. (OS X and Windows users will need to use the IP address of their docker-machine VM instead of `localhost`. You can get this with the `docker-machine env` command.)
+If you get permissions errors on Windows, you need to first [configure](https://docs.docker.com/docker-for-windows/#file-sharing) your `html-build/` and `html/` directories to be shareable with Docker.
 
-Note that due to the way Docker works, the HTML source repository must be contained in a subdirectory of the `html-build` working directory. This will happen automatically if you let `build.sh` clone for you, but if you have a preexisting clone you'll need to move it.
+## Output
+
+After you complete the build steps above, the build will run and generate the single-page version of the spec, the multipage version, and more. If all goes well, you should very soon have an `output/` directory containing important files like `index.html`, `multipage/`, and `dev/`.
+
+Now you're ready to edit the `html/source` file—and after you make your changes, you can run the `build.sh` script again to see the new output.
 
 ## A note on Git history
 

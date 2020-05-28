@@ -36,13 +36,13 @@ export HTML_TEMP
 # Used specifically when the Dockerfile calls this script
 SKIP_BUILD_UPDATE_CHECK=${SKIP_BUILD_UPDATE_CHECK:-false}
 SHA_OVERRIDE=${SHA_OVERRIDE:-}
-HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080" # this needs to be coordinated with the bs-highlighter package
+BUILD_SHA_OVERRIDE=${BUILD_SHA_OVERRIDE:-}
+
+# This needs to be coordinated with the bs-highlighter package
+HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080"
 
 function main {
   processCommandLineArgs "$@"
-
-  checkWattsi
-  ensureHighlighterInstalled
 
   # $SKIP_BUILD_UPDATE_CHECK is set inside the Dockerfile so that we don't check for updates both inside and outside
   # the Docker container.
@@ -52,13 +52,21 @@ function main {
 
   findHTMLSource
 
-  HTML_GIT_DIR="$HTML_SOURCE/.git/"
-  HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$HTML_GIT_DIR" rev-parse HEAD)}
+  clearDir "$HTML_OUTPUT"
+  # Set these up so rsync will not complain about either being missing
+  mkdir -p "$HTML_OUTPUT/commit-snapshots"
+  mkdir -p "$HTML_OUTPUT/review-drafts"
 
   if [[ $USE_DOCKER == "true" ]]; then
     doDockerBuild
     exit 0
   fi
+
+  checkWattsi
+  ensureHighlighterInstalled
+
+  HTML_GIT_DIR="$HTML_SOURCE/.git/"
+  HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$HTML_GIT_DIR" rev-parse HEAD)}
 
   $QUIET || echo "Linting the source file..."
   ./lint.sh "$HTML_SOURCE/source" || {
@@ -70,11 +78,6 @@ function main {
   clearCacheIfNecessary
 
   updateRemoteDataFiles
-
-  rm -rf "$HTML_OUTPUT" && mkdir -p "$HTML_OUTPUT"
-  # Set these up so rsync will not complain about either being missing
-  mkdir -p "$HTML_OUTPUT/commit-snapshots"
-  mkdir -p "$HTML_OUTPUT/review-drafts"
 
   startHighlightServer
 
@@ -110,7 +113,7 @@ function processCommandLineArgs {
   do
     case $arg in
       clean)
-        rm -rf "$HTML_CACHE"
+        clearDir "$HTML_CACHE"
         exit 0
         ;;
       help)
@@ -120,7 +123,7 @@ function processCommandLineArgs {
         echo "  $0 help   Show this usage statement."
         echo
         echo "Build options:"
-        echo "  -d|--docker     Use Docker to build in and serve from a container."
+        echo "  -d|--docker     Use Docker to build in a container."
         echo "  -n|--no-update  Don't update before building; just build."
         echo "  -q|--quiet      Don't emit any messages except errors/warnings."
         echo "  -v|--verbose    Show verbose output from every build step."
@@ -182,9 +185,8 @@ function checkHTMLBuildIsUpToDate {
 # - Output:
 #   - Either bs-highlighter-server will be in the $PATH, or a warning will be echoed
 function ensureHighlighterInstalled {
-  # If we're using Docker then this will be installed inside the container.
   # If we're not using local Wattsi then we won't use the local highlighter.
-  if [[ $USE_DOCKER != "true" && $LOCAL_WATTSI == "true" ]]; then
+  if [[ $LOCAL_WATTSI == "true" ]]; then
     if hash pip3 2>/dev/null; then
       if ! hash bs-highlighter-server 2>/dev/null; then
         pip3 install bs-highlighter
@@ -386,33 +388,23 @@ function relativePath {
 # Arguments: none
 # Output: A web server with the build output will be running inside the Docker container
 function doDockerBuild {
-  if [[ $HTML_SOURCE != $(pwd)/* ]]; then
-    echo "When using Docker, the HTML source must be checked out in a subdirectory of the html-build repo. Cannot continue."
-    exit 1
-  fi
+  DOCKER_BUILD_ARGS=( --tag whatwg-html )
+  $QUIET && DOCKER_BUILD_ARGS+=( --quiet )
 
-  # $SOURCE_RELATIVE helps on Windows with Git Bash, where /c/... is a symlink, which Docker doesn't like.
-  SOURCE_RELATIVE=$(relativePath "$(pwd)" "$HTML_SOURCE")
+  docker build "${DOCKER_BUILD_ARGS[@]}" .
 
-  VERBOSE_OR_QUIET_FLAG=""
-  $QUIET && VERBOSE_OR_QUIET_FLAG+="--quiet"
-  $VERBOSE && VERBOSE_OR_QUIET_FLAG+="--verbose"
+  DOCKER_RUN_ARGS=( whatwg-html )
+  $QUIET && DOCKER_RUN_ARGS+=( --quiet )
+  $VERBOSE && DOCKER_RUN_ARGS+=( --verbose )
+  $DO_UPDATE || DOCKER_RUN_ARGS+=( --no-update )
 
-  NO_UPDATE_FLAG="--no-update"
-  $DO_UPDATE && NO_UPDATE_FLAG=""
-
-  DOCKER_ARGS=( --tag whatwg-html \
-                --build-arg "html_source_dir=$SOURCE_RELATIVE" \
-                --build-arg "verbose_or_quiet_flag=$VERBOSE_OR_QUIET_FLAG" \
-                --build-arg "no_update_flag=$NO_UPDATE_FLAG" \
-                --build-arg "sha_override=$HTML_SHA" )
-  if $QUIET; then
-    DOCKER_ARGS+=( --quiet )
-  fi
-
-  docker build "${DOCKER_ARGS[@]}" .
-  echo "Running server on http://localhost:8080"
-  docker run --rm -it -p 8080:80 whatwg-html
+  # Pass in the html-build SHA (since there's no .git directory inside the container)
+  docker run --rm --interactive --tty \
+             --env "BUILD_SHA_OVERRIDE=$(git rev-parse HEAD)" \
+             --mount "type=bind,source=$HTML_SOURCE,destination=/whatwg/html-build/html,readonly=1" \
+             --mount "type=bind,source=$HTML_CACHE,destination=/whatwg/html-build/.cache" \
+             --mount "type=bind,source=$HTML_OUTPUT,destination=/whatwg/html-build/output" \
+             "${DOCKER_RUN_ARGS[@]}"
 }
 
 # Clears the $HTML_CACHE directory if the build tools have been updated since last run.
@@ -422,13 +414,12 @@ function doDockerBuild {
 function clearCacheIfNecessary {
   if [[ -d "$HTML_CACHE" ]]; then
     PREV_BUILD_SHA=$( cat "$HTML_CACHE/last-build-sha.txt" 2>/dev/null || echo )
-    CURRENT_BUILD_SHA=$( git rev-parse HEAD )
+    CURRENT_BUILD_SHA=${BUILD_SHA_OVERRIDE:-$(git rev-parse HEAD)}
 
     if [[ $PREV_BUILD_SHA != "$CURRENT_BUILD_SHA" ]]; then
       $QUIET || echo "Build tools have been updated since last run; clearing the cache..."
       DO_UPDATE=true
-      rm -rf "$HTML_CACHE"
-      mkdir -p "$HTML_CACHE"
+      clearDir "$HTML_CACHE"
       echo "$CURRENT_BUILD_SHA" > "$HTML_CACHE/last-build-sha.txt"
     fi
   else
@@ -477,7 +468,7 @@ function updateRemoteDataFiles {
 # - Output:
 #   - $HTML_OUTPUT will contain the built files
 function processSource {
-  rm -rf "$HTML_TEMP" && mkdir -p "$HTML_TEMP"
+  clearDir "$HTML_TEMP"
 
   $QUIET || echo "Pre-processing the source..."
   SOURCE_LOCATION="$1"
@@ -529,10 +520,9 @@ function processSource {
     cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 
     # Multipage HTML and Dev Edition
-    rm -rf "$HTML_OUTPUT/multipage"
     mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
     mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
-    rm -rf "$HTML_TEMP"
+    clearDir "$HTML_TEMP"
 
     echo "User-agent: *
 Disallow: /commit-snapshots/
@@ -583,8 +573,7 @@ function checkWattsi {
 #   - $HTML_TEMP/wattsi-output directory will contain the output from Wattsi on success
 #   - $HTML_TEMP/wattsi-output.txt will contain the output from Wattsi, on both success and failure
 function runWattsi {
-  rm -rf "$2"
-  mkdir "$2"
+  clearDir "$2"
 
   WATTSI_ARGS=()
   if $QUIET; then
@@ -678,6 +667,19 @@ function stopHighlightServer {
     # This suppresses a 'Terminated: 15 "$DIR/highlighter/server.py"' message
     wait "$HIGHLIGHT_SERVER_PID" 2>/dev/null || true
   fi
+}
+
+# Ensures the given directory exists, but is empty
+# Arguments:
+# - $1: the directory to clear
+# Output: the directory will be empty (but guaranteed to exist)
+function clearDir {
+  # We use this implementation strategy, instead of `rm -rf`ing the directory, because deleting the
+  # directory itself can run into permissions issues, e.g. if the directory is open in another
+  # program, or in the Docker case where we have permission to write to the directory but not delete
+  # it.
+  mkdir -p "$1"
+  find "$1" -mindepth 1 -delete
 }
 
 main "$@"
