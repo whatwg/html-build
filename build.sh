@@ -16,6 +16,7 @@ WATTSI_LATEST=90
 LOCAL_WATTSI=true
 DO_UPDATE=true
 DO_LINT=true
+DO_HIGHLIGHT=true
 USE_DOCKER=false
 VERBOSE=false
 QUIET=false
@@ -128,12 +129,13 @@ function processCommandLineArgs {
         echo "  $0 help   Show this usage statement."
         echo
         echo "Build options:"
-        echo "  -d|--docker     Use Docker to build in a container."
-        echo "  -s|--serve      After building, serve the results on http://localhost:$SERVE_PORT."
-        echo "  -n|--no-update  Don't update before building; just build."
-        echo "  -l|--no-lint    Don't lint before building; just build."
-        echo "  -q|--quiet      Don't emit any messages except errors/warnings."
-        echo "  -v|--verbose    Show verbose output from every build step."
+        echo "  -d|--docker       Use Docker to build in a container."
+        echo "  -s|--serve        After building, serve the results on http://localhost:$SERVE_PORT."
+        echo "  -n|--no-update    Don't update before building; just build."
+        echo "  -l|--no-lint      Don't lint before building; just build."
+        echo "  -h|--no-highlight Don't syntax-highlight the output."
+        echo "  -q|--quiet        Don't emit any messages except errors/warnings."
+        echo "  -v|--verbose      Show verbose output from every build step."
         exit 0
         ;;
       -n|--no-update|--no-updates)
@@ -141,6 +143,9 @@ function processCommandLineArgs {
         ;;
       -l|--no-lint)
         DO_LINT=false
+        ;;
+      -h|--no-highlight)
+        DO_HIGHLIGHT=false
         ;;
       -d|--docker)
         USE_DOCKER=true
@@ -196,16 +201,20 @@ function checkHTMLBuildIsUpToDate {
 # Tries to install the bs-highlighter Python package if necessary
 # - Arguments: none
 # - Output:
-#   - Either bs-highlighter-server will be in the $PATH, or a warning will be echoed
+#   - Either bs-highlighter-server will be in the $PATH, or $DO_HIGHTLIGHT will be set to false and
+#     a warning will be echoed.
 function ensureHighlighterInstalled {
   # If we're not using local Wattsi then we won't use the local highlighter.
-  if [[ $LOCAL_WATTSI == "true" ]]; then
+  if [[ $LOCAL_WATTSI == "true" && $DO_HIGHLIGHT == "true" ]]; then
     if hash pip3 2>/dev/null; then
       if ! hash bs-highlighter-server 2>/dev/null; then
         pip3 install bs-highlighter
       fi
     else
-      LOCAL_WATTSI="false"
+      echo
+      echo "Warning: could not find pip3 in your PATH. Disabling syntax highlighting."
+      echo
+      DO_HIGHLIGHT="false"
     fi
   fi
 }
@@ -430,6 +439,7 @@ function doDockerBuild {
   $VERBOSE && DOCKER_RUN_ARGS+=( --verbose )
   $DO_UPDATE || DOCKER_RUN_ARGS+=( --no-update )
   $DO_LINT || DOCKER_RUN_ARGS+=( --no-lint )
+  $DO_HIGHLIGHT || DOCKER_RUN_ARGS+=( --no-highlight )
   $SERVE && DOCKER_RUN_ARGS+=( --serve )
 
   # Pass in the html-build SHA (since there's no .git directory inside the container)
@@ -609,15 +619,18 @@ function checkWattsi {
 function runWattsi {
   clearDir "$2"
 
-  WATTSI_ARGS=()
-  if $QUIET; then
-    WATTSI_ARGS+=( --quiet )
-  fi
-  WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" \
-    "$HTML_CACHE/caniuse.json" \
-    "$HTML_CACHE/mdn-spec-links-html.json" \
-    "$HIGHLIGHT_SERVER_URL" )
   if [[ "$LOCAL_WATTSI" == "true" ]]; then
+    WATTSI_ARGS=()
+    if $QUIET; then
+      WATTSI_ARGS+=( --quiet )
+    fi
+    WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" \
+      "$HTML_CACHE/caniuse.json" \
+      "$HTML_CACHE/mdn-spec-links-html.json" )
+    if [[ "$DO_HIGHLIGHT" == "true" ]]; then
+      WATTSI_ARGS+=( "$HIGHLIGHT_SERVER_URL" )
+    fi
+
     WATTSI_RESULT="0"
     wattsi "${WATTSI_ARGS[@]}" || WATTSI_RESULT=$?
   else
@@ -681,7 +694,7 @@ function generateBacklinks {
 # - A server will be running in the background, at $HIGHLIGHT_SERVER_URL
 # - $HIGHLIGHT_SERVER_PID will be set for later use by stopHighlightServer
 function startHighlightServer {
-  if [[ "$LOCAL_WATTSI" == "true" ]]; then
+  if [[ "$LOCAL_WATTSI" == "true" && "$DO_HIGHLIGHT" == "true" ]]; then
     HIGHLIGHT_SERVER_ARGS=()
     $QUIET && HIGHLIGHT_SERVER_ARGS+=( --quiet )
     bs-highlighter-server ${HIGHLIGHT_SERVER_ARGS[@]+"${HIGHLIGHT_SERVER_ARGS[@]}"} &
