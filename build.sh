@@ -15,6 +15,7 @@ WATTSI_LATEST=90
 # Shared state variables throughout this script
 LOCAL_WATTSI=true
 DO_UPDATE=true
+DO_LINT=true
 USE_DOCKER=false
 VERBOSE=false
 QUIET=false
@@ -71,12 +72,7 @@ function main {
   HTML_GIT_DIR="$HTML_SOURCE/.git/"
   HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$HTML_GIT_DIR" rev-parse HEAD)}
 
-  $QUIET || echo "Linting the source file..."
-  ./lint.sh "$HTML_SOURCE/source" || {
-    echo
-    echo "There were lint errors. Stopping."
-    exit 1
-  }
+  doLint
 
   clearCacheIfNecessary
 
@@ -135,12 +131,16 @@ function processCommandLineArgs {
         echo "  -d|--docker     Use Docker to build in a container."
         echo "  -s|--serve      After building, serve the results on http://localhost:$SERVE_PORT."
         echo "  -n|--no-update  Don't update before building; just build."
+        echo "  -l|--no-lint    Don't lint before building; just build."
         echo "  -q|--quiet      Don't emit any messages except errors/warnings."
         echo "  -v|--verbose    Show verbose output from every build step."
         exit 0
         ;;
       -n|--no-update|--no-updates)
         DO_UPDATE=false
+        ;;
+      -l|--no-lint)
+        DO_LINT=false
         ;;
       -d|--docker)
         USE_DOCKER=true
@@ -208,6 +208,23 @@ function ensureHighlighterInstalled {
       LOCAL_WATTSI="false"
     fi
   fi
+}
+
+# Runs the lint.sh script, if requested
+# - Arguments: none
+# - Output:
+#   - Will echo any errors and exit the script with error code 1 if lint fails.
+function doLint {
+  if [[ $DO_LINT == "false" ]]; then
+    return
+  fi
+
+  $QUIET || echo "Linting the source file..."
+  ./lint.sh "$HTML_SOURCE/source" || {
+    echo
+    echo "There were lint errors. Stopping."
+    exit 1
+  }
 }
 
 # Finds the location of the HTML Standard, and stores it in the HTML_SOURCE variable.
@@ -412,6 +429,7 @@ function doDockerBuild {
   $QUIET && DOCKER_RUN_ARGS+=( --quiet )
   $VERBOSE && DOCKER_RUN_ARGS+=( --verbose )
   $DO_UPDATE || DOCKER_RUN_ARGS+=( --no-update )
+  $DO_LINT || DOCKER_RUN_ARGS+=( --no-lint )
   $SERVE && DOCKER_RUN_ARGS+=( --serve )
 
   # Pass in the html-build SHA (since there's no .git directory inside the container)
