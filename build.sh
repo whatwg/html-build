@@ -553,12 +553,12 @@ function processSource {
 
   if [[ $BUILD_TYPE == "default" ]]; then
     # Singlepage HTML
-    generateBacklinks "html" "$HTML_OUTPUT";
+    mv "$HTML_TEMP/wattsi-output/index-html" "$HTML_OUTPUT/index.html"
 
     # Singlepage Commit Snapshot
     COMMIT_DIR="$HTML_OUTPUT/commit-snapshots/$HTML_SHA"
     mkdir -p "$COMMIT_DIR"
-    generateBacklinks  "snap" "$COMMIT_DIR";
+    mv "$HTML_TEMP/wattsi-output/index-snap" "$COMMIT_DIR/index.html"
 
     cp -p  entities/out/entities.json "$HTML_OUTPUT"
     cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
@@ -584,7 +584,7 @@ Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
     YEARMONTH=$(basename "$SOURCE_LOCATION" .wattsi)
     NEWDIR="$HTML_OUTPUT/review-drafts/$YEARMONTH"
     mkdir -p "$NEWDIR"
-    generateBacklinks "review" "$NEWDIR";
+    mv "$HTML_TEMP/wattsi-output/index-review" "$NEWDIR/index.html"
   fi
 }
 
@@ -676,16 +676,6 @@ function runWattsi {
       mv "$2/output.txt" "$HTML_TEMP/wattsi-output.txt"
     fi
   fi
-}
-
-# Runs backlink generation post-processing on the output of Wattsi
-# Arguments:
-# - $1: the spec variant (e.g. "snap" or "html") to run on
-# - $2: The destination directory for the output file
-# Output:
-# - $2 will contain an index.html file derived from the given variant, with post-processing applied
-function generateBacklinks {
-  perl .post-process-partial-backlink-generator.pl "$HTML_TEMP/wattsi-output/index-$1" > "$2/index.html";
 }
 
 # Starts the syntax-highlighting Python server, when appropriate
