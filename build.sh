@@ -10,13 +10,14 @@ DIR=$(pwd)
 # The latest required version of Wattsi. Update this and the fallback in
 # https://github.com/whatwg/wattsi/blob/master/src/build.sh if you change how ./build.sh invokes
 # Wattsi.
-WATTSI_LATEST=90
+WATTSI_LATEST=107
 
 # Shared state variables throughout this script
 LOCAL_WATTSI=true
 DO_UPDATE=true
 DO_LINT=true
 DO_HIGHLIGHT=true
+SINGLE_PAGE_ONLY=false
 USE_DOCKER=false
 VERBOSE=false
 QUIET=false
@@ -134,6 +135,7 @@ function processCommandLineArgs {
         echo "  -n|--no-update    Don't update before building; just build."
         echo "  -l|--no-lint      Don't lint before building; just build."
         echo "  -h|--no-highlight Don't syntax-highlight the output."
+        echo "  -p|--single-page  Only build the single-page variant of the spec."
         echo "  -q|--quiet        Don't emit any messages except errors/warnings."
         echo "  -v|--verbose      Show verbose output from every build step."
         exit 0
@@ -146,6 +148,9 @@ function processCommandLineArgs {
         ;;
       -h|--no-highlight)
         DO_HIGHLIGHT=false
+        ;;
+      -p|--single-page)
+        SINGLE_PAGE_ONLY=true
         ;;
       -d|--docker)
         USE_DOCKER=true
@@ -427,7 +432,7 @@ function relativePath {
 # Arguments: none
 # Output: A web server with the build output will be running inside the Docker container
 function doDockerBuild {
-  DOCKER_BUILD_ARGS=( --tag whatwg-html )
+  DOCKER_BUILD_ARGS=( --tag whatwg-html --build-arg "WATTSI_VERSION=$WATTSI_LATEST" )
   $QUIET && DOCKER_BUILD_ARGS+=( --quiet )
 
   docker build "${DOCKER_BUILD_ARGS[@]}" .
@@ -440,6 +445,7 @@ function doDockerBuild {
   $DO_UPDATE || DOCKER_RUN_ARGS+=( --no-update )
   $DO_LINT || DOCKER_RUN_ARGS+=( --no-lint )
   $DO_HIGHLIGHT || DOCKER_RUN_ARGS+=( --no-highlight )
+  $SINGLE_PAGE_ONLY && DOCKER_RUN_ARGS+=( --single-page )
   $SERVE && DOCKER_RUN_ARGS+=( --serve )
 
   # Pass in the html-build SHA (since there's no .git directory inside the container)
@@ -555,17 +561,22 @@ function processSource {
     # Singlepage HTML
     mv "$HTML_TEMP/wattsi-output/index-html" "$HTML_OUTPUT/index.html"
 
-    # Singlepage Commit Snapshot
-    COMMIT_DIR="$HTML_OUTPUT/commit-snapshots/$HTML_SHA"
-    mkdir -p "$COMMIT_DIR"
-    mv "$HTML_TEMP/wattsi-output/index-snap" "$COMMIT_DIR/index.html"
+    if [[ $SINGLE_PAGE_ONLY == "false" ]]; then
+      # Singlepage Commit Snapshot
+      COMMIT_DIR="$HTML_OUTPUT/commit-snapshots/$HTML_SHA"
+      mkdir -p "$COMMIT_DIR"
+      mv "$HTML_TEMP/wattsi-output/index-snap" "$COMMIT_DIR/index.html"
+
+      # Multipage HTML and Dev Edition
+      mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
+      mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
+
+      cp -pR "$HTML_SOURCE/dev" "$HTML_OUTPUT"
+    fi
 
     cp -p  entities/out/entities.json "$HTML_OUTPUT"
     cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
 
-    # Multipage HTML and Dev Edition
-    mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
-    mv "$HTML_TEMP/wattsi-output/multipage-dev" "$HTML_OUTPUT/dev"
     clearDir "$HTML_TEMP"
 
     echo "User-agent: *
@@ -578,7 +589,6 @@ Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
     cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
     cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
     cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
-    cp -pR "$HTML_SOURCE/dev" "$HTML_OUTPUT"
   else
     # Singlepage Review Draft
     YEARMONTH=$(basename "$SOURCE_LOCATION" .wattsi)
@@ -621,8 +631,11 @@ function runWattsi {
 
   if [[ "$LOCAL_WATTSI" == "true" ]]; then
     WATTSI_ARGS=()
-    if $QUIET; then
+    if [[ "$QUIET" == "true" ]]; then
       WATTSI_ARGS+=( --quiet )
+    fi
+    if [[ "$SINGLE_PAGE_ONLY" == "true" ]]; then
+      WATTSI_ARGS+=( --single-page-only )
     fi
     WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" \
       "$HTML_CACHE/caniuse.json" \
@@ -637,7 +650,16 @@ function runWattsi {
     $QUIET || echo
     $QUIET || echo "Local wattsi or pip3 are not present; trying the build server..."
 
-    CURL_ARGS=( https://build.whatwg.org/wattsi \
+    CURL_URL="https://build.whatwg.org/wattsi"
+    if [[ "$QUIET" == "true" && "$SINGLE_PAGE_ONLY" == "true" ]]; then
+      CURL_URL="$CURL_URL?quiet&single-page-only"
+    elif [[ "$QUIET" == "true" ]]; then
+      CURL_URL="$CURL_URL?quiet"
+    elif [[ "$SINGLE_PAGE_ONLY" == "true" ]]; then
+      CURL_URL="$CURL_URL?single-page-only"
+    fi
+
+    CURL_ARGS=( "$CURL_URL" \
                 --form "source=@$1" \
                 --form "sha=$HTML_SHA" \
                 --form "build=$BUILD_TYPE" \
@@ -645,9 +667,9 @@ function runWattsi {
                 --form "mdn=@$HTML_CACHE/mdn-spec-links-html.json" \
                 --dump-header "$HTML_TEMP/wattsi-headers.txt" \
                 --output "$HTML_TEMP/wattsi-output.zip" )
-    if $VERBOSE; then
+    if [[ "$VERBOSE" == "true" ]]; then
       CURL_ARGS+=( --verbose )
-    elif $QUIET; then
+    elif [[ "$QUIET" == "true" ]]; then
       CURL_ARGS+=( --silent )
     fi
     curl "${CURL_ARGS[@]}"
