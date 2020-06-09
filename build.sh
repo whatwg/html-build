@@ -136,6 +136,7 @@ function processCommandLineArgs {
         echo "  -l|--no-lint      Don't lint before building; just build."
         echo "  -h|--no-highlight Don't syntax-highlight the output."
         echo "  -p|--single-page  Only build the single-page variant of the spec."
+        echo "  -f|--fast         Alias for --no-update --no-lint --no-highlight --single-page."
         echo "  -q|--quiet        Don't emit any messages except errors/warnings."
         echo "  -v|--verbose      Show verbose output from every build step."
         exit 0
@@ -150,6 +151,12 @@ function processCommandLineArgs {
         DO_HIGHLIGHT=false
         ;;
       -p|--single-page)
+        SINGLE_PAGE_ONLY=true
+        ;;
+      -f|--fast)
+        DO_UPDATE=false
+        DO_LINT=false
+        DO_HIGHLIGHT=false
         SINGLE_PAGE_ONLY=true
         ;;
       -d|--docker)
