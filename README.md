@@ -56,6 +56,10 @@ You can also use the `--serve` option to `build.sh` to automatically serve the r
 
 Now you're ready to edit the `html/source` file—and after you make your changes, you can run the `build.sh` script again to see the new output.
 
+## Fast local iteration
+
+There are a number of options to disable certain parts of the build process to speed up local iteration. Run `./build.sh help` to see them all, or just use the `--fast` flag to get maximally-fast builds.
+
 ## A note on Git history
 
 Your clone doesn't need the HTML standard's complete revision history just for you to build the spec and contribute patches. So, if you use `build.sh` to create the clone, we don't start you out with a clone of the history. That makes your first build finish much faster. And if later you decide you do want to clone the complete history, you can still get it, by doing this:
