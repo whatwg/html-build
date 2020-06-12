@@ -484,29 +484,19 @@ function clearCacheIfNecessary {
   fi
 }
 
-# Updates the caniuse.json and mdn-spec-links-html.json files, if either
-# $DO_UPDATE is true or they are not yet cached.
+# Updates the mdn-spec-links-html.json file, if either $DO_UPDATE is true
+# or it is not yet cached.
 # Arguments: none
 # Output:
-# - $HTML_CACHE will contain a usable caniuse.json file
+# - $HTML_CACHE will contain a usable mdn-spec-links-html.json file
 function updateRemoteDataFiles {
   CURL_ARGS=( --retry 2 )
   if ! $VERBOSE; then
     CURL_ARGS+=( --silent )
   fi
 
-  CURL_CANIUSE_ARGS=( "${CURL_ARGS[@]}" \
-    --output "$HTML_CACHE/caniuse.json" -k )
   CURL_MDN_SPEC_LINKS_ARGS=( "${CURL_ARGS[@]}" \
     --output "$HTML_CACHE/mdn-spec-links-html.json" -k )
-
-
-  if [[ $DO_UPDATE == "true" || ! -f "$HTML_CACHE/caniuse.json" ]]; then
-    rm -f "$HTML_CACHE/caniuse.json"
-    $QUIET || echo "Downloading caniuse data..."
-    curl "${CURL_CANIUSE_ARGS[@]}" \
-      https://raw.githubusercontent.com/Fyrd/caniuse/master/data.json
-  fi
 
   if [[ $DO_UPDATE == "true" \
       || ! -f "$HTML_CACHE/mdn-spec-links-html.json" ]]; then
@@ -645,7 +635,6 @@ function runWattsi {
       WATTSI_ARGS+=( --single-page-only )
     fi
     WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" \
-      "$HTML_CACHE/caniuse.json" \
       "$HTML_CACHE/mdn-spec-links-html.json" )
     if [[ "$DO_HIGHLIGHT" == "true" ]]; then
       WATTSI_ARGS+=( "$HIGHLIGHT_SERVER_URL" )
@@ -670,7 +659,6 @@ function runWattsi {
                 --form "source=@$1" \
                 --form "sha=$HTML_SHA" \
                 --form "build=$BUILD_TYPE" \
-                --form "caniuse=@$HTML_CACHE/caniuse.json" \
                 --form "mdn=@$HTML_CACHE/mdn-spec-links-html.json" \
                 --dump-header "$HTML_TEMP/wattsi-headers.txt" \
                 --output "$HTML_TEMP/wattsi-output.zip" )
