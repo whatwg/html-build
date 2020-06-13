@@ -1,4 +1,4 @@
-# This Dockerfile is just used to run on Travis CI in an environment that can easily and repeatedly
+# This Dockerfile is just used to run in CI in an environment that can easily and repeatedly
 # install our build dependencies.
 FROM debian:stable
 
@@ -48,9 +48,7 @@ ADD html-build /whatwg/html-build
 # on Docker Hub.
 ENV HTML_SOURCE /whatwg/html
 
-ARG travis_pull_request
 ARG is_test_of_html_build_itself
-ENV TRAVIS_PULL_REQUEST=${travis_pull_request}
 ENV IS_TEST_OF_HTML_BUILD_ITSELF=${is_test_of_html_build_itself}
 
 ENV SKIP_BUILD_UPDATE_CHECK=true

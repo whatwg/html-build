@@ -1,6 +1,6 @@
 # HTML Standard CI Deploy
 
-This directory contains files used specifically for deploying the HTML Standard on Travis CI. They are not generally relevant to local builds.
+This directory contains files used specifically for deploying the HTML Standard in CI. They are not generally relevant to local builds.
 
 The setup is assumed to be a directory containing:
 
