@@ -7,10 +7,8 @@ set -o pipefail
 cd "$(dirname "$0")"
 DIR=$(pwd)
 
-# The latest required version of Wattsi. Update this and the fallback in
-# https://github.com/whatwg/wattsi/blob/master/src/build.sh if you change how ./build.sh invokes
-# Wattsi.
-WATTSI_LATEST=107
+# The latest required version of Wattsi. Update this if you change how ./build.sh invokes Wattsi.
+WATTSI_LATEST=108
 
 # Shared state variables throughout this script
 LOCAL_WATTSI=true
