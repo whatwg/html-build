@@ -3,7 +3,7 @@ FROM whatwg/wattsi:${WATTSI_VERSION} as wattsi-stage
 
 FROM debian:stable-slim
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl git unzip python3 python3-pip && \
+    apt-get install --yes --no-install-recommends ca-certificates curl git python3 python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=wattsi-stage /whatwg/wattsi/bin/wattsi /bin/wattsi
