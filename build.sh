@@ -7,7 +7,9 @@ set -o pipefail
 cd "$(dirname "$0")"
 DIR=$(pwd)
 
-# The latest required version of Wattsi. Update this if you change how ./build.sh invokes Wattsi.
+# The latest required version of Wattsi. Update this if you change how ./build.sh invokes Wattsi;
+# it will cause a warning if Wattsi's self-reported version is lower. Note that there's no need to
+# update this on every revision of Wattsi; only do so when a warning is justified.
 WATTSI_LATEST=108
 
 # Shared state variables throughout this script
@@ -437,9 +439,16 @@ function relativePath {
 # Arguments: none
 # Output: A web server with the build output will be running inside the Docker container
 function doDockerBuild {
-  DOCKER_BUILD_ARGS=( --tag whatwg-html --build-arg "WATTSI_VERSION=$WATTSI_LATEST" )
-  $QUIET && DOCKER_BUILD_ARGS+=( --quiet )
+  # Ensure whatwg/wattsi:latest is up to date. Without this, the locally cached copy would be used,
+  # i.e. once Wattsi was downloaded once, it would never update. Note that this is fast
+  # (zero-transfer) if the locally cached copy is already up to date.
+  DOCKER_PULL_ARGS=()
+  $QUIET && DOCKER_PULL_ARGS+=( --quiet )
+  DOCKER_PULL_ARGS+=( whatwg/wattsi:latest )
+  docker pull "${DOCKER_PULL_ARGS[@]}"
 
+  DOCKER_BUILD_ARGS=( --tag whatwg-html )
+  $QUIET && DOCKER_BUILD_ARGS+=( --quiet )
   docker build "${DOCKER_BUILD_ARGS[@]}" .
 
   DOCKER_RUN_ARGS=()

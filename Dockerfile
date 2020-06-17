@@ -1,12 +1,9 @@
-ARG WATTSI_VERSION
-FROM whatwg/wattsi:${WATTSI_VERSION} as wattsi-stage
-
 FROM debian:stable-slim
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends ca-certificates curl git python3 python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=wattsi-stage /whatwg/wattsi/bin/wattsi /bin/wattsi
+COPY --from=whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
 
 RUN pip3 install bs-highlighter
 
