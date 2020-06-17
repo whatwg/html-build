@@ -12,13 +12,15 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+      with:
+        path: html-build
     - run: shellcheck *.sh
     - run: shellcheck ci-deploy/*.sh
     - uses: actions/checkout@v2
       with:
         repository: whatwg/html
         fetch-depth: 2
-        path: ../html
+        path: html
     - run: ./ci-deploy/outside-container.sh
       env:
         IS_TEST_OF_HTML_BUILD_ITSELF: true
