@@ -34,7 +34,11 @@ Run the `build.sh` script from inside your `html-build` working directory, like 
 
 The first time this runs, it will look up for the HTML source from a `../html` folder, if it exists. Otherwise, it may ask for your input on where to clone the HTML source from, or where on your system to find it if you've already done that. If you're working to submit a pull request to [whatwg/html](https://github.com/whatwg/html), be sure to give it the URL of your fork.
 
-You may also set the environment variable HTML_SOURCE to use a custom location for the HTML source. e.g.: `HTML_SOURCE=~/hacks/dhtml ./build.sh`.
+You may also set the environment variable `$HTML_SOURCE` to use a custom location for the HTML source. For example:
+
+```bash
+HTML_SOURCE=~/hacks/dhtml ./build.sh
+```
 
 ## Building using a Docker container
 
