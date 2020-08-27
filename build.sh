@@ -529,7 +529,6 @@ function processSource {
   BUILD_TYPE="$2"
   cp -p  entities/out/entities.inc "$HTML_CACHE"
   cp -p  entities/out/entities-dtd.url "$HTML_CACHE"
-  cp -p  quotes/out/cldr.inc "$HTML_CACHE"
   if $VERBOSE; then
     perl .pre-process-main.pl --verbose < "$HTML_SOURCE/$SOURCE_LOCATION" > "$HTML_TEMP/source-expanded-1"
   else
