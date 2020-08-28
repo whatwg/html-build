@@ -119,7 +119,11 @@ function processCommandLineArgs {
   for arg in "$@"
   do
     case $arg in
-      -h|--help|help)
+      clean)
+        clearDir "$HTML_CACHE"
+        exit 0
+        ;;
+      --help|help)
         echo "Commands:"
         echo "  $0        Build the HTML Standard."
         echo "  $0 clean  Remove downloaded dependencies and generated files (then stop)."
@@ -135,10 +139,6 @@ function processCommandLineArgs {
         echo "  -f|--fast         Alias for --no-update --no-lint --no-highlight --single-page."
         echo "  -q|--quiet        Don't emit any messages except errors/warnings."
         echo "  -v|--verbose      Show verbose output from every build step."
-        exit 0
-        ;;
-      clean)
-        clearDir "$HTML_CACHE"
         exit 0
         ;;
       -n|--no-update|--no-updates)
