@@ -123,7 +123,7 @@ function processCommandLineArgs {
         clearDir "$HTML_CACHE"
         exit 0
         ;;
-      help)
+      --help|help)
         echo "Commands:"
         echo "  $0        Build the HTML Standard."
         echo "  $0 clean  Remove downloaded dependencies and generated files (then stop)."
