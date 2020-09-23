@@ -4,7 +4,7 @@ set -o nounset
 set -o pipefail
 cd "$(dirname "$0")/../.."
 
-PDF_SOURCE_URL="https://html.spec.whatwg.org/"
+PDF_SERVE_PORT=8080
 WEB_ROOT="html.spec.whatwg.org"
 COMMITS_DIR="commit-snapshots"
 REVIEW_DIR="review-drafts"
@@ -26,12 +26,27 @@ IS_TEST_OF_HTML_BUILD_ITSELF=${IS_TEST_OF_HTML_BUILD_ITSELF:-false}
 
 # Conformance-check the result
 echo ""
-echo "Downloading and running conformance checker..."
-curl --retry 2 --remote-name --fail --location https://github.com/validator/validator/releases/download/linux/vnu.linux.zip
-unzip vnu.linux.zip
+echo "Running conformance checker..."
 # the -Xmx1g argument sets the size of the Java heap space to 1 gigabyte
-./vnu-runtime-image/bin/java -Xmx1g -m vnu/nu.validator.client.SimpleCommandLineValidator --skip-non-html "$HTML_OUTPUT"
+java -Xmx1g -jar ./vnu.jar --skip-non-html "$HTML_OUTPUT"
 echo ""
+
+# Serve the built output so that Prince can snapshot it
+# The nohup/sleep incantations are necessary because normal & does not work inside Docker:
+# https://stackoverflow.com/q/50211207/3191
+(
+  cd "$HTML_OUTPUT"
+  nohup bash -c "python3 -m http.server $PDF_SERVE_PORT &" && sleep 4
+)
+
+echo ""
+echo "Building PDF..."
+PDF_TMP="$(mktemp --suffix=.pdf)"
+prince --verbose --output "$PDF_TMP" "http://0.0.0.0:$PDF_SERVE_PORT/"
+
+echo ""
+echo "Optimizing PDF..."
+PATH=/bin/pdfsizeopt:$PATH pdfsizeopt --v=30 "$PDF_TMP" "$HTML_OUTPUT/print.pdf"
 
 if [[ "$TRAVIS_PULL_REQUEST" != "false" ]]; then
   echo "Skipping deploy for non-master"
@@ -54,7 +69,6 @@ echo "Deploying build output..."
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --chmod=D755,F644 --compress --verbose \
       --delete --exclude="$COMMITS_DIR" --exclude="$REVIEW_DIR" \
-      --exclude=print.pdf \
       "$HTML_OUTPUT/" "deploy@$SERVER:/var/www/$WEB_ROOT"
 
 # Now sync a commit snapshot and a review draft, if any
@@ -65,21 +79,6 @@ echo "Deploying Commit Snapshot and Review Drafts, if any..."
 rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
       --archive --chmod=D755,F644 --compress --verbose \
       "$HTML_OUTPUT/$COMMITS_DIR" "$HTML_OUTPUT/$REVIEW_DIR" "deploy@$SERVER:/var/www/$WEB_ROOT"
-
-echo ""
-echo "Building PDF..."
-PDF_TMP="$(mktemp --suffix=.pdf)"
-prince --verbose --output "$PDF_TMP" "$PDF_SOURCE_URL"
-
-echo ""
-echo "Optimizing PDF..."
-pdfsizeopt --v=40 "$PDF_TMP" "$HTML_OUTPUT/print.pdf"
-
-echo ""
-echo "Deploying PDF..."
-rsync --rsh="ssh -o UserKnownHostsFile=known_hosts" \
-      --archive --compress --verbose \
-      "$HTML_OUTPUT/print.pdf" "deploy@$SERVER:/var/www/$WEB_ROOT/print.pdf"
 
 echo ""
 echo "All done!"

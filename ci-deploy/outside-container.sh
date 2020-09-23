@@ -2,54 +2,66 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+shopt -s extglob
 
-HERE=$(dirname "$0")
-cd "$HERE/../.."
+HERE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+TMP_DIR=$(mktemp -d)
 
-DOCKER_USERNAME="domenicdenicola"
-DOCKER_HUB_REPO="whatwg/html-deploy"
+function main {
+  cp "$HERE/Dockerfile" "$TMP_DIR"
+  cd "$HERE/.."
+  cp -r !(.*|html|Dockerfile) "$TMP_DIR"
+  cp .*.pl "$TMP_DIR"
+  cd "$TMP_DIR"
+  trap cleanTemp EXIT
 
-# Set from the outside:
-TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
-IS_TEST_OF_HTML_BUILD_ITSELF=${IS_TEST_OF_HTML_BUILD_ITSELF:-false}
+  DOCKER_USERNAME="domenicdenicola"
+  DOCKER_HUB_REPO="whatwg/html-deploy"
 
-# When not running pull request builds:
-# - DOCKER_PASSWORD is set from the outside
-# - ENCRYPTION_LABEL is set from the outside
+  # Set from the outside:
+  TRAVIS_PULL_REQUEST=${TRAVIS_PULL_REQUEST:-false}
+  IS_TEST_OF_HTML_BUILD_ITSELF=${IS_TEST_OF_HTML_BUILD_ITSELF:-false}
 
-git clone --depth 1 https://github.com/pts/pdfsizeopt.git pdfsizeopt
+  # When not running pull request builds:
+  # - DOCKER_PASSWORD is set from the outside
+  # - ENCRYPTION_LABEL is set from the outside
 
-# Copy the Docker-related stuff into the working (grandparent) directory.
-cp "$HERE"/{.dockerignore,Dockerfile} .
+  # Build the Docker image, using Docker Hub as a cache. (This will be fast if nothing has changed
+  # in wattsi or html-build).
+  docker build --cache-from "$DOCKER_HUB_REPO:latest" \
+              --tag "$DOCKER_HUB_REPO:latest" \
+              --build-arg "html_build_dir=$TMP_DIR" \
+              --build-arg "travis_pull_request=$TRAVIS_PULL_REQUEST" \
+              --build-arg "is_test_of_html_build_itself=$IS_TEST_OF_HTML_BUILD_ITSELF" \
+              .
+  if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$IS_TEST_OF_HTML_BUILD_ITSELF" == "false" ]]; then
+    # Decrypt the deploy key from this script's location into the html/ directory, since that's the
+    # directory that will be shared with the container (but not built into the image).
+    ENCRYPTED_KEY_VAR="encrypted_${ENCRYPTION_LABEL}_key"
+    ENCRYPTED_IV_VAR="encrypted_${ENCRYPTION_LABEL}_iv"
+    ENCRYPTED_KEY=${!ENCRYPTED_KEY_VAR}
+    ENCRYPTED_IV=${!ENCRYPTED_IV_VAR}
+    openssl aes-256-cbc -K "$ENCRYPTED_KEY" -iv "$ENCRYPTED_IV" \
+            -in "$HERE/deploy-key.enc" -out html/deploy-key -d
+  fi
 
-# Build the Docker image, using Docker Hub as a cache. (This will be fast if nothing has changed
-# in wattsi or html-build).
-docker pull "$DOCKER_HUB_REPO:latest"
-docker build --cache-from "$DOCKER_HUB_REPO:latest" \
-             --tag "$DOCKER_HUB_REPO:latest" \
-             --build-arg "travis_pull_request=$TRAVIS_PULL_REQUEST" \
-             --build-arg "is_test_of_html_build_itself=$IS_TEST_OF_HTML_BUILD_ITSELF" \
-             .
-if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$IS_TEST_OF_HTML_BUILD_ITSELF" == "false" ]]; then
-  # Decrypt the deploy key from this script's location into the html/ directory, since that's the
-  # directory that will be shared with the container (but not built into the image).
-  ENCRYPTED_KEY_VAR="encrypted_${ENCRYPTION_LABEL}_key"
-  ENCRYPTED_IV_VAR="encrypted_${ENCRYPTION_LABEL}_iv"
-  ENCRYPTED_KEY=${!ENCRYPTED_KEY_VAR}
-  ENCRYPTED_IV=${!ENCRYPTED_IV_VAR}
-  openssl aes-256-cbc -K "$ENCRYPTED_KEY" -iv "$ENCRYPTED_IV" \
-          -in "$HERE/deploy-key.enc" -out html/deploy-key -d
-fi
-
-# Run the inside-container.sh script, with the html/ directory mounted inside the container.
-echo ""
-docker run --volume "$(pwd)/html":/whatwg/html "$DOCKER_HUB_REPO:latest"
-
-if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$IS_TEST_OF_HTML_BUILD_ITSELF" == "false" ]]; then
-  # If the build succeeded and we got here, upload the Docker image to Docker Hub, so that future runs
-  # can use it as a cache.
+  # Run the inside-container.sh script, with the html/ directory mounted inside the container.
   echo ""
-  docker tag "$DOCKER_HUB_REPO:latest" "$DOCKER_HUB_REPO:$TRAVIS_BUILD_NUMBER" &&
-  docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
-  docker push "$DOCKER_HUB_REPO"
-fi
+  cd "$HERE/../.."
+  docker run --mount "type=bind,source=$(pwd)/html,destination=/whatwg/html,readonly=1" "$DOCKER_HUB_REPO:latest"
+
+  if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$IS_TEST_OF_HTML_BUILD_ITSELF" == "false" ]]; then
+    # If the build succeeded and we got here, upload the Docker image to Docker Hub, so that future runs
+    # can use it as a cache.
+    echo ""
+    docker tag "$DOCKER_HUB_REPO:latest" "$DOCKER_HUB_REPO:$TRAVIS_BUILD_NUMBER" &&
+    docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+    docker push "$DOCKER_HUB_REPO"
+  fi
+}
+
+function cleanTemp {
+  rm -rf "$TMP_DIR"
+}
+
+main "$@"

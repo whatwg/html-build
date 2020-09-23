@@ -3,47 +3,44 @@
 FROM debian:stable
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl rsync git unzip \
-    default-jre                                             \
-    libfontconfig1 libgomp1 libxml2                         \
-    python3 python3-pip                                     \
+    apt-get install --yes --no-install-recommends \
+    ca-certificates curl rsync git                \
+    default-jre                                   \
+    python3 python3-pip                           \
     fonts-dejavu fonts-droid-fallback fonts-liberation fonts-symbola fonts-unfonts-core
 
 # Dependency lines above are:
 # - General
 # - validator
-# - Prince
 # - Highlighter
-# - fonts
-
-RUN pip3 install bs-highlighter
-
-# Dependecies of prince_11.3-1_debian8.0_amd64.deb (not used) are libc6 libcurl3 libfontconfig1
-# libfreetype6 libgif4 libgomp1 libjpeg62-turbo libpng12-0 libssl1.0.0 libtiff5 libxml2 zlib1g.
-# Above we install only the subset that's needed to make Prince work.
-
-ADD https://www.princexml.com/download/prince-11.3-linux-generic-x86_64.tar.gz /whatwg/prince.tar.gz
-
-RUN cd /whatwg && \
-    tar xzf prince.tar.gz && \
-    echo /whatwg/prince | /whatwg/prince-11.3-linux-generic-x86_64/install.sh && \
-    echo '@font-face { font-family: serif; src: local("Symbola") }' >> /whatwg/prince/lib/prince/style/fonts.css && \
-    rm -rf /whatwg/prince.tar.gz /whatwg/prince-11.3-linux-generic-x86_64
-ENV PATH="/whatwg/prince/bin:${PATH}"
-
-ADD pdfsizeopt/pdfsizeopt.single /whatwg/pdfsizeopt/bin/pdfsizeopt
-ADD https://github.com/pts/pdfsizeopt/releases/download/2017-01-24/pdfsizeopt_libexec_linux-v3.tar.gz /whatwg/pdfsizeopt_libexec.tar.gz
-RUN cd /whatwg && \
-    tar xzf pdfsizeopt_libexec.tar.gz && \
-    mv pdfsizeopt_libexec/* pdfsizeopt/bin/ && \
-    rm -rf pdfsizeopt_libexec.tar.gz pdfsizeopt_libexec
-ENV PATH="/whatwg/pdfsizeopt/bin:${PATH}"
+# - fonts, for when Prince renders to PDF
 
 COPY --from=whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
+COPY --from=ptspts/pdfsizeopt:latest /bin /bin/pdfsizeopt
+RUN pip3 install bs-highlighter
 
-ADD html-build /whatwg/html-build
+# The DockerHub container for pdfsizeopt has some useful auxiliary binaries it depends on, but the
+# main binary is outdated and needs updating directly from GitHub:
+# TODO: consolidate these two lines when https://github.com/moby/buildkit/pull/1492 gets released
+# (see https://github.com/moby/moby/issues/34819).
+ADD https://github.com/pts/pdfsizeopt/blob/master/pdfsizeopt.single?raw=true /bin/pdfsizeopt/pdfsizeopt
+RUN chmod a+rwx /bin/pdfsizeopt/pdfsizeopt
 
-# Note: we do not ADD /whatwg/html, but instead mount it using --volume in .travis.yml, since it
+# The DockerHub container for the validator only contains the server version, so we get the .jar
+# from GitHub:
+ADD https://github.com/validator/validator/releases/download/jar/vnu.jar /whatwg/
+
+# Trying to copy Prince from its DockerHub container like the others does not work; it has too many
+# shared library dependencies. So we get the .deb file from the source:
+ADD https://www.princexml.com/download/prince_13.5-1_debian10_amd64.deb .
+RUN apt-get install --yes --no-install-recommends ./prince_13.5-1_debian10_amd64.deb && \
+    rm prince_13.5-1_debian10_amd64.deb && \
+    echo '@font-face { font-family: serif; src: local("Symbola") }' >> /usr/lib/prince/style/fonts.css
+
+ARG html_build_dir
+ADD . /whatwg/html-build
+
+# Note: we do not ADD /whatwg/html, but instead mount it in outside-container.html, since it
 # contains the deploy_key, and thus should not be part of the image. The image is cached, publicly,
 # on Docker Hub.
 ENV HTML_SOURCE /whatwg/html
