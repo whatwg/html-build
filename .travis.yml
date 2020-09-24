@@ -3,11 +3,23 @@ services:
   - docker
 
 script:
+  # Shellcheck
   - shellcheck *.sh
-  - shellcheck ci-deploy/*.sh
-  - cd .. &&
-    git clone https://github.com/whatwg/html.git --depth 2 &&
-    IS_TEST_OF_HTML_BUILD_ITSELF=true bash ./html-build/ci-deploy/outside-container.sh
+  - shellcheck ci-build/*.sh
+
+  # Build the Docker container, tagged as whatwg/html-build
+  - bash ci-build/docker-build.sh
+
+  # Test the Docker container
+  - git clone https://github.com/whatwg/html.git --depth 2
+  - mkdir output
+  - bash ci-build/docker-run.sh html output
+
+  # Tag and publish the Docker container
+  - docker tag whatwg/html-build "whatwg/html-build:$(git rev-list --count HEAD)"
+  - docker tag whatwg/html-build whatwg/html-build:latest
+  - if [[ "$TRAVIS_PULL_REQUEST" = "false" ]]; then docker login --username "$DOCKER_USERNAME" --password "$DOCKER_PASSWORD"; fi
+  - if [[ "$TRAVIS_PULL_REQUEST" = "false" ]]; then docker push whatwg/html-build; fi
 
 branches:
   only:

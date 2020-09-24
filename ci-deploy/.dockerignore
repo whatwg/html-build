@@ -1,3 +1,0 @@
-# Git checkout metadata changes every time you check out. If we left these directories there, Docker's caches (based on
-# comparing the contents of the files ADDed) would be invalidated.
-**/.git

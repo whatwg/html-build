@@ -37,18 +37,6 @@ RUN apt-get install --yes --no-install-recommends ./prince_13.5-1_debian10_amd64
     rm prince_13.5-1_debian10_amd64.deb && \
     echo '@font-face { font-family: serif; src: local("Symbola") }' >> /usr/lib/prince/style/fonts.css
 
-ARG html_build_dir
 ADD . /whatwg/html-build
 
-# Note: we do not ADD /whatwg/html, but instead mount it in outside-container.html, since it
-# contains the deploy_key, and thus should not be part of the image. The image is cached, publicly,
-# on Docker Hub.
-ENV HTML_SOURCE /whatwg/html
-
-ARG travis_pull_request
-ARG is_test_of_html_build_itself
-ENV TRAVIS_PULL_REQUEST=${travis_pull_request}
-ENV IS_TEST_OF_HTML_BUILD_ITSELF=${is_test_of_html_build_itself}
-
-ENV SKIP_BUILD_UPDATE_CHECK=true
-ENTRYPOINT ["bash", "/whatwg/html-build/ci-deploy/inside-container.sh"]
+ENTRYPOINT ["bash", "/whatwg/html-build/ci-build/inside-container.sh"]
