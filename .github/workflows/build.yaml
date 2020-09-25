@@ -22,10 +22,11 @@ jobs:
         shellcheck ci-build/*.sh
     - name: docker build
       run: ci-build/docker-build.sh
-    - name: Test against whatwg/html
+    - name: Checkout whatwg/html
       uses: actions/checkout@v2
       with:
         repository: whatwg/html
+    - name: Test against whatwg/html
       run: |
         mkdir output
         bash ci-build/docker-run.sh html output
