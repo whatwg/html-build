@@ -27,10 +27,11 @@ jobs:
       with:
         repository: whatwg/html
         path: html
+        fetch-depth: 2
     - name: Test against whatwg/html
       run: |
         mkdir output
-        bash ci-build/docker-run.sh html output
+        bash ci-build/docker-run.sh "$GITHUB_WORKSPACE/html" output
     - name: docker login
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       uses: docker/login-action@v1
