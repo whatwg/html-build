@@ -5,12 +5,14 @@ FROM debian:stable
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends \
     ca-certificates curl rsync git                \
+    libfontconfig1 libgomp1 libxml2               \
     default-jre                                   \
     python3 python3-pip                           \
     fonts-dejavu fonts-droid-fallback fonts-liberation fonts-symbola fonts-unfonts-core
 
 # Dependency lines above are:
 # - General
+# - Prince
 # - validator
 # - Highlighter
 # - fonts, for when Prince renders to PDF
@@ -31,11 +33,16 @@ RUN chmod a+rwx /bin/pdfsizeopt/pdfsizeopt
 ADD https://github.com/validator/validator/releases/download/jar/vnu.jar /whatwg/
 
 # Trying to copy Prince from its DockerHub container like the others does not work; it has too many
-# shared library dependencies. So we get the .deb file from the source:
-ADD https://www.princexml.com/download/prince_13.5-1_debian10_amd64.deb .
-RUN apt-get install --yes --no-install-recommends ./prince_13.5-1_debian10_amd64.deb && \
-    rm prince_13.5-1_debian10_amd64.deb && \
-    echo '@font-face { font-family: serif; src: local("Symbola") }' >> /usr/lib/prince/style/fonts.css
+# shared library dependencies. Additionally, Prince 12 and 13 have bad interactions with pdfsizeopt
+# (https://github.com/pts/pdfsizeopt/issues/145, https://github.com/whatwg/html-build/issues/255),
+# and Prince 11's .deb file only works with older version of Debian. So, we do it this way (plus the
+# manual dependency installations in the apt-get section above).
+ADD https://www.princexml.com/download/prince-11.3-linux-generic-x86_64.tar.gz /whatwg/prince.tar.gz
+RUN cd /whatwg && \
+    tar xzf prince.tar.gz && \
+    echo /whatwg/prince | /whatwg/prince-11.3-linux-generic-x86_64/install.sh && \
+    echo '@font-face { font-family: serif; src: local("Symbola") }' >> /whatwg/prince/lib/prince/style/fonts.css && \
+    rm -rf /whatwg/prince.tar.gz /whatwg/prince-11.3-linux-generic-x86_64
 
 ADD . /whatwg/html-build
 
