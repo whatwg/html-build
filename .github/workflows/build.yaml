@@ -13,14 +13,15 @@ jobs:
     env:
       IMAGE_NAME: whatwg/html-build
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout whatwg/html-build
+      uses: actions/checkout@v2
       with:
         fetch-depth: 0
     - name: Shellcheck
       run: |
         shellcheck *.sh
         shellcheck ci-build/*.sh
-    - name: docker build
+    - name: Docker build
       run: ci-build/docker-build.sh
     - name: Checkout whatwg/html
       uses: actions/checkout@v2
@@ -32,13 +33,13 @@ jobs:
       run: |
         mkdir output
         bash ci-build/docker-run.sh "$GITHUB_WORKSPACE/html" output
-    - name: docker login
+    - name: Docker login
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       uses: docker/login-action@v1
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
-    - name: docker push
+    - name: Docker push
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       run: |
         VERSION=$(git rev-list --count HEAD)
