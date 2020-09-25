@@ -6,5 +6,5 @@ The relevant entrypoints are:
 
 - `docker-build.sh` will build the Docker container
 - `docker-run.sh $INPUT $OUTPUT` will run the Docker container to do such a full build.
-  - `$INPUT` should contain the contents of the [whatwg/html](https://github.com/whatwg/html) repository
+  - `$INPUT` should contain a checkout of the [whatwg/html](https://github.com/whatwg/html) repository
   - `$OUTPUT` should be an empty directory
