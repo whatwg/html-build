@@ -1,0 +1,48 @@
+name: Build
+on:
+  pull_request:
+    branches:
+    - master
+  push:
+    branches:
+    - master
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-20.04
+    env:
+      IMAGE_NAME: whatwg/html-build
+    steps:
+    - name: Checkout whatwg/html-build
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Shellcheck
+      run: |
+        shellcheck *.sh
+        shellcheck ci-build/*.sh
+    - name: Docker build
+      run: ci-build/docker-build.sh
+    - name: Checkout whatwg/html
+      uses: actions/checkout@v2
+      with:
+        repository: whatwg/html
+        path: html
+        fetch-depth: 2
+    - name: Test against whatwg/html
+      run: |
+        mkdir output
+        bash ci-build/docker-run.sh "$GITHUB_WORKSPACE/html" output
+    - name: Docker login
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+    - name: Docker push
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+      run: |
+        docker tag "$IMAGE_NAME" "$IMAGE_NAME:$GITHUB_SHA"
+        docker tag "$IMAGE_NAME" "$IMAGE_NAME:latest"
+        docker push "$IMAGE_NAME:$GITHUB_SHA"
+        docker push "$IMAGE_NAME:latest"
