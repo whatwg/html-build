@@ -42,8 +42,7 @@ jobs:
     - name: Docker push
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
       run: |
-        VERSION=$(git rev-list --count HEAD)
-        docker tag "$IMAGE_NAME" "$IMAGE_NAME:$VERSION"
+        docker tag "$IMAGE_NAME" "$IMAGE_NAME:$GITHUB_SHA"
         docker tag "$IMAGE_NAME" "$IMAGE_NAME:latest"
-        docker push "$IMAGE_NAME:$VERSION"
+        docker push "$IMAGE_NAME:$GITHUB_SHA"
         docker push "$IMAGE_NAME:latest"
