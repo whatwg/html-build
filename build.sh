@@ -191,7 +191,7 @@ function checkHTMLBuildIsUpToDate {
   fi
   # TODO: `git remote get-url origin` is nicer, but new in Git 2.7.
   ORIGIN_URL=$(git config --get remote.origin.url)
-  GIT_FETCH_ARGS+=( "$ORIGIN_URL" master)
+  GIT_FETCH_ARGS+=( "$ORIGIN_URL" main)
   git fetch "${GIT_FETCH_ARGS[@]}"
   NEW_COMMITS=$(git rev-list --count HEAD..FETCH_HEAD)
   if [[ $NEW_COMMITS != "0" ]]; then
@@ -203,7 +203,7 @@ function checkHTMLBuildIsUpToDate {
     echo
     echo "To update, run this command:"
     echo
-    echo "  git pull --rebase origin master"
+    echo "  git pull --rebase origin main"
     echo
     echo "This check can be bypassed with the --no-update option."
     exit 1
