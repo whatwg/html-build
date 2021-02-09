@@ -63,6 +63,8 @@ function main {
   mkdir -p "$HTML_OUTPUT/commit-snapshots"
   mkdir -p "$HTML_OUTPUT/review-drafts"
 
+  clearCacheIfNecessary
+
   if [[ $USE_DOCKER == "true" ]]; then
     doDockerBuild
     exit 0
@@ -75,8 +77,6 @@ function main {
   HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$HTML_GIT_DIR" rev-parse HEAD)}
 
   doLint
-
-  clearCacheIfNecessary
 
   updateRemoteDataFiles
 
