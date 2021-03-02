@@ -51,14 +51,14 @@ while (defined($_ = <>)) {
                 # ignore...
             }
         } elsif ($mode eq 'tr') {
-            if ($_ =~ m!^     <td> <(?:code|span) data-x="([^"]+)">[^<]*</(?:code|span)>;?\n$!os) {
+            if ($_ =~ m!^     <td> <(?:code|span) data-x="([^"]+)">[^<]*</(?:code|span)>(?: \(in [^\)]+\))?;?\n$!os) {
                 $attributes{$1} = 1;
                 $mode = 'index-in';
             } else {
                 # ignore...
             }
         } elsif ($mode eq 'index-in') {
-            if ($_ =~ m!^          <(?:code|span) data-x="([^"]+)">[^<]*</(?:code|span)>;?\n$!os) {
+            if ($_ =~ m!^          <(?:code|span) data-x="([^"]+)">[^<]*</(?:code|span)>(?: \(in [^\)]+\))?;?\n$!os) {
                 $attributes{$1} = 1;
             } elsif ($_ =~ m@^     <td> (.+?)(?:<!--or: (.+)-->)?\n$@os) {
                 local $" = ', ';
