@@ -14,6 +14,7 @@ MATCHES=$(grep -niE '( (code|span|var)(>| data-x=)|[^<;]/(code|span|var)>)' "$1"
   grep -ni 'and/or' "$1" | perl -lpe 'print "\nOccurrences of making Ms2ger unhappy and/or annoyed:" if $. == 1'
   grep -niE '\s+$' "$1" | perl -lpe 'print "\nTrailing whitespace:" if $. == 1'
   grep $'\t' "$1" | perl -lpe 'print "\nTab:" if $. == 1'
+  grep $'\xc2\xa0' "$1" | perl -lpe 'print "\nUnescaped nonbreaking space:" if $. == 1'
   perl -ne '$/ = "\n\n"; print "$_" if (/class="?(note|example).+(\n.+)*\s+(should|must|may|optional|recommended)(\s|$)/mi)' "$1" | perl -lpe 'print "\nRFC2119 keyword in example or note (use: might, can, has to, or override with <!--non-normative-->must):" if $. == 1'
   perl -ne '$line++; $in_domintro = 1 if (/^  <dl class="domintro">$/); print "$line: $_" if ($in_domintro && /\s+(should|must|may|optional|recommended)(\s|$)/i); $in_domintro = 0 if (/^  <\/dl>$/)' "$1" | perl -lpe 'print "\nRFC2119 keyword in domintro (use: might, can, has to, or override with <!--non-normative-->must):" if $. == 1'
   )
