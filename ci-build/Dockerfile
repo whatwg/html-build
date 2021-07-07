@@ -30,7 +30,7 @@ RUN chmod a+rwx /bin/pdfsizeopt/pdfsizeopt
 
 # The DockerHub container for the validator only contains the server version, so we get the .jar
 # from GitHub:
-ADD https://github.com/validator/validator/releases/download/jar/vnu.jar /whatwg/
+ADD https://github.com/validator/validator/releases/download/latest/vnu.jar /whatwg/
 
 # Trying to copy Prince from its DockerHub container like the others does not work; it has too many
 # shared library dependencies. Additionally, Prince 12 and 13 have bad interactions with pdfsizeopt
