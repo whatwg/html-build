@@ -16,7 +16,7 @@ MATCHES=$(
   grep -niE '\s+$' "$1" | perl -lpe 'print "\nTrailing whitespace:" if $. == 1'
   grep $'\t' "$1" | perl -lpe 'print "\nTab:" if $. == 1'
   grep $'\xc2\xa0' "$1" | perl -lpe 'print "\nUnescaped nonbreaking space:" if $. == 1'
-  grep $'[\u226a\u226b]' "$1" | perl -lpe 'print "\nWrong list literals, use \uAB\uBB instead:" if $. == 1'
+  grep $'[\u226a\u226b]' "$1" | perl -CSDA -lpe 'print "\nWrong list literals, use \xAB\xBB instead:" if $. == 1'
   perl -ne '$/ = "\n\n"; print "$_" if (/class="?(note|example).+(\n.+)*\s+(should|must|may|optional|recommended)(\s|$)/mi)' "$1" | perl -lpe 'print "\nRFC2119 keyword in example or note (use: might, can, has to, or override with <!--non-normative-->must):" if $. == 1'
   perl -ne '$line++; $in_domintro = 1 if (/^  <dl class="domintro">$/); print "$line: $_" if ($in_domintro && /\s+(should|must|may|optional|recommended)(\s|$)/i); $in_domintro = 0 if (/^  <\/dl>$/)' "$1" | perl -lpe 'print "\nRFC2119 keyword in domintro (use: might, can, has to, or override with <!--non-normative-->must):" if $. == 1'
 )
