@@ -24,10 +24,4 @@ echo ""
 
 echo ""
 echo "Building PDF..."
-PDF_TMP="$(mktemp --suffix=.pdf)"
-PATH=/whatwg/prince/bin:$PATH prince --verbose --output "$PDF_TMP" "http://0.0.0.0:$PDF_SERVE_PORT/"
-
-echo ""
-echo "Optimizing PDF..."
-TMP_DIR=$(mktemp -d)
-PATH=/bin/pdfsizeopt:$PATH pdfsizeopt --v=30 "--tmp-dir=$TMP_DIR" "$PDF_TMP" "$HTML_OUTPUT/print.pdf"
+PATH=/whatwg/prince/bin:$PATH prince --verbose --output "$HTML_OUTPUT/print.pdf" "http://0.0.0.0:$PDF_SERVE_PORT/"
