@@ -9,12 +9,12 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       IMAGE_NAME: whatwg/html-build
     steps:
     - name: Checkout whatwg/html-build
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
     - name: Shellcheck
@@ -24,7 +24,7 @@ jobs:
     - name: Docker build
       run: ci-build/docker-build.sh
     - name: Checkout whatwg/html
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: whatwg/html
         path: html
