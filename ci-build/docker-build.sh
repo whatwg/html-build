@@ -26,7 +26,7 @@ function main {
 
   # Build the Docker image, using Docker Hub as a cache. (This will be fast if nothing has changed
   # in html-build or its dependencies).
-  docker pull whatwg/wattsi
+  docker pull ghcr.io/whatwg/wattsi
   docker pull "$docker_hub_repo" || true
   docker build --cache-from "$docker_hub_repo" --tag "$docker_hub_repo" .
 }

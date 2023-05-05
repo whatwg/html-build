@@ -3,7 +3,7 @@ RUN apt-get update && \
     apt-get install --yes --no-install-recommends ca-certificates curl git python3 python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
+COPY --from=ghcr.io/whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
 
 RUN pip3 install bs-highlighter
 
