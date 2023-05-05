@@ -15,7 +15,7 @@ RUN apt-get update && \
 # - Highlighter
 # - fonts, for when Prince renders to PDF
 
-COPY --from=whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
+COPY --from=ghcr.io/whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
 RUN pip3 install bs-highlighter
 
 # The DockerHub container for the validator only contains the server version, so we get the .jar
