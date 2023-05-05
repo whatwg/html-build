@@ -11,4 +11,4 @@ docker run --rm --mount "type=bind,source=$HTML_SOURCE,destination=/whatwg/html,
                 --env "HTML_SOURCE=/whatwg/html" \
                 --mount "type=bind,source=$HTML_OUTPUT,destination=/whatwg/output" \
                 --env "HTML_OUTPUT=/whatwg/output" \
-                whatwg/html-build
+                ghcr.io/whatwg/html-build

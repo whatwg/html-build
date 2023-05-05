@@ -22,13 +22,13 @@ function main {
   cd "$TMP_DIR"
   trap cleanTemp EXIT
 
-  local docker_hub_repo="whatwg/html-build"
+  local ghcr_repo="ghcr.io/whatwg/html-build"
 
-  # Build the Docker image, using Docker Hub as a cache. (This will be fast if nothing has changed
+  # Build the Docker image, using GHCR as a cache. (This will be fast if nothing has changed
   # in html-build or its dependencies).
   docker pull ghcr.io/whatwg/wattsi
-  docker pull "$docker_hub_repo" || true
-  docker build --cache-from "$docker_hub_repo" --tag "$docker_hub_repo" .
+  docker pull "$ghcr_repo" || true
+  docker build --cache-from "$ghcr_repo" --tag "$ghcr_repo" .
 }
 
 function cleanTemp {
