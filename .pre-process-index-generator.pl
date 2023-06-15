@@ -16,23 +16,15 @@ while (<>) {
             if ($4) {
                 ($id, $name) = ($4, $5);
             } else {
-                if ($5 eq 'HTMLSourceElement') {
-                    ($id, $name) = ('the-source-element-when-used-with-the-picture-element:htmlsourceelement', $5);
-                } elsif ($5 eq 'XMLDocument') {
-                    ($id, $name) = ('loading-xml-documents:xmldocument', $5);
-                } else {
-                    die "don't know how to create partial interface entry for $name in All Interfaces index";
-                }
+                die "partial interface entry for $5 is missing an id (required for interface index)";
             }
             $definitions{$name} = { } unless defined $definitions{$name};
             $definitions{$name}{partial} = [] unless exists $definitions{$name}{partial};
             push @{$definitions{$name}{partial}}, $id;
         } else {
-            if ($5 ne 'HTMLBaseFontElement') {
-                $name = $5;
-                $definitions{$name} = { } unless defined $definitions{$name};
-                die "duplicate interface definitions for $name" if exists $definitions{$name}{primary};
-            }
+            $name = $5;
+            $definitions{$name} = { } unless defined $definitions{$name};
+            die "duplicate interface definitions for $name" if exists $definitions{$name}{primary};
         }
     }
     $inpre = 0 if /<\/pre>/os;
