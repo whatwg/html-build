@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get install --yes --no-install-recommends \
     ca-certificates curl rsync git                \
     default-jre                                   \
-    python3 python3-pip                           \
+    python3 python3-pip pipx                      \
     fonts-dejavu fonts-droid-fallback fonts-liberation fonts-symbola fonts-unfonts-core
 
 # Dependency lines above are:
@@ -16,7 +16,10 @@ RUN apt-get update && \
 # - fonts, for when Prince renders to PDF
 
 COPY --from=ghcr.io/whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
-RUN pip3 install bs-highlighter
+
+ENV PIPX_HOME /opt/pipx
+ENV PIPX_BIN_DIR /usr/bin
+RUN pipx install bs-highlighter
 
 # The DockerHub container for the validator only contains the server version, so we get the .jar
 # from GitHub:
