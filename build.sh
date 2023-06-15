@@ -529,13 +529,17 @@ function processSource {
   BUILD_TYPE="$2"
   cp -p  entities/out/entities.inc "$HTML_CACHE"
   cp -p  entities/out/entities-dtd.url "$HTML_CACHE"
-  if $VERBOSE; then
-    perl .pre-process-main.pl --verbose < "$HTML_SOURCE/$SOURCE_LOCATION" > "$HTML_TEMP/source-expanded-1"
+  if [ "${PROCESS_WITH_RUST:-0}" = "1" ]; then
+    cargo run -r <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
   else
-    perl .pre-process-main.pl < "$HTML_SOURCE/$SOURCE_LOCATION" > "$HTML_TEMP/source-expanded-1"
+    if $VERBOSE; then
+      perl .pre-process-main.pl --verbose < "$HTML_SOURCE/$SOURCE_LOCATION" > "$HTML_TEMP/source-expanded-1"
+    else
+      perl .pre-process-main.pl < "$HTML_SOURCE/$SOURCE_LOCATION" > "$HTML_TEMP/source-expanded-1"
+    fi
+    perl .pre-process-annotate-attributes.pl < "$HTML_TEMP/source-expanded-1" > "$HTML_TEMP/source-expanded-2" # this one could be merged
+    perl .pre-process-tag-omission.pl < "$HTML_TEMP/source-expanded-2" | perl .pre-process-index-generator.pl > "$HTML_TEMP/source-whatwg-complete" # this one could be merged
   fi
-  perl .pre-process-annotate-attributes.pl < "$HTML_TEMP/source-expanded-1" > "$HTML_TEMP/source-expanded-2" # this one could be merged
-  perl .pre-process-tag-omission.pl < "$HTML_TEMP/source-expanded-2" | perl .pre-process-index-generator.pl > "$HTML_TEMP/source-whatwg-complete" # this one could be merged
 
   runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output" "$HIGHLIGHT_SERVER_URL"
   if [[ $WATTSI_RESULT == "0" ]]; then
