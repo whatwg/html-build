@@ -7,6 +7,7 @@ RUN apt-get update && \
     ca-certificates curl rsync git                \
     default-jre                                   \
     python3 python3-pip pipx                      \
+    libbrotli1 libexpat1 libfontconfig1 libfreetype6 libpng16-16 \
     fonts-dejavu fonts-droid-fallback fonts-liberation fonts-symbola fonts-unfonts-core
 
 # Dependency lines above are:
@@ -28,11 +29,14 @@ ADD https://github.com/validator/validator/releases/download/latest/vnu.jar /wha
 # Trying to copy Prince from its DockerHub container like the others does not work; it has too many
 # shared library dependencies. Probably this is a job for Docker Compose... we should learn how that
 # works one day.
-ADD https://www.princexml.com/download/prince_14.2-1_debian10_amd64.deb /whatwg/prince.deb
+# Prince also hasn't been updated for Debian 12 and is no longer installable from its deb file.
+ADD https://www.princexml.com/download/prince-14.2-linux-generic-x86_64.tar.gz /whatwg/prince.tar.gz
 RUN cd /whatwg && \
-    apt-get install --yes ./prince.deb && \
+    tar xvzf prince.tar.gz && \
+    ( cd prince-* && echo /usr | ./install.sh ) && \
     echo '@font-face { font-family: serif; src: local("Symbola") }' >> /usr/lib/prince/style/fonts.css && \
-    rm -rf /whatwg/prince.deb
+    rm -rf prince* && \
+    prince --version
 
 ADD . /whatwg/html-build
 
