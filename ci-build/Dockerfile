@@ -31,7 +31,7 @@ ADD https://github.com/validator/validator/releases/download/latest/vnu.jar /wha
 # shared library dependencies. Probably this is a job for Docker Compose... we should learn how that
 # works one day.
 # Prince also hasn't been updated for Debian 12 and is no longer installable from its deb file.
-ADD https://www.princexml.com/download/prince-14.2-linux-generic-x86_64.tar.gz /whatwg/prince.tar.gz
+ADD https://www.princexml.com/download/prince-15.1-linux-generic-x86_64.tar.gz /whatwg/prince.tar.gz
 RUN cd /whatwg && \
     tar xvzf prince.tar.gz && \
     ( cd prince-* && echo /usr | ./install.sh ) && \
