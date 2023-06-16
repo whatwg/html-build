@@ -218,13 +218,13 @@ function checkHTMLBuildIsUpToDate {
 function ensureHighlighterInstalled {
   # If we're not using local Wattsi then we won't use the local highlighter.
   if [[ $LOCAL_WATTSI == "true" && $DO_HIGHLIGHT == "true" ]]; then
-    if hash pip3 2>/dev/null; then
+    if hash pipx 2>/dev/null; then
       if ! hash bs-highlighter-server 2>/dev/null; then
-        pip3 install bs-highlighter
+        pipx install bs-highlighter
       fi
     else
       echo
-      echo "Warning: could not find pip3 in your PATH. Disabling syntax highlighting."
+      echo "Warning: could not find pipx in your PATH. Disabling syntax highlighting."
       echo
       DO_HIGHLIGHT="false"
     fi
@@ -650,7 +650,7 @@ function runWattsi {
     wattsi "${WATTSI_ARGS[@]}" || WATTSI_RESULT=$?
   else
     $QUIET || echo
-    $QUIET || echo "Local wattsi or pip3 are not present; trying the build server..."
+    $QUIET || echo "Local wattsi not present; trying the build server..."
 
     CURL_URL="https://build.whatwg.org/wattsi"
     if [[ "$QUIET" == "true" && "$SINGLE_PAGE_ONLY" == "true" ]]; then
