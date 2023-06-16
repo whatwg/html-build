@@ -14,6 +14,7 @@ RUN apt-get update && \
 # - General
 # - validator
 # - Highlighter
+# - Prince
 # - fonts, for when Prince renders to PDF
 
 COPY --from=ghcr.io/whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
