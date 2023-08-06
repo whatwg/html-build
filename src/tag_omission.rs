@@ -75,7 +75,7 @@ impl Processor {
                 for dd in dom_utils::dt_descriptions(&dt) {
                     dom_utils::scan_dom(&dd, &mut |n| {
                         if n.is_html_element(&local_name!("code")) {
-                            let mut info = self.elements.entry(n.text_content()).or_default();
+                            let info = self.elements.entry(n.text_content()).or_default();
                             info.is_void_element = true;
                         }
                     });

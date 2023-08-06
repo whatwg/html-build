@@ -76,7 +76,7 @@ impl Processor {
                     continue;
                 }
                 let name = window[1].text_content();
-                let mut info = self.interfaces.entry(name).or_default();
+                let info = self.interfaces.entry(name).or_default();
                 if is_partial {
                     if let Some(id) = window[1].get_attribute(&ID) {
                         info.partials.push(id);
