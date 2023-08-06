@@ -1,3 +1,4 @@
+use html5ever::serialize::{serialize, SerializeOpts};
 use std::borrow::Cow;
 use std::default::Default;
 use std::env;
@@ -13,7 +14,6 @@ mod dom_utils;
 mod interface_index;
 mod parser;
 mod represents;
-mod serializer;
 mod tag_omission;
 
 #[tokio::main]
@@ -56,10 +56,10 @@ async fn main() -> io::Result<()> {
 
     // Finally, we write the result to standard out.
     let serializable: SerializableHandle = document.into();
-    serializer::serialize(
+    serialize(
         &mut BufWriter::with_capacity(128 * 1024, io::stdout()),
         &serializable,
-        Default::default(),
+        SerializeOpts::default(),
     )?;
     Ok(())
 }
