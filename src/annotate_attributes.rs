@@ -150,7 +150,7 @@ impl Processor {
                         .collect(),
                     variant: variant_str,
                 };
-                let mut existing = self.attributes.entry(attr_key).or_default();
+                let existing = self.attributes.entry(attr_key).or_default();
                 if existing.default.is_empty() {
                     existing.default = descriptions.default;
                 } else if !descriptions.default.is_empty() {
