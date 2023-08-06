@@ -1,61 +1,17 @@
-//! This module specializes the HTML5 parser to respect the "special" void <ref>
-//! element, which isn't part of standard HTML. It does so by injecting a
-//! synthetic </ref> token immediately afterward.
-//! It also provides some mild integration with async I/O.
+//! This module provides some mild integration between the html5ever parser and async I/O.
 
 use std::borrow::Cow;
 use std::io;
 
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::{self, stream::Utf8LossyDecoder, ByteTendril, StrTendril, TendrilSink};
-use html5ever::tokenizer::{
-    Tag, TagKind, Token, TokenSink, TokenSinkResult, Tokenizer, TokenizerOpts, TokenizerResult,
-};
+use html5ever::tokenizer::{Tokenizer, TokenizerOpts, TokenizerResult};
 use html5ever::tree_builder::{TreeBuilder, TreeSink};
 use markup5ever_rcdom::{Handle, RcDom};
 use tokio::io::{AsyncRead, AsyncReadExt};
 
-struct TokenFilter<Sink: TokenSink> {
-    sink: Sink,
-}
-
-impl<Sink: TokenSink> TokenSink for TokenFilter<Sink> {
-    type Handle = Sink::Handle;
-
-    fn process_token(&mut self, token: Token, line_number: u64) -> TokenSinkResult<Self::Handle> {
-        let close_tag = match token {
-            Token::TagToken(Tag {
-                kind: TagKind::StartTag,
-                name: ref tag_name,
-                ..
-            }) if tag_name.eq_str_ignore_ascii_case("ref") => Some(Tag {
-                kind: TagKind::EndTag,
-                name: tag_name.clone(),
-                self_closing: false,
-                attrs: vec![],
-            }),
-            _ => None,
-        };
-        match (self.sink.process_token(token, line_number), close_tag) {
-            (TokenSinkResult::Continue, Some(close_tag)) => self
-                .sink
-                .process_token(Token::TagToken(close_tag), line_number),
-            (result, _) => result,
-        }
-    }
-
-    fn end(&mut self) {
-        self.sink.end()
-    }
-
-    fn adjusted_current_node_present_but_not_in_html_namespace(&self) -> bool {
-        self.sink
-            .adjusted_current_node_present_but_not_in_html_namespace()
-    }
-}
-
 struct FilteredParser<Sink: TreeSink> {
-    tokenizer: Tokenizer<TokenFilter<TreeBuilder<Sink::Handle, Sink>>>,
+    tokenizer: Tokenizer<TreeBuilder<Sink::Handle, Sink>>,
     input_buffer: BufferQueue,
 }
 
@@ -66,7 +22,7 @@ impl<Sink: TreeSink> TendrilSink<tendril::fmt::UTF8> for FilteredParser<Sink> {
     }
 
     fn error(&mut self, desc: Cow<'static, str>) {
-        self.tokenizer.sink.sink.sink.parse_error(desc)
+        self.tokenizer.sink.sink.parse_error(desc)
     }
 
     type Output = Sink::Output;
@@ -75,7 +31,7 @@ impl<Sink: TreeSink> TendrilSink<tendril::fmt::UTF8> for FilteredParser<Sink> {
         while let TokenizerResult::Script(_) = self.tokenizer.feed(&mut self.input_buffer) {}
         assert!(self.input_buffer.is_empty());
         self.tokenizer.end();
-        self.tokenizer.sink.sink.sink.finish()
+        self.tokenizer.sink.sink.finish()
     }
 }
 
@@ -91,7 +47,7 @@ async fn parse_internal_async<R: AsyncRead + Unpin>(
     tokenizer_opts: TokenizerOpts,
     mut r: R,
 ) -> io::Result<Handle> {
-    let tok = Tokenizer::new(TokenFilter { sink: tb }, tokenizer_opts);
+    let tok = Tokenizer::new(tb, tokenizer_opts);
     let mut tendril_sink = FilteredParser {
         tokenizer: tok,
         input_buffer: BufferQueue::new(),
@@ -171,32 +127,6 @@ pub(crate) mod tests {
             .unwrap();
         }
         String::from_utf8(output).unwrap()
-    }
-
-    #[tokio::test]
-    async fn test_treats_ref_as_void() -> io::Result<()> {
-        // Without the token filtering, the first <ref> ends up as the second's parent.
-        let document =
-            parse_document_async("<!DOCTYPE html><ref spec=CSP><ref spec=SW>".as_bytes()).await?;
-        assert_eq!(
-            serialize_for_test(&[document]),
-            "<!DOCTYPE html><html><head></head><body><ref spec=\"CSP\"></ref><ref spec=\"SW\"></ref></body></html>");
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_treats_ref_as_void_in_fragments() -> io::Result<()> {
-        // Similar to the above, but in a fragment.
-        let document = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
-        let body = document.children.borrow()[1].children.borrow()[1].clone();
-        assert!(body.is_html_element(&local_name!("body")));
-        let children =
-            parse_fragment_async("<ref spec=CSP><ref spec=SW>.".as_bytes(), &body).await?;
-        assert_eq!(
-            serialize_for_test(&children),
-            "<ref spec=\"CSP\"></ref><ref spec=\"SW\"></ref>."
-        );
-        Ok(())
     }
 
     #[tokio::test]
