@@ -36,8 +36,7 @@ impl<Sink: TreeSink> TendrilSink<tendril::fmt::UTF8> for FilteredParser<Sink> {
 }
 
 impl<Sink: TreeSink> FilteredParser<Sink> {
-    #[allow(clippy::wrong_self_convention)]
-    fn from_utf8(self) -> Utf8LossyDecoder<Self> {
+    fn into_utf8(self) -> Utf8LossyDecoder<Self> {
         Utf8LossyDecoder::new(self)
     }
 }
@@ -52,7 +51,7 @@ async fn parse_internal_async<R: AsyncRead + Unpin>(
         tokenizer: tok,
         input_buffer: BufferQueue::new(),
     }
-    .from_utf8();
+    .into_utf8();
 
     // This draws on the structure of the sync tendril read_from.
     const BUFFER_SIZE: u32 = 128 * 1024;
