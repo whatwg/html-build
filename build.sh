@@ -10,7 +10,7 @@ DIR=$(pwd)
 # The latest required version of Wattsi. Update this if you change how ./build.sh invokes Wattsi;
 # it will cause a warning if Wattsi's self-reported version is lower. Note that there's no need to
 # update this on every revision of Wattsi; only do so when a warning is justified.
-WATTSI_LATEST=137
+WATTSI_LATEST=140
 
 # Shared state variables throughout this script
 LOCAL_WATTSI=true
