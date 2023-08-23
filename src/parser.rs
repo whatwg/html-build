@@ -14,6 +14,7 @@ async fn parse_internal_async<R: AsyncRead + Unpin>(
     let mut tendril_sink = parser.from_utf8();
 
     // This draws on the structure of the sync tendril read_from.
+    // https://docs.rs/tendril/latest/tendril/stream/trait.TendrilSink.html#method.read_from
     const BUFFER_SIZE: u32 = 128 * 1024;
     'read: loop {
         let mut tendril = ByteTendril::new();

@@ -27,7 +27,7 @@ async fn main() -> io::Result<()> {
 
     // Because parsing can jump around the tree a little, it's most reasonable
     // to just parse the whole document before doing any processing. Even for
-    // the HTML5 specification, this doesn't take too long.
+    // the HTML standard, this doesn't take too long.
     let document = parser::parse_document_async(tokio::io::stdin()).await?;
 
     let mut boilerplate = boilerplate::Processor::new(cache_dir.clone(), source_dir.join("demos"));
