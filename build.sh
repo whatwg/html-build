@@ -530,7 +530,7 @@ function processSource {
   BUILD_TYPE="$2"
   cp -p  entities/out/entities.inc "$HTML_CACHE"
   cp -p  entities/out/entities-dtd.url "$HTML_CACHE"
-  if [ $PROCESS_WITH_RUST == "true" ]; then
+  if [[ $PROCESS_WITH_RUST == "true" ]]; then
     if hash html-build 2>/dev/null; then
       html-build <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
     else
