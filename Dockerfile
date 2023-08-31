@@ -2,7 +2,7 @@ FROM rust:1.72 as builder
 WORKDIR /whatwg/html-build
 COPY Cargo.lock Cargo.toml ./
 COPY src ./src/
-RUN cargo install --path .
+RUN cargo install --path . --release
 
 FROM debian:stable-slim
 RUN apt-get update && \
