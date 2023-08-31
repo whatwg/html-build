@@ -1,7 +1,14 @@
+FROM rust:1.72 as builder
+WORKDIR /whatwg/html-build
+COPY . .
+RUN cargo install --path .
+
 FROM debian:stable-slim
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends ca-certificates curl git python3 python3-pip pipx && \
     rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/local/cargo/bin/html-build /bin/html-build
 
 COPY --from=ghcr.io/whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
 
