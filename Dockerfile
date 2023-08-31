@@ -1,6 +1,7 @@
 FROM rust:1.72 as builder
 WORKDIR /whatwg/html-build
-COPY . .
+COPY Cargo.lock Cargo.toml ./
+COPY src ./src/
 RUN cargo install --path .
 
 FROM debian:stable-slim
@@ -19,4 +20,5 @@ RUN pipx install bs-highlighter
 COPY . /whatwg/html-build/
 
 ENV SKIP_BUILD_UPDATE_CHECK true
+ENV PROCESS_WITH_RUST true
 ENTRYPOINT ["bash", "/whatwg/html-build/build.sh"]

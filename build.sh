@@ -32,6 +32,7 @@ HTML_CACHE=${HTML_CACHE:-$DIR/.cache}
 HTML_TEMP=${HTML_TEMP:-$DIR/.temp}
 HTML_OUTPUT=${HTML_OUTPUT:-$DIR/output}
 HTML_GIT_CLONE_OPTIONS=${HTML_GIT_CLONE_OPTIONS:-"--depth=2"}
+PROCESS_WITH_RUST=${PROCESS_WITH_RUST:-false}
 
 # These are used by child scripts, and so we export them
 export HTML_CACHE
@@ -529,8 +530,12 @@ function processSource {
   BUILD_TYPE="$2"
   cp -p  entities/out/entities.inc "$HTML_CACHE"
   cp -p  entities/out/entities-dtd.url "$HTML_CACHE"
-  if [ "${PROCESS_WITH_RUST:-0}" = "1" ]; then
-    cargo run -r <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
+  if [ $PROCESS_WITH_RUST == "true" ]; then
+    if hash html-build 2>/dev/null; then
+      html-build <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
+    else
+      cargo run -r <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
+    fi
   else
     if $VERBOSE; then
       perl .pre-process-main.pl --verbose < "$HTML_SOURCE/$SOURCE_LOCATION" > "$HTML_TEMP/source-expanded-1"
