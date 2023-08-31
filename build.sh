@@ -675,11 +675,11 @@ function runWattsi {
     fi
     curl "${CURL_ARGS[@]}"
 
-    # read exit code from the Wattsi-Exit-Code header and assume failure if not found
+    # read exit code from the Exit-Code header and assume failure if not found
     WATTSI_RESULT=1
     while IFS=":" read -r NAME VALUE; do
       shopt -s nocasematch
-      if [[ $NAME == "Wattsi-Exit-Code" ]]; then
+      if [[ $NAME == "Exit-Code" ]]; then
         WATTSI_RESULT=$(echo "$VALUE" | tr -d ' \r\n')
         break
       fi
