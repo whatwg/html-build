@@ -87,7 +87,7 @@ function main {
   if [[ -e "$HTML_GIT_DIR" ]]; then
     # This is based on https://github.com/whatwg/whatwg.org/pull/201 and should be kept synchronized
     # with that.
-    CHANGED_FILES=$(git --git-dir="$HTML_GIT_DIR" diff --name-only HEAD^ HEAD)
+    CHANGED_FILES=$(git --git-dir="$HTML_GIT_DIR" show --format="format:" --name-only HEAD)
     for CHANGED in $CHANGED_FILES; do # Omit quotes around variable to split on whitespace
       if ! [[ "$CHANGED" =~ ^review-drafts/.*.wattsi$ ]]; then
         continue
