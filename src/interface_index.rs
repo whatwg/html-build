@@ -13,6 +13,7 @@ use crate::dom_utils::NodeHandleExt;
 #[derive(Default, Debug)]
 struct InterfaceInfo {
     /// Number of times the interface definition was seen. Should be one.
+    /// We store other numbers for convenience in error handling and reporting.
     seen: u32,
 
     /// The IDs of the partial interfaces, in the order they appear in the document.
