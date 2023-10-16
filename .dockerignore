@@ -4,3 +4,6 @@
 !*.pl
 !build.sh
 !lint.sh
+!Cargo.lock
+!Cargo.toml
+!src
