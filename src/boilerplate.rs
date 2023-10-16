@@ -53,10 +53,15 @@ impl Processor {
             // demand.
             NodeData::Comment { ref contents } if contents.starts_with("BOILERPLATE ") => {
                 let path = Path::new(contents[12..].trim());
-                if is_safe_path(path) {
-                    let file = tokio::spawn(File::open(self.path.join(path)));
-                    self.edits.push(Edit::ReplaceHTML(node.clone(), file));
-                }
+                let file = if is_safe_path(path) {
+                    tokio::spawn(File::open(self.path.join(path)))
+                } else {
+                    async_error(io::Error::new(
+                        io::ErrorKind::PermissionDenied,
+                        "cannot traverse to a parent directory in {path}",
+                    ))
+                };
+                self.edits.push(Edit::ReplaceHTML(node.clone(), file));
             }
             // Pseudo-comments can also appear in element attributes. These are
             // not parsed as HTML, so we simply want to read them into memory so
@@ -69,14 +74,19 @@ impl Processor {
                 {
                     if value.starts_with("<!--BOILERPLATE ") && value.ends_with("-->") {
                         let path = Path::new(value[16..value.len() - 3].trim());
-                        if is_safe_path(path) {
-                            let file_contents = read_to_str_tendril(self.path.join(path));
-                            self.edits.push(Edit::ReplaceAttr(
-                                node.clone(),
-                                name.clone(),
-                                file_contents,
-                            ));
-                        }
+                        let file_contents = if is_safe_path(path) {
+                            read_to_str_tendril(self.path.join(path))
+                        } else {
+                            async_error(io::Error::new(
+                                io::ErrorKind::PermissionDenied,
+                                "cannot traverse to a parent directory in {path}",
+                            ))
+                        };
+                        self.edits.push(Edit::ReplaceAttr(
+                            node.clone(),
+                            name.clone(),
+                            file_contents,
+                        ));
                     }
                 }
             }
@@ -98,11 +108,16 @@ impl Processor {
                 });
                 if has_suitable_parent {
                     let path = Path::new(text[8..].trim());
-                    if is_safe_path(path) {
-                        let file_contents = read_to_str_tendril(self.example_path.join(path));
-                        self.edits
-                            .push(Edit::ReplaceText(node.clone(), file_contents))
-                    }
+                    let file_contents = if is_safe_path(path) {
+                        read_to_str_tendril(self.example_path.join(path))
+                    } else {
+                        async_error(io::Error::new(
+                            io::ErrorKind::PermissionDenied,
+                            "cannot traverse to a parent directory in {path}",
+                        ))
+                    };
+                    self.edits
+                        .push(Edit::ReplaceText(node.clone(), file_contents))
                 }
             }
             _ => (),
@@ -153,6 +168,11 @@ fn read_to_str_tendril(path: impl AsRef<Path>) -> JoinHandle<io::Result<SendStrT
         let string = tokio::fs::read_to_string(path).await?;
         Ok(StrTendril::from(string).into_send())
     })
+}
+
+/// Creates a join Handle for an error
+fn async_error<R: Send + 'static>(err: io::Error) -> JoinHandle<io::Result<R>> {
+    tokio::spawn(async move { Err(err) })
 }
 
 #[cfg(test)]
@@ -220,17 +240,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_ignores_unsafe_paths() -> io::Result<()> {
+    async fn test_errors_unsafe_paths() -> io::Result<()> {
         let document =
             parse_document_async("<body><!--BOILERPLATE /etc/passwd--><pre data-x=\"<!--BOILERPLATE src/../../foo-->\">EXAMPLE ../foo</pre>".as_bytes())
                 .await?;
         let mut proc = Processor::new(Path::new("."), Path::new("."));
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
-        assert_eq!(proc.edits.len(), 0);
-        proc.apply().await?;
-        assert_eq!(
-            serialize_for_test(&[document]),
-            "<html><head></head><body><!--BOILERPLATE /etc/passwd--><pre data-x=\"<!--BOILERPLATE src/../../foo-->\">EXAMPLE ../foo</pre></body></html>");
+        let result = proc.apply().await;
+        assert!(matches!(result, Err(e) if e.kind() == io::ErrorKind::PermissionDenied));
         Ok(())
     }
 }
