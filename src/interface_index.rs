@@ -104,6 +104,15 @@ impl Processor {
                 format!("Marker {MARKER:?} not found."),
             ));
         }
+        if self.marker_nodes.len() > 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "{MARKER:?} found {} times, expected just one.",
+                    self.marker_nodes.len()
+                ),
+            ));
+        }
         for marker in self.marker_nodes {
             // We need to find where the marker appears in the text so that we
             // can split it into two text nodes.
