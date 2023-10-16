@@ -241,13 +241,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_errors_unsafe_paths() -> io::Result<()> {
-        let document =
-            parse_document_async("<body><!--BOILERPLATE /etc/passwd--><pre data-x=\"<!--BOILERPLATE src/../../foo-->\">EXAMPLE ../foo</pre>".as_bytes())
-                .await?;
-        let mut proc = Processor::new(Path::new("."), Path::new("."));
-        dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
-        let result = proc.apply().await;
-        assert!(matches!(result, Err(e) if e.kind() == io::ErrorKind::PermissionDenied));
+        let bad_path_examples = [
+            "<body><!--BOILERPLATE /etc/passwd-->",
+            "<body><pre data-x=\"<!--BOILERPLATE src/../../foo-->\"></pre>",
+            "<body><pre>EXAMPLE ../foo</pre>",
+        ];
+        for example in bad_path_examples {
+            let document = parse_document_async(example.as_bytes()).await?;
+            let mut proc = Processor::new(Path::new("."), Path::new("."));
+            dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
+            let result = proc.apply().await;
+            assert!(matches!(result, Err(e) if e.kind() == io::ErrorKind::PermissionDenied));
+        }
         Ok(())
     }
 }
