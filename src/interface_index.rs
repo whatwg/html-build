@@ -339,14 +339,13 @@ partial interface <span id="HTMLMarqueeElement-partial-2">HTMLMarqueeElement</sp
     }
 
     #[tokio::test]
-    async fn markers_before_and_after() -> io::Result<()> {
+    async fn marker_before() -> io::Result<()> {
         let document = parse_document_async(
             r#"
 INSERT INTERFACES HERE
 <pre><code class=idl>
 interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
 </code></pre>
-INSERT INTERFACES HERE
             "#
             .trim()
             .as_bytes(),
@@ -361,8 +360,7 @@ INSERT INTERFACES HERE
 <html><head></head><body><ul class="brief"><li><code>HTMLMarqueeElement</code></li></ul>
 <pre><code class="idl">
 interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
-</code></pre>
-<ul class="brief"><li><code>HTMLMarqueeElement</code></li></ul></body></html>
+</code></pre></body></html>
             "##
             .trim()
         );
@@ -372,6 +370,19 @@ interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
     #[tokio::test]
     async fn no_marker() -> io::Result<()> {
         let document = parse_document_async("".as_bytes()).await?;
+        let mut proc = Processor::new();
+        dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
+        let result = proc.apply();
+        assert!(matches!(result, Err(e) if e.kind() == io::ErrorKind::InvalidData));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn duplicate_marker() -> io::Result<()> {
+        let document = parse_document_async(
+            "<div>INSERT INTERFACES HERE</div><div>INSERT INTERFACES HERE</div>".as_bytes(),
+        )
+        .await?;
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         let result = proc.apply();
