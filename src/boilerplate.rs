@@ -6,13 +6,14 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-use html5ever::tendril::{self, SendTendril, StrTendril};
+use html5ever::tendril::{self, SendTendril};
 use html5ever::{local_name, Attribute, LocalName, QualName};
 use markup5ever_rcdom::{Handle, NodeData};
 use tokio::fs::File;
 use tokio::task::JoinHandle;
 
 use crate::dom_utils::NodeHandleExt;
+use crate::io_utils::{is_safe_path, read_to_str_tendril, async_error};
 use crate::parser;
 
 type SendStrTendril = SendTendril<tendril::fmt::UTF8>;
@@ -152,27 +153,6 @@ impl Processor {
         }
         Ok(())
     }
-}
-
-/// Check that a path is safe to open, even if the source is potentially untrusted.
-fn is_safe_path(path: &Path) -> bool {
-    use std::path::Component;
-    path.components()
-        .all(|c| matches!(c, Component::Normal(_) | Component::CurDir))
-}
-
-/// In a spawned task, read to a string, then move it to a tendril.
-fn read_to_str_tendril(path: impl AsRef<Path>) -> JoinHandle<io::Result<SendStrTendril>> {
-    let path = path.as_ref().to_owned();
-    tokio::spawn(async move {
-        let string = tokio::fs::read_to_string(path).await?;
-        Ok(StrTendril::from(string).into_send())
-    })
-}
-
-/// Creates a join Handle for an error
-fn async_error<R: Send + 'static>(err: io::Error) -> JoinHandle<io::Result<R>> {
-    tokio::spawn(async move { Err(err) })
 }
 
 #[cfg(test)]

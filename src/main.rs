@@ -12,6 +12,7 @@ mod annotate_attributes;
 mod boilerplate;
 mod dom_utils;
 mod interface_index;
+mod io_utils;
 mod parser;
 mod represents;
 mod tag_omission;
