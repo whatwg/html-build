@@ -183,6 +183,23 @@ pub fn dt_descriptions(dt: &Handle) -> Vec<Handle> {
     }
 }
 
+/// Returns the heading level (from 1 to 6) that the <h1> through <h6> declares, or None for all other nodes.
+pub fn heading_level(node: &Handle) -> Option<u8> {
+    let local = match node.data {
+        NodeData::Element { ref name, .. } if name.ns == ns!(html) => &name.local,
+        _ => return None,
+    };
+    match *local {
+        local_name!("h1") => Some(1),
+        local_name!("h2") => Some(2),
+        local_name!("h3") => Some(3),
+        local_name!("h4") => Some(4),
+        local_name!("h5") => Some(5),
+        local_name!("h6") => Some(6),
+        _ => None,
+    }
+}
+
 impl NodeHandleExt for Handle {
     fn parent_node(&self) -> Option<Handle> {
         let weak_parent = self.parent.take()?;
