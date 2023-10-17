@@ -13,7 +13,7 @@ use tokio::fs::File;
 use tokio::task::JoinHandle;
 
 use crate::dom_utils::NodeHandleExt;
-use crate::io_utils::{is_safe_path, read_to_str_tendril, async_error};
+use crate::io_utils::{async_error, is_safe_path, read_to_str_tendril};
 use crate::parser;
 
 type SendStrTendril = SendTendril<tendril::fmt::UTF8>;
