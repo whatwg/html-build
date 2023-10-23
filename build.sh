@@ -534,7 +534,10 @@ function processSource {
     if hash html-build 2>/dev/null; then
       html-build <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
     else
-      cargo run -r <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
+      CARGO_ARGS=()
+      $VERBOSE && CARGO_ARGS+=( --verbose )
+      $QUIET && CARGO_ARGS+=( --quiet )
+      cargo run "${CARGO_ARGS[@]}" --release <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
     fi
   else
     if $VERBOSE; then
