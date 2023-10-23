@@ -1,13 +1,16 @@
 [package]
 name = "html-build"
-version = "0.1.0"
+version = "0.0.0"
+publish = false
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-html5ever = "*"
-markup5ever_rcdom = "*"
-tempfile = "3"
+html5ever = "0.26.0"
+markup5ever_rcdom = "0.2.0"
 regex = "1"
+
+[dev-dependencies]
+tempfile = "3"
