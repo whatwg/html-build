@@ -532,7 +532,7 @@ function doServerBuild {
   $QUIET || echo "Sending files to the build server..."
 
   local query_string
-  query_string="$(joinBy "\&" "${query_params[@]}")"
+  query_string="$(joinBy "\&" "${query_params[@]-''}")"
   local curl_url="https://build.whatwg.org/html-build?${query_string}"
   local curl_args=( "$curl_url" \
                     --form "html=@$HTML_TEMP/$input_zip" \
