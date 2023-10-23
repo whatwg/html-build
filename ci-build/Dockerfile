@@ -1,5 +1,11 @@
 # This Dockerfile is just used to run on Travis CI in an environment that can easily and repeatedly
 # install our build dependencies.
+FROM rust:1.73-slim as builder
+WORKDIR /whatwg/html-build
+COPY Cargo.lock Cargo.toml ./
+COPY src ./src/
+RUN cargo install --path .
+
 FROM debian:stable
 
 RUN apt-get update && \
@@ -16,6 +22,8 @@ RUN apt-get update && \
 # - Highlighter
 # - Prince
 # - fonts, for when Prince renders to PDF
+
+COPY --from=builder /usr/local/cargo/bin/html-build /bin/html-build
 
 COPY --from=ghcr.io/whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
 

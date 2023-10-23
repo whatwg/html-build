@@ -6,7 +6,7 @@ cd "$(dirname "$0")/../.."
 
 PDF_SERVE_PORT=8080
 
-SKIP_BUILD_UPDATE_CHECK=true ./html-build/build.sh
+PROCESS_WITH_RUST=true SKIP_BUILD_UPDATE_CHECK=true ./html-build/build.sh
 
 echo ""
 echo "Running conformance checker..."
