@@ -20,5 +20,4 @@ RUN pipx install bs-highlighter
 COPY . /whatwg/html-build/
 
 ENV SKIP_BUILD_UPDATE_CHECK true
-ENV PROCESS_WITH_RUST true
 ENTRYPOINT ["bash", "/whatwg/html-build/build.sh"]

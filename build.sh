@@ -33,7 +33,6 @@ HTML_CACHE=${HTML_CACHE:-$DIR/.cache}
 HTML_TEMP=${HTML_TEMP:-$DIR/.temp}
 HTML_OUTPUT=${HTML_OUTPUT:-$DIR/output}
 HTML_GIT_CLONE_OPTIONS=${HTML_GIT_CLONE_OPTIONS:-"--depth=2"}
-PROCESS_WITH_RUST=${PROCESS_WITH_RUST:-false}
 
 # These are used by child scripts, and so we export them
 export HTML_CACHE
@@ -640,23 +639,13 @@ function processSource {
   BUILD_TYPE="$2"
   cp -p  entities/out/entities.inc "$HTML_CACHE"
   cp -p  entities/out/entities-dtd.url "$HTML_CACHE"
-  if [[ $PROCESS_WITH_RUST == "true" ]]; then
-    if hash html-build 2>/dev/null; then
-      html-build <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
-    else
-      CARGO_ARGS=( --release )
-      $VERBOSE && CARGO_ARGS+=( --verbose )
-      $QUIET && CARGO_ARGS+=( --quiet )
-      cargo run "${CARGO_ARGS[@]}" <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
-    fi
+  if hash html-build 2>/dev/null; then
+    html-build <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
   else
-    if $VERBOSE; then
-      perl .pre-process-main.pl --verbose < "$HTML_SOURCE/$SOURCE_LOCATION" > "$HTML_TEMP/source-expanded-1"
-    else
-      perl .pre-process-main.pl < "$HTML_SOURCE/$SOURCE_LOCATION" > "$HTML_TEMP/source-expanded-1"
-    fi
-    perl .pre-process-annotate-attributes.pl < "$HTML_TEMP/source-expanded-1" > "$HTML_TEMP/source-expanded-2" # this one could be merged
-    perl .pre-process-tag-omission.pl < "$HTML_TEMP/source-expanded-2" | perl .pre-process-index-generator.pl > "$HTML_TEMP/source-whatwg-complete" # this one could be merged
+    CARGO_ARGS=( --release )
+    $VERBOSE && CARGO_ARGS+=( --verbose )
+    $QUIET && CARGO_ARGS+=( --quiet )
+    cargo run "${CARGO_ARGS[@]}" <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
   fi
 
   runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output" "$HIGHLIGHT_SERVER_URL"
