@@ -13,12 +13,11 @@ function main {
   # We want the image to contain:
   # * All of the important stuff from the top-level (html-build) directory
   # * But, the Dockerfile from this (ci-build) directory
-  # And in particular it should *not* contain the top-level Dockerfile, non-.pl dotfiles, .git/, and
+  # And in particular it should *not* contain the top-level Dockerfile, dotfiles, .git/, and
   # any html/ and output/ directories that might be hanging around from local testing.
   cp "$here/Dockerfile" "$TMP_DIR"
   cd "$here/.."
   cp -r !(.*|html|output|Dockerfile) "$TMP_DIR"
-  cp .*.pl "$TMP_DIR"
   cd "$TMP_DIR"
   trap cleanTemp EXIT
 
