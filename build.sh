@@ -19,6 +19,7 @@ DO_LINT=true
 DO_HIGHLIGHT=true
 SINGLE_PAGE_ONLY=false
 USE_DOCKER=false
+USE_SERVER=false
 VERBOSE=false
 QUIET=false
 SERVE=false
@@ -66,16 +67,27 @@ function main {
 
   clearCacheIfNecessary
 
+  HTML_GIT_DIR="$HTML_SOURCE/.git/"
+  HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$HTML_GIT_DIR" rev-parse HEAD)}
+
   if [[ $USE_DOCKER == "true" ]]; then
     doDockerBuild
     exit 0
   fi
 
+  if [[ $USE_SERVER == "true" ]]; then
+    doServerBuild
+
+    if [[ $SERVE == "true" ]]; then
+      cd "$HTML_OUTPUT"
+      python3 -m http.server "$SERVE_PORT"
+    fi
+
+    exit 0
+  fi
+
   checkWattsi
   ensureHighlighterInstalled
-
-  HTML_GIT_DIR="$HTML_SOURCE/.git/"
-  HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$HTML_GIT_DIR" rev-parse HEAD)}
 
   doLint
 
@@ -98,7 +110,7 @@ function main {
   else
     echo ""
     echo "Skipping review draft production as the .git directory is not present"
-    echo "(This always happens if you use the --docker option.)"
+    echo "(This always happens if you use the --docker or --remote options.)"
   fi
 
   $QUIET || echo
@@ -132,6 +144,7 @@ function processCommandLineArgs {
         echo
         echo "Build options:"
         echo "  -d|--docker       Use Docker to build in a container."
+        echo "  -r|--remote       Use the build server."
         echo "  -s|--serve        After building, serve the results on http://localhost:$SERVE_PORT."
         echo "  -n|--no-update    Don't update before building; just build."
         echo "  -l|--no-lint      Don't lint before building; just build."
@@ -163,6 +176,9 @@ function processCommandLineArgs {
       -d|--docker)
         USE_DOCKER=true
         ;;
+      -r|--remote)
+        USE_SERVER=true
+        ;;
       -q|--quiet)
         QUIET=true
         VERBOSE=false
@@ -179,6 +195,11 @@ function processCommandLineArgs {
         ;;
     esac
   done
+
+  if [[ $USE_DOCKER == "true" && $USE_SERVER == "true" ]]; then
+    echo "Error: --docker and --remote are mutually exclusive."
+    exit 1
+  fi
 }
 
 # Checks if the html-build repository is up to date
@@ -472,6 +493,95 @@ function doDockerBuild {
              "${DOCKER_RUN_ARGS[@]}"
 }
 
+# Performs the build using the build server, zipping up the input, sending it to the server, and
+# unzipping the output.
+# Output: the $HTML_OUTPUT directory will contain the built files
+function doServerBuild {
+  clearDir "$HTML_TEMP"
+
+  local input_zip="build-server-input.zip"
+  local build_server_output="build-server-output"
+  local build_server_headers="build-server-headers.txt"
+
+  # Keep include list in sync with `processSource`
+  #
+  # We use an allowlist (--include) instead of a blocklist (--exclude) to avoid accidentally
+  # sending files that the user might not anticipate sending to a remote server, e.g. their
+  # private-notes-on-current-pull-request.txt.
+  #
+  # The contents of fonts/, images/, and dev/ are not round-tripped to the server, but instead
+  # copied below in this function. (We still send the directories to avoid the build script on the
+  # server getting confused about their absence.) demos/ needs to be sent in full for inlining.
+  local zip_args=(
+    --recurse-paths "$HTML_TEMP/$input_zip" . \
+    --include ./source ./404.html ./link-fixup.js ./html-dfn.js ./styles.css \
+              ./fonts/ ./images/ ./dev/ ./demos/\*
+  )
+  $QUIET && zip_args+=( --quiet )
+  (cd "$HTML_SOURCE" && zip "${zip_args[@]}")
+
+  local query_params=()
+  $QUIET && query_params+=( quiet )
+  $VERBOSE && query_params+=( verbose )
+  $DO_UPDATE || query_params+=( no-update )
+  $DO_LINT || query_params+=( no-lint )
+  $DO_HIGHLIGHT || query_params+=( no-highlight )
+  $SINGLE_PAGE_ONLY && query_params+=( single-page )
+
+  $QUIET || echo
+  $QUIET || echo "Sending files to the build server..."
+
+  local query_string
+  query_string="$(joinBy "\&" "${query_params[@]-''}")"
+  local curl_url="https://build.whatwg.org/html-build?${query_string}"
+  local curl_args=( "$curl_url" \
+                    --form "html=@$HTML_TEMP/$input_zip" \
+                    --form "sha=$HTML_SHA" \
+                    --dump-header "$HTML_TEMP/$build_server_headers" \
+                    --output "$HTML_TEMP/$build_server_output" )
+  if [[ "$VERBOSE" == "true" ]]; then
+    curl_args+=( --verbose )
+  elif [[ "$QUIET" == "true" ]]; then
+    curl_args+=( --silent )
+  fi
+  curl "${curl_args[@]}"
+
+  # Read exit code from the Exit-Code header and assume failure if not found
+  local build_server_result=1
+  while IFS=":" read -r NAME VALUE; do
+    shopt -s nocasematch
+    if [[ $NAME == "Exit-Code" ]]; then
+      build_server_result=$(echo "$VALUE" | tr -d ' \r\n')
+      break
+    fi
+    shopt -u nocasematch
+  done < "$HTML_TEMP/$build_server_headers"
+
+  if [[ $build_server_result != "0" ]]; then
+    cat "$HTML_TEMP/$build_server_output"
+    exit "$build_server_result"
+  else
+    local unzip_args=()
+    # Note: Don't use the -v flag; it doesn't work in combination with -d
+    if [[ "$VERBOSE" == "false" ]]; then
+      unzip_args+=( -qq )
+    fi
+    unzip_args+=( "$HTML_TEMP/$build_server_output" -d "$HTML_OUTPUT" )
+    unzip "${unzip_args[@]}"
+    cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
+    cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
+
+    if [[ "$SINGLE_PAGE_ONLY" == "false" ]]; then
+      cp -pR "$HTML_SOURCE/dev" "$HTML_OUTPUT"
+    fi
+
+    $QUIET || echo
+    $QUIET || echo "Build server output:"
+    cat "$HTML_OUTPUT/output.txt"
+    rm "$HTML_OUTPUT/output.txt"
+  fi
+}
+
 # Clears the $HTML_CACHE directory if the build tools have been updated since last run.
 # Arguments: none
 # Output:
@@ -572,6 +682,8 @@ function processSource {
     exit "$WATTSI_RESULT"
   fi
 
+  # Keep the list of files copied from $HTML_SOURCE in sync with `doServerBuild`
+
   if [[ $BUILD_TYPE == "default" ]]; then
     # Singlepage HTML
     mv "$HTML_TEMP/wattsi-output/index-html" "$HTML_OUTPUT/index.html"
@@ -664,16 +776,16 @@ function runWattsi {
     $QUIET || echo
     $QUIET || echo "Local wattsi not present; trying the build server..."
 
-    CURL_URL="https://build.whatwg.org/wattsi"
-    if [[ "$QUIET" == "true" && "$SINGLE_PAGE_ONLY" == "true" ]]; then
-      CURL_URL="$CURL_URL?quiet&single-page-only"
-    elif [[ "$QUIET" == "true" ]]; then
-      CURL_URL="$CURL_URL?quiet"
-    elif [[ "$SINGLE_PAGE_ONLY" == "true" ]]; then
-      CURL_URL="$CURL_URL?single-page-only"
-    fi
 
-    CURL_ARGS=( "$CURL_URL" \
+    local query_params=()
+    $QUIET && query_params+=( quiet )
+    $SINGLE_PAGE_ONLY && query_params+=( single-page-only )
+
+    local query_string
+    query_string="$(joinBy "\&" "${query_params[@]}")"
+    local curl_url="https://build.whatwg.org/wattsi?${query_string}"
+
+    CURL_ARGS=( "$curl_url" \
                 --form "source=@$1" \
                 --form "sha=$HTML_SHA" \
                 --form "build=$BUILD_TYPE" \
@@ -752,6 +864,18 @@ function clearDir {
   # it.
   mkdir -p "$1"
   find "$1" -mindepth 1 -delete
+}
+
+# Joins parameters $2 onward with the separator given in $1
+# Arguments:
+# - $1: the separator string
+# - $2...: the strings to join
+# Output: echoes the joined string
+function joinBy {
+  local d=${1-} f=${2-}
+  if shift 2; then
+    printf %s "$f" "${@/#/$d}"
+  fi
 }
 
 main "$@"
