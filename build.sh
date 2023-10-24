@@ -10,10 +10,11 @@ DIR=$(pwd)
 # The latest required version of Wattsi. Update this if you change how ./build.sh invokes Wattsi;
 # it will cause a warning if Wattsi's self-reported version is lower. Note that there's no need to
 # update this on every revision of Wattsi; only do so when a warning is justified.
-WATTSI_LATEST=140
+declare -r WATTSI_LATEST=140
 
 # Shared state variables throughout this script
 LOCAL_WATTSI=true
+WATTSI_RESULT=0
 DO_UPDATE=true
 DO_LINT=true
 DO_HIGHLIGHT=true
@@ -34,9 +35,8 @@ HTML_TEMP=${HTML_TEMP:-$DIR/.temp}
 HTML_OUTPUT=${HTML_OUTPUT:-$DIR/output}
 HTML_GIT_CLONE_OPTIONS=${HTML_GIT_CLONE_OPTIONS:-"--depth=2"}
 
-# These are used by child scripts, and so we export them
+# This is used by child scripts, and so we export it
 export HTML_CACHE
-export HTML_TEMP
 
 # Used specifically when the Dockerfile calls this script
 SKIP_BUILD_UPDATE_CHECK=${SKIP_BUILD_UPDATE_CHECK:-false}
@@ -44,9 +44,9 @@ SHA_OVERRIDE=${SHA_OVERRIDE:-}
 BUILD_SHA_OVERRIDE=${BUILD_SHA_OVERRIDE:-}
 
 # This needs to be coordinated with the bs-highlighter package
-HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080"
+declare -r HIGHLIGHT_SERVER_URL="http://127.0.0.1:8080"
 
-SERVE_PORT=8080
+declare -r SERVE_PORT=8080
 
 function main {
   processCommandLineArgs "$@"
@@ -66,8 +66,8 @@ function main {
 
   clearCacheIfNecessary
 
-  HTML_GIT_DIR="$HTML_SOURCE/.git/"
-  HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$HTML_GIT_DIR" rev-parse HEAD)}
+  local html_git_dir="$HTML_SOURCE/.git/"
+  HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$html_git_dir" rev-parse HEAD)}
 
   if [[ $USE_DOCKER == "true" ]]; then
     doDockerBuild
@@ -96,15 +96,18 @@ function main {
 
   processSource "source" "default"
 
-  if [[ -e "$HTML_GIT_DIR" ]]; then
+  if [[ -e "$html_git_dir" ]]; then
     # This is based on https://github.com/whatwg/whatwg.org/pull/201 and should be kept synchronized
     # with that.
-    CHANGED_FILES=$(git --git-dir="$HTML_GIT_DIR" show --format="format:" --name-only HEAD)
-    for CHANGED in $CHANGED_FILES; do # Omit quotes around variable to split on whitespace
-      if ! [[ "$CHANGED" =~ ^review-drafts/.*.wattsi$ ]]; then
+    local changed_files
+    changed_files=$(git --git-dir="$html_git_dir" show --format="format:" --name-only HEAD)
+
+    local changed
+    for changed in $changed_files; do # Omit quotes around variable to split on whitespace
+      if ! [[ "$changed" =~ ^review-drafts/.*.wattsi$ ]]; then
         continue
       fi
-      processSource "$CHANGED" "review"
+      processSource "$changed" "review"
     done
   else
     echo ""
@@ -128,6 +131,7 @@ function main {
 # - If the clean or help commands are given, perform them
 # - Otherwise, sets the $DO_UPDATE, $USE_DOCKER, $QUIET, and $VERBOSE variables appropriately
 function processCommandLineArgs {
+  local arg
   for arg in "$@"
   do
     case $arg in
@@ -206,20 +210,25 @@ function processCommandLineArgs {
 # Output: will tell the user and exit the script with code 1 if not up to date
 function checkHTMLBuildIsUpToDate {
   $QUIET || echo "Checking if html-build is up to date..."
-  GIT_FETCH_ARGS=()
-  if ! $VERBOSE ; then
-    GIT_FETCH_ARGS+=( --quiet )
-  fi
+
   # TODO: `git remote get-url origin` is nicer, but new in Git 2.7.
-  ORIGIN_URL=$(git config --get remote.origin.url)
-  GIT_FETCH_ARGS+=( "$ORIGIN_URL" main)
-  git fetch "${GIT_FETCH_ARGS[@]}"
-  NEW_COMMITS=$(git rev-list --count HEAD..FETCH_HEAD)
-  if [[ $NEW_COMMITS != "0" ]]; then
+  local origin_url
+  origin_url=$(git config --get remote.origin.url)
+
+  local git_fetch_args=()
+  if ! $VERBOSE ; then
+    git_fetch_args+=( --quiet )
+  fi
+  git_fetch_args+=( "$origin_url" main)
+  git fetch "${git_fetch_args[@]}"
+
+  local new_commits
+  new_commits=$(git rev-list --count HEAD..FETCH_HEAD)
+  if [[ $new_commits != "0" ]]; then
     $QUIET || echo
-    echo -n "Your local branch is $NEW_COMMITS "
-    [[ $NEW_COMMITS == "1" ]] && echo -n "commit" || echo -n "commits"
-    echo " behind $ORIGIN_URL:"
+    echo -n "Your local branch is $new_commits "
+    [[ $new_commits == "1" ]] && echo -n "commit" || echo -n "commits"
+    echo " behind $origin_url:"
     git log --oneline HEAD..FETCH_HEAD
     echo
     echo "To update, run this command:"
@@ -277,13 +286,15 @@ function doLint {
 function findHTMLSource {
   $QUIET || echo "Looking for the HTML source (set HTML_SOURCE to override)..."
   if [[ $HTML_SOURCE == "" ]]; then
-    PARENT_DIR=$(dirname "$DIR")
-    if [[ -f "$PARENT_DIR/html/source" ]]; then
-      HTML_SOURCE=$PARENT_DIR/html
+    local parent_dir
+    parent_dir=$(dirname "$DIR")
+
+    if [[ -f "$parent_dir/html/source" ]]; then
+      HTML_SOURCE="$parent_dir/html"
       $QUIET || echo "Found $HTML_SOURCE (alongside html-build)..."
     else
       if [[ -f "$DIR/html/source" ]]; then
-        HTML_SOURCE=$DIR/html
+        HTML_SOURCE="$DIR/html"
         $QUIET || echo "Found $HTML_SOURCE (inside html-build)..."
       else
         $QUIET || echo "Didn't find the HTML source on your system..."
@@ -317,6 +328,8 @@ function chooseRepo {
   echo "4) Create a clone from an existing fork, by custom URL."
   echo "5) Quit"
   echo
+
+  local choice
   read -r -e -p "Choose 1-5: " choice
   if [[ $choice == "1" ]]; then
     read -r -e -p "Path to your existing clone: "
@@ -326,21 +339,23 @@ function chooseRepo {
     fi
     confirmRepo
   elif [[ $choice == "2" ]]; then
-    HTML_REPO=https://github.com/whatwg/html.git
+    HTML_REPO="https://github.com/whatwg/html.git"
     confirmRepo
   elif [[ $choice == "3" ]]; then
     echo
-    read -r -e -p "GitHub username of fork owner: "
-    GH_USERNAME=$(echo "$REPLY" | xargs) # trims leading/trailing space
-    if [[ $GH_USERNAME == "" ]]; then
+
+    local gh_username
+    read -r -e -p "GitHub username of fork owner: " gh_username
+    gh_username=$(echo "$gh_username" | xargs) # trims leading/trailing space
+    if [[ $gh_username == "" ]]; then
       chooseRepo
     fi
     echo
-    echo "Does a fork already exist at https://github.com/$GH_USERNAME/html?"
+    echo "Does a fork already exist at https://github.com/$gh_username/html?"
     echo
     read -r -e -p "Y or N? " yn
     if [[ $yn == "y" || $yn == "Y" ]]; then
-      HTML_REPO="https://github.com/$GH_USERNAME/html.git"
+      HTML_REPO="https://github.com/$gh_username/html.git"
       confirmRepo
     else
       echo
@@ -375,8 +390,10 @@ function confirmRepo {
       echo
       echo "OK, build from the $HTML_SOURCE/source file?"
       echo
+
+      local build_yn
       read -r -e -p "Y or N? " yn
-      if [[ $yn == "y" || $yn == "Y" ]]; then
+      if [[ $build_yn == "y" || $build_yn == "Y" ]]; then
         return
       else
         HTML_SOURCE=""
@@ -394,16 +411,16 @@ function confirmRepo {
   echo
   echo "OK, clone from $HTML_REPO?"
   echo
-  read -r -e -p "Y or N? " yn
-  GIT_CLONE_ARGS=( "$HTML_GIT_CLONE_OPTIONS" )
-  if $VERBOSE; then
-    GIT_CLONE_ARGS+=( --verbose )
-  elif $QUIET; then
-    GIT_CLONE_ARGS+=( --quiet )
-  fi
-  GIT_CLONE_ARGS+=( "$HTML_REPO" "$HTML_SOURCE" )
-  if [[ $yn == "y" || $yn == "Y" ]]; then
-    git clone "${GIT_CLONE_ARGS[@]}"
+
+  local clone_yn
+  read -r -e -p "Y or N? " clone_yn
+
+  local git_clone_args=( "$HTML_GIT_CLONE_OPTIONS" )
+  $QUIET && git_clone_args+=( --quiet )
+  $VERBOSE && git_clone_args+=( --verbose )
+  git_clone_args+=( "$HTML_REPO" "$HTML_SOURCE" )
+  if [[ $clone_yn == "y" || $clone_yn == "Y" ]]; then
+    git clone "${git_clone_args[@]}"
   else
     HTML_SOURCE=""
     chooseRepo
@@ -463,25 +480,25 @@ function doDockerBuild {
   # Ensure ghcr.io/whatwg/wattsi:latest is up to date. Without this, the locally cached copy would
   # be used, i.e. once Wattsi was downloaded once, it would never update. Note that this is fast
   # (zero-transfer) if the locally cached copy is already up to date.
-  DOCKER_PULL_ARGS=()
-  $QUIET && DOCKER_PULL_ARGS+=( --quiet )
-  DOCKER_PULL_ARGS+=( ghcr.io/whatwg/wattsi:latest )
-  docker pull "${DOCKER_PULL_ARGS[@]}"
+  local docker_pull_args=()
+  $QUIET && docker_pull_args+=( --quiet )
+  docker_pull_args+=( ghcr.io/whatwg/wattsi:latest )
+  docker pull "${docker_pull_args[@]}"
 
-  DOCKER_BUILD_ARGS=( --tag whatwg-html )
-  $QUIET && DOCKER_BUILD_ARGS+=( --quiet )
-  docker build "${DOCKER_BUILD_ARGS[@]}" .
+  local docker_build_args=( --tag whatwg-html )
+  $QUIET && docker_build_args+=( --quiet )
+  docker build "${docker_build_args[@]}" .
 
-  DOCKER_RUN_ARGS=()
-  $SERVE && DOCKER_RUN_ARGS+=( --publish "$SERVE_PORT:$SERVE_PORT" )
-  DOCKER_RUN_ARGS+=( whatwg-html )
-  $QUIET && DOCKER_RUN_ARGS+=( --quiet )
-  $VERBOSE && DOCKER_RUN_ARGS+=( --verbose )
-  $DO_UPDATE || DOCKER_RUN_ARGS+=( --no-update )
-  $DO_LINT || DOCKER_RUN_ARGS+=( --no-lint )
-  $DO_HIGHLIGHT || DOCKER_RUN_ARGS+=( --no-highlight )
-  $SINGLE_PAGE_ONLY && DOCKER_RUN_ARGS+=( --single-page )
-  $SERVE && DOCKER_RUN_ARGS+=( --serve )
+  local docker_run_args=()
+  $SERVE && docker_run_args+=( --publish "$SERVE_PORT:$SERVE_PORT" )
+  docker_run_args+=( whatwg-html )
+  $QUIET && docker_run_args+=( --quiet )
+  $VERBOSE && docker_run_args+=( --verbose )
+  $DO_UPDATE || docker_run_args+=( --no-update )
+  $DO_LINT || docker_run_args+=( --no-lint )
+  $DO_HIGHLIGHT || docker_run_args+=( --no-highlight )
+  $SINGLE_PAGE_ONLY && docker_run_args+=( --single-page )
+  $SERVE && docker_run_args+=( --serve )
 
   # Pass in the html-build SHA (since there's no .git directory inside the container)
   docker run --rm --interactive --tty \
@@ -489,7 +506,7 @@ function doDockerBuild {
              --mount "type=bind,source=$HTML_SOURCE,destination=/whatwg/html-build/html,readonly=1" \
              --mount "type=bind,source=$HTML_CACHE,destination=/whatwg/html-build/.cache" \
              --mount "type=bind,source=$HTML_OUTPUT,destination=/whatwg/html-build/output" \
-             "${DOCKER_RUN_ARGS[@]}"
+             "${docker_run_args[@]}"
 }
 
 # Performs the build using the build server, zipping up the input, sending it to the server, and
@@ -531,26 +548,24 @@ function doServerBuild {
   $QUIET || echo "Sending files to the build server..."
 
   local query_string
-  query_string="$(joinBy "\&" "${query_params[@]-''}")"
+  query_string=$(joinBy "\&" "${query_params[@]-''}")
   local curl_url="https://build.whatwg.org/html-build?${query_string}"
   local curl_args=( "$curl_url" \
                     --form "html=@$HTML_TEMP/$input_zip" \
                     --form "sha=$HTML_SHA" \
                     --dump-header "$HTML_TEMP/$build_server_headers" \
                     --output "$HTML_TEMP/$build_server_output" )
-  if [[ "$VERBOSE" == "true" ]]; then
-    curl_args+=( --verbose )
-  elif [[ "$QUIET" == "true" ]]; then
-    curl_args+=( --silent )
-  fi
+  $QUIET && curl_args+=( --silent )
+  $VERBOSE && curl_args+=( --verbose )
   curl "${curl_args[@]}"
 
   # Read exit code from the Exit-Code header and assume failure if not found
   local build_server_result=1
-  while IFS=":" read -r NAME VALUE; do
+  local name value
+  while IFS=":" read -r name value; do
     shopt -s nocasematch
-    if [[ $NAME == "Exit-Code" ]]; then
-      build_server_result=$(echo "$VALUE" | tr -d ' \r\n')
+    if [[ $name == "Exit-Code" ]]; then
+      build_server_result=$(echo "$value" | tr -d ' \r\n')
       break
     fi
     shopt -u nocasematch
@@ -587,14 +602,17 @@ function doServerBuild {
 # - $HTML_CACHE will be usable (possibly empty)
 function clearCacheIfNecessary {
   if [[ -d "$HTML_CACHE" ]]; then
-    PREV_BUILD_SHA=$( cat "$HTML_CACHE/last-build-sha.txt" 2>/dev/null || echo )
-    CURRENT_BUILD_SHA=${BUILD_SHA_OVERRIDE:-$(git rev-parse HEAD)}
+    local prev_build_sha
+    prev_build_sha=$( cat "$HTML_CACHE/last-build-sha.txt" 2>/dev/null || echo )
 
-    if [[ $PREV_BUILD_SHA != "$CURRENT_BUILD_SHA" ]]; then
+    local current_build_sha
+    current_build_sha=${BUILD_SHA_OVERRIDE:-$(git rev-parse HEAD)}
+
+    if [[ "$prev_build_sha" != "$current_build_sha" ]]; then
       $QUIET || echo "Build tools have been updated since last run; clearing the cache..."
       DO_UPDATE=true
       clearDir "$HTML_CACHE"
-      echo "$CURRENT_BUILD_SHA" > "$HTML_CACHE/last-build-sha.txt"
+      echo "$current_build_sha" > "$HTML_CACHE/last-build-sha.txt"
     fi
   else
     mkdir -p "$HTML_CACHE"
@@ -607,22 +625,18 @@ function clearCacheIfNecessary {
 # Output:
 # - $HTML_CACHE will contain a usable mdn-spec-links-html.json file
 function updateRemoteDataFiles {
-  CURL_ARGS=( --retry 2 )
-  if ! $VERBOSE; then
-    CURL_ARGS+=( --silent )
-  fi
-
-  CURL_MDN_SPEC_LINKS_ARGS=( "${CURL_ARGS[@]}" \
-    --output "$HTML_CACHE/mdn-spec-links-html.json" -k )
-
-  if [[ $DO_UPDATE == "true" \
-      || ! -f "$HTML_CACHE/mdn-spec-links-html.json" ]]; then
+  if [[ $DO_UPDATE == "true" || ! -f "$HTML_CACHE/mdn-spec-links-html.json" ]]; then
     rm -f "$HTML_CACHE/mdn-spec-links-html.json"
     $QUIET || echo "Downloading mdn-spec-links/html.json..."
-    curl "${CURL_MDN_SPEC_LINKS_ARGS[@]}" \
-      https://raw.githubusercontent.com/w3c/mdn-spec-links/master/html.json
-  fi
 
+    local curl_args=( "https://raw.githubusercontent.com/w3c/mdn-spec-links/master/html.json" \
+                      --output "$HTML_CACHE/mdn-spec-links-html.json" \
+                      --retry 2 )
+    if ! $VERBOSE; then
+      curl_args+=( --silent )
+    fi
+    curl "${curl_args[@]}"
+  fi
 }
 
 # Performs a build of the HTML source file into the resulting output
@@ -632,23 +646,24 @@ function updateRemoteDataFiles {
 # - Output:
 #   - $HTML_OUTPUT will contain the built files
 function processSource {
+  local source_location="$1"
+  local build_type="$2"
+
   clearDir "$HTML_TEMP"
 
   $QUIET || echo "Pre-processing the source..."
-  SOURCE_LOCATION="$1"
-  BUILD_TYPE="$2"
   cp -p  entities/out/entities.inc "$HTML_CACHE"
   cp -p  entities/out/entities-dtd.url "$HTML_CACHE"
   if hash html-build 2>/dev/null; then
-    html-build <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
+    html-build <"$HTML_SOURCE/$source_location" >"$HTML_TEMP/source-whatwg-complete"
   else
-    CARGO_ARGS=( --release )
-    $VERBOSE && CARGO_ARGS+=( --verbose )
-    $QUIET && CARGO_ARGS+=( --quiet )
-    cargo run "${CARGO_ARGS[@]}" <"$HTML_SOURCE/$SOURCE_LOCATION" >"$HTML_TEMP/source-whatwg-complete"
+    local cargo_args=( --release )
+    $VERBOSE && cargo_args+=( --verbose )
+    $QUIET && cargo_args+=( --quiet )
+    cargo run "${cargo_args[@]}" <"$HTML_SOURCE/$source_location" >"$HTML_TEMP/source-whatwg-complete"
   fi
 
-  runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output" "$HIGHLIGHT_SERVER_URL"
+  runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
   if [[ $WATTSI_RESULT == "0" ]]; then
     if [[ $LOCAL_WATTSI != "true" ]]; then
       "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
@@ -661,7 +676,7 @@ function processSource {
       echo
       echo "There were errors. Running again to show the original line numbers."
       echo
-      runWattsi "$HTML_SOURCE/$SOURCE_LOCATION" "$HTML_TEMP/wattsi-raw-source-output" "$HIGHLIGHT_SERVER_URL"
+      runWattsi "$HTML_SOURCE/$source_location" "$HTML_TEMP/wattsi-raw-source-output"
       if [[ $LOCAL_WATTSI != "true" ]]; then
         grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
       fi
@@ -673,15 +688,15 @@ function processSource {
 
   # Keep the list of files copied from $HTML_SOURCE in sync with `doServerBuild`
 
-  if [[ $BUILD_TYPE == "default" ]]; then
+  if [[ $build_type == "default" ]]; then
     # Singlepage HTML
     mv "$HTML_TEMP/wattsi-output/index-html" "$HTML_OUTPUT/index.html"
 
     if [[ $SINGLE_PAGE_ONLY == "false" ]]; then
       # Singlepage Commit Snapshot
-      COMMIT_DIR="$HTML_OUTPUT/commit-snapshots/$HTML_SHA"
-      mkdir -p "$COMMIT_DIR"
-      mv "$HTML_TEMP/wattsi-output/index-snap" "$COMMIT_DIR/index.html"
+      local commit_dir="$HTML_OUTPUT/commit-snapshots/$HTML_SHA"
+      mkdir -p "$commit_dir"
+      mv "$HTML_TEMP/wattsi-output/index-snap" "$commit_dir/index.html"
 
       # Multipage HTML and Dev Edition
       mv "$HTML_TEMP/wattsi-output/multipage-html" "$HTML_OUTPUT/multipage"
@@ -707,10 +722,12 @@ Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
     cp -pR "$HTML_SOURCE/demos" "$HTML_OUTPUT"
   else
     # Singlepage Review Draft
-    YEARMONTH=$(basename "$SOURCE_LOCATION" .wattsi)
-    NEWDIR="$HTML_OUTPUT/review-drafts/$YEARMONTH"
-    mkdir -p "$NEWDIR"
-    mv "$HTML_TEMP/wattsi-output/index-review" "$NEWDIR/index.html"
+    local year_month
+    year_month=$(basename "$source_location" .wattsi)
+
+    local new_dir="$HTML_OUTPUT/review-drafts/$year_month"
+    mkdir -p "$new_dir"
+    mv "$HTML_TEMP/wattsi-output/index-review" "$new_dir/index.html"
   fi
 }
 
@@ -743,24 +760,22 @@ function checkWattsi {
 #   - $HTML_TEMP/wattsi-output directory will contain the output from Wattsi on success
 #   - $HTML_TEMP/wattsi-output.txt will contain the output from Wattsi, on both success and failure
 function runWattsi {
-  clearDir "$2"
+  local source_file="$1"
+  local output_dir="$2"
+
+  clearDir "$output_dir"
 
   if [[ "$LOCAL_WATTSI" == "true" ]]; then
-    WATTSI_ARGS=()
-    if [[ "$QUIET" == "true" ]]; then
-      WATTSI_ARGS+=( --quiet )
-    fi
-    if [[ "$SINGLE_PAGE_ONLY" == "true" ]]; then
-      WATTSI_ARGS+=( --single-page-only )
-    fi
-    WATTSI_ARGS+=( "$1" "$HTML_SHA" "$2" "$BUILD_TYPE" \
-      "$HTML_CACHE/mdn-spec-links-html.json" )
+    local wattsi_args=()
+    $QUIET && wattsi_args+=( --quiet )
+    $SINGLE_PAGE_ONLY && wattsi_args+=( --single-page-only )
+    wattsi_args+=( "$source_file" "$HTML_SHA" "$output_dir" "$build_type" "$HTML_CACHE/mdn-spec-links-html.json" )
     if [[ "$DO_HIGHLIGHT" == "true" ]]; then
-      WATTSI_ARGS+=( "$HIGHLIGHT_SERVER_URL" )
+      wattsi_args+=( "$HIGHLIGHT_SERVER_URL" )
     fi
 
     WATTSI_RESULT="0"
-    wattsi "${WATTSI_ARGS[@]}" || WATTSI_RESULT=$?
+    wattsi "${wattsi_args[@]}" || WATTSI_RESULT=$?
   else
     $QUIET || echo
     $QUIET || echo "Local wattsi not present; trying the build server..."
@@ -771,29 +786,27 @@ function runWattsi {
     $SINGLE_PAGE_ONLY && query_params+=( single-page-only )
 
     local query_string
-    query_string="$(joinBy "\&" "${query_params[@]-''}")"
+    query_string=$(joinBy "\&" "${query_params[@]-''}")
     local curl_url="https://build.whatwg.org/wattsi?${query_string}"
 
-    CURL_ARGS=( "$curl_url" \
-                --form "source=@$1" \
-                --form "sha=$HTML_SHA" \
-                --form "build=$BUILD_TYPE" \
-                --form "mdn=@$HTML_CACHE/mdn-spec-links-html.json" \
-                --dump-header "$HTML_TEMP/wattsi-headers.txt" \
-                --output "$HTML_TEMP/wattsi-output.zip" )
-    if [[ "$VERBOSE" == "true" ]]; then
-      CURL_ARGS+=( --verbose )
-    elif [[ "$QUIET" == "true" ]]; then
-      CURL_ARGS+=( --silent )
-    fi
-    curl "${CURL_ARGS[@]}"
+    local curl_args=( "$curl_url" \
+                      --form "source=@$source_file" \
+                      --form "sha=$HTML_SHA" \
+                      --form "build=$build_type" \
+                      --form "mdn=@$HTML_CACHE/mdn-spec-links-html.json" \
+                      --dump-header "$HTML_TEMP/wattsi-headers.txt" \
+                      --output "$HTML_TEMP/wattsi-output.zip" )
+    $QUIET && curl_args+=( --silent )
+    $VERBOSE && curl_args+=( --verbose )
+    curl "${curl_args[@]}"
 
     # read exit code from the Exit-Code header and assume failure if not found
-    WATTSI_RESULT=1
-    while IFS=":" read -r NAME VALUE; do
+    WATTSI_RESULT="1"
+    local name value
+    while IFS=":" read -r name value; do
       shopt -s nocasematch
-      if [[ $NAME == "Exit-Code" ]]; then
-        WATTSI_RESULT=$(echo "$VALUE" | tr -d ' \r\n')
+      if [[ $name == "Exit-Code" ]]; then
+        WATTSI_RESULT=$(echo "$value" | tr -d ' \r\n')
         break
       fi
       shopt -u nocasematch
@@ -802,14 +815,14 @@ function runWattsi {
     if [[ $WATTSI_RESULT != "0" ]]; then
       mv "$HTML_TEMP/wattsi-output.zip" "$HTML_TEMP/wattsi-output.txt"
     else
-      UNZIP_ARGS=()
+      local unzip_args=()
       # Note: Don't use the -v flag; it doesn't work in combination with -d
       if ! $VERBOSE; then
-        UNZIP_ARGS+=( -qq )
+        unzip_args+=( -qq )
       fi
-      UNZIP_ARGS+=( "$HTML_TEMP/wattsi-output.zip" -d "$2" )
-      unzip "${UNZIP_ARGS[@]}"
-      mv "$2/output.txt" "$HTML_TEMP/wattsi-output.txt"
+      unzip_args+=( "$HTML_TEMP/wattsi-output.zip" -d "$output_dir" )
+      unzip "${unzip_args[@]}"
+      mv "$output_dir/output.txt" "$HTML_TEMP/wattsi-output.txt"
     fi
   fi
 }
@@ -821,9 +834,9 @@ function runWattsi {
 # - $HIGHLIGHT_SERVER_PID will be set for later use by stopHighlightServer
 function startHighlightServer {
   if [[ "$LOCAL_WATTSI" == "true" && "$DO_HIGHLIGHT" == "true" ]]; then
-    HIGHLIGHT_SERVER_ARGS=()
-    $QUIET && HIGHLIGHT_SERVER_ARGS+=( --quiet )
-    bs-highlighter-server ${HIGHLIGHT_SERVER_ARGS[@]+"${HIGHLIGHT_SERVER_ARGS[@]}"} &
+    local highlight_server_args=()
+    $QUIET && highlight_server_args+=( --quiet )
+    bs-highlighter-server ${highlight_server_args[@]+"${highlight_server_args[@]}"} &
     HIGHLIGHT_SERVER_PID=$!
 
     trap stopHighlightServer EXIT
