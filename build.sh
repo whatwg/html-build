@@ -771,7 +771,7 @@ function runWattsi {
     $SINGLE_PAGE_ONLY && query_params+=( single-page-only )
 
     local query_string
-    query_string="$(joinBy "\&" "${query_params[@]}")"
+    query_string="$(joinBy "\&" "${query_params[@]-''}")"
     local curl_url="https://build.whatwg.org/wattsi?${query_string}"
 
     CURL_ARGS=( "$curl_url" \
