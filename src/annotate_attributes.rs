@@ -1,6 +1,6 @@
 //! Augments the content attribute list for each element with a description found in the Attributes table.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io;
 use std::rc::Rc;
 
@@ -116,6 +116,11 @@ impl Processor {
                 _ => continue,
             };
 
+            // If a single row describes the same element multiple times, we don't need to repeat it.
+            // StrTendril doesn't have logical interior mutability, so this Clippy warning is overzealous.
+            #[allow(clippy::mutable_key_type)]
+            let mut seen_this_row: HashSet<StrTendril> = HashSet::new();
+
             // These will be strings like "attr-input-maxlength", which identify particular element-attribute pairs.
             let data_x = QualName::new(None, ns!(), LocalName::from("data-x"));
             for attr_key in keys_td
@@ -124,6 +129,14 @@ impl Processor {
                 .iter()
                 .filter_map(|c| c.get_attribute(&data_x).filter(|v| !v.is_empty()))
             {
+                // If this row describes the the same attribute, with the same
+                // identifier, for multiple elements (like attr-fae-form and
+                // attr-dim-width), these aren't actually distinct descriptions
+                // and we need not join them.
+                if !seen_this_row.insert(attr_key.clone()) {
+                    continue;
+                }
+
                 // Find the <!-- or: --> comment, if one exists, and extract its contents.
                 let description = description_td.children.borrow();
                 let mut variant_comment = None;
@@ -463,6 +476,54 @@ mod tests {
 <table id="attributes-1"><tbody>
     <tr><th><code data-x="">name</code></th><td><code data-x="attr-a-name">a</code></td><td>Anchor name
     </td></tr><tr><th><code data-x="">name</code></th><td><code data-x="attr-a-name">a</code></td><td>Name of the anchor
+</td></tr></tbody></table></body></html>
+            "#.trim()
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_identical_links() -> io::Result<()> {
+        // This checks the same identifier can be linked multiple times without
+        // repeating the description.
+        let document = parse_document_async(
+            r#"
+<h3>The img element</h3>
+<dl class="element">
+    <dt><span data-x="concept-element-attributes">Content attributes</span>
+    <dd><code data-x="attr-dim-width">width</code>
+</dl>
+<h3>The video element</h3>
+<dl class="element">
+    <dt><span data-x="concept-element-attributes">Content attributes</span>
+    <dd><code data-x="attr-dim-width">width</code>
+</dl>
+<h3>Attributes</h3>
+<table id="attributes-1"><tbody>
+    <tr><th><code data-x>width</code><td><code data-x="attr-dim-width">img</code>; <code data-x="attr-dim-width">video</code><td>Horizontal dimension
+</tbody></table>
+            "#.trim().as_bytes()).await?;
+        let mut proc = Processor::new();
+        dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
+        proc.apply().await?;
+        assert_eq!(
+            serialize_for_test(&[document]),
+            r#"
+<html><head></head><body><h3>The img element</h3>
+<dl class="element">
+    <dt><span data-x="concept-element-attributes">Content attributes</span>
+    </dt><dd><code data-x="attr-dim-width">width</code>
+ — Horizontal dimension
+</dd></dl>
+<h3>The video element</h3>
+<dl class="element">
+    <dt><span data-x="concept-element-attributes">Content attributes</span>
+    </dt><dd><code data-x="attr-dim-width">width</code>
+ — Horizontal dimension
+</dd></dl>
+<h3>Attributes</h3>
+<table id="attributes-1"><tbody>
+    <tr><th><code data-x="">width</code></th><td><code data-x="attr-dim-width">img</code>; <code data-x="attr-dim-width">video</code></td><td>Horizontal dimension
 </td></tr></tbody></table></body></html>
             "#.trim()
         );
