@@ -2,15 +2,17 @@
 
 use std::io;
 
-use html5ever::driver::{self, Parser};
+use html5ever::driver::{self, ParseOpts, Parser};
 use html5ever::tendril::{ByteTendril, TendrilSink};
+use html5ever::tokenizer::TokenizerOpts;
+use html5ever::tree_builder::TreeBuilderOpts;
 use markup5ever_rcdom::{Handle, RcDom};
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 async fn parse_internal_async<R: AsyncRead + Unpin>(
     parser: Parser<RcDom>,
     mut r: R,
-) -> io::Result<Handle> {
+) -> io::Result<RcDom> {
     let mut tendril_sink = parser.from_utf8();
 
     // This draws on the structure of the sync tendril read_from.
@@ -35,7 +37,7 @@ async fn parse_internal_async<R: AsyncRead + Unpin>(
         }
     }
     let dom = tendril_sink.finish();
-    Ok(dom.document)
+    Ok(dom)
 }
 
 pub async fn parse_fragment_async<R: AsyncRead + Unpin>(
@@ -44,11 +46,12 @@ pub async fn parse_fragment_async<R: AsyncRead + Unpin>(
 ) -> io::Result<Vec<Handle>> {
     let parser = driver::parse_fragment_for_element(
         RcDom::default(),
-        Default::default(),
+        create_error_opts(),
         context.clone(),
         None,
     );
-    let document = parse_internal_async(parser, r).await?;
+    // TODO handle errors here too I guess
+    let document = parse_internal_async(parser, r).await?.document;
     let mut new_children = document.children.take()[0].children.take();
     for new_child in new_children.iter_mut() {
         new_child.parent.take();
@@ -57,8 +60,34 @@ pub async fn parse_fragment_async<R: AsyncRead + Unpin>(
 }
 
 pub async fn parse_document_async<R: AsyncRead + Unpin>(r: R) -> io::Result<Handle> {
-    let parser = driver::parse_document(RcDom::default(), Default::default());
-    parse_internal_async(parser, r).await
+    let parser = driver::parse_document(RcDom::default(), create_error_opts());
+    let dom = parse_internal_async(parser, r).await?;
+
+    if !dom.errors.is_empty() {
+        for error in dom.errors {
+            eprintln!("{}", error);
+        }
+        return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format!(
+                            "Parse errors encountered"
+                        ),
+                    ))
+    }
+    Ok(dom.document)
+}
+
+fn create_error_opts() -> ParseOpts {
+    ParseOpts {
+        tokenizer: TokenizerOpts {
+            exact_errors: true,
+            ..Default::default()
+        },
+        tree_builder: TreeBuilderOpts {
+            exact_errors: true,
+            ..Default::default()
+        },
+    }
 }
 
 #[cfg(test)]
