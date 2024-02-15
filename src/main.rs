@@ -14,6 +14,7 @@ mod dom_utils;
 mod interface_index;
 mod io_utils;
 mod parser;
+mod rcdom_with_line_numbers;
 mod represents;
 mod tag_omission;
 

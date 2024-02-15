@@ -206,6 +206,7 @@ mod tests {
     async fn test_simple() -> io::Result<()> {
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <h3>Optional tags</h3>
 <p>A <code>td</code> element does very tdish things and may be very cellular.</p>
 <p>An <code>audio</code> element is quite audible.</p>
@@ -258,7 +259,7 @@ mod tests {
         assert_eq!(
             serialize_for_test(&[document]),
             r#"
-<html><head></head><body><h3>Optional tags</h3>
+<!DOCTYPE html><html><head></head><body><h3>Optional tags</h3>
 <p>A <code>td</code> element does very tdish things and may be very cellular.</p>
 <p>An <code>audio</code> element is quite audible.</p>
 <h3>Another section</h3>

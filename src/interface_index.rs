@@ -188,6 +188,7 @@ mod tests {
     async fn test_two_interfaces_in_one_block() -> io::Result<()> {
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <pre><code class=idl>
 interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
 interface <dfn interface>HTMLBlinkElement</dfn> { ... }
@@ -204,7 +205,7 @@ INSERT INTERFACES HERE
         assert_eq!(
             serialize_for_test(&[document]),
             r#"
-<html><head></head><body><pre><code class="idl">
+<!DOCTYPE html><html><head></head><body><pre><code class="idl">
 interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
 interface <dfn interface="">HTMLBlinkElement</dfn> { ... }
 </code></pre>
@@ -217,6 +218,7 @@ interface <dfn interface="">HTMLBlinkElement</dfn> { ... }
     async fn test_two_interfaces_in_separate_blocks() -> io::Result<()> {
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <pre><code class=idl>
 interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
 </code></pre>
@@ -235,7 +237,7 @@ INSERT INTERFACES HERE
         assert_eq!(
             serialize_for_test(&[document]),
             r#"
-<html><head></head><body><pre><code class="idl">
+<!DOCTYPE html><html><head></head><body><pre><code class="idl">
 interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
 </code></pre>
 <pre><code class="idl">
@@ -250,6 +252,7 @@ interface <dfn interface="">HTMLBlinkElement</dfn> { ... }
     async fn interface_with_partial() -> io::Result<()> {
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <pre><code class=idl>
 interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
 </code></pre>
@@ -268,7 +271,7 @@ INSERT INTERFACES HERE
         assert_eq!(
             serialize_for_test(&[document]),
             r##"
-<html><head></head><body><pre><code class="idl">
+<!DOCTYPE html><html><head></head><body><pre><code class="idl">
 interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
 </code></pre>
 <pre><code class="idl">
@@ -283,6 +286,7 @@ partial interface <span id="HTMLMarqueeElement-partial">HTMLMarqueeElement</span
     async fn interface_with_two_partials() -> io::Result<()> {
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <pre><code class=idl>
 interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
 partial interface <span id=HTMLMarqueeElement-partial>HTMLMarqueeElement</span> { ... }
@@ -300,7 +304,7 @@ INSERT INTERFACES HERE
         assert_eq!(
             serialize_for_test(&[document]),
             r##"
-<html><head></head><body><pre><code class="idl">
+<!DOCTYPE html><html><head></head><body><pre><code class="idl">
 interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
 partial interface <span id="HTMLMarqueeElement-partial">HTMLMarqueeElement</span> { ... }
 partial interface <span id="HTMLMarqueeElement-partial-2">HTMLMarqueeElement</span> { ... }
@@ -314,6 +318,7 @@ partial interface <span id="HTMLMarqueeElement-partial-2">HTMLMarqueeElement</sp
     async fn only_partials() -> io::Result<()> {
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <pre><code class=idl>
 partial interface <span id=HTMLMarqueeElement-partial>HTMLMarqueeElement</span> { ... }
 partial interface <span id=HTMLMarqueeElement-partial-2>HTMLMarqueeElement</span> { ... }
@@ -330,7 +335,7 @@ INSERT INTERFACES HERE
         assert_eq!(
             serialize_for_test(&[document]),
             r##"
-<html><head></head><body><pre><code class="idl">
+<!DOCTYPE html><html><head></head><body><pre><code class="idl">
 partial interface <span id="HTMLMarqueeElement-partial">HTMLMarqueeElement</span> { ... }
 partial interface <span id="HTMLMarqueeElement-partial-2">HTMLMarqueeElement</span> { ... }
 </code></pre>
@@ -343,6 +348,7 @@ partial interface <span id="HTMLMarqueeElement-partial-2">HTMLMarqueeElement</sp
     async fn marker_before() -> io::Result<()> {
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 INSERT INTERFACES HERE
 <pre><code class=idl>
 interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
@@ -358,7 +364,7 @@ interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
         assert_eq!(
             serialize_for_test(&[document]),
             r##"
-<html><head></head><body><ul class="brief"><li><code>HTMLMarqueeElement</code></li></ul>
+<!DOCTYPE html><html><head></head><body><ul class="brief"><li><code>HTMLMarqueeElement</code></li></ul>
 <pre><code class="idl">
 interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
 </code></pre></body></html>
@@ -370,7 +376,7 @@ interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
 
     #[tokio::test]
     async fn no_marker() -> io::Result<()> {
-        let document = parse_document_async("".as_bytes()).await?;
+        let document = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         let result = proc.apply();
@@ -381,7 +387,8 @@ interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
     #[tokio::test]
     async fn duplicate_marker() -> io::Result<()> {
         let document = parse_document_async(
-            "<div>INSERT INTERFACES HERE</div><div>INSERT INTERFACES HERE</div>".as_bytes(),
+            "<!DOCTYPE html><div>INSERT INTERFACES HERE</div><div>INSERT INTERFACES HERE</div>"
+                .as_bytes(),
         )
         .await?;
         let mut proc = Processor::new();
@@ -395,6 +402,7 @@ interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
     async fn duplicate_dfn() -> io::Result<()> {
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <pre><code class=idl>
 interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
 interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
