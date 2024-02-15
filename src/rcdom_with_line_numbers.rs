@@ -30,10 +30,10 @@ impl RcDomWithLineNumbers {
                 .map(|e| e.to_string())
                 .collect::<Vec<String>>()
                 .join("\n");
-            return Err(io::Error::new(
+            Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("Parse errors encountered:\n\n{}", error_messages),
-            ));
+            ))
         } else {
             Ok(())
         }

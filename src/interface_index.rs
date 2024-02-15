@@ -363,12 +363,12 @@ interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
         proc.apply()?;
         assert_eq!(
             serialize_for_test(&[document]),
-            r##"
+            r#"
 <!DOCTYPE html><html><head></head><body><ul class="brief"><li><code>HTMLMarqueeElement</code></li></ul>
 <pre><code class="idl">
 interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
 </code></pre></body></html>
-            "##
+            "#
             .trim()
         );
         Ok(())
