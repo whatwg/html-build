@@ -1,5 +1,6 @@
 // This provides a wrapper around RcDom which tracks line numbers in the errors.
 
+use delegate::delegate;
 use html5ever::interface::TreeSink;
 use html5ever::{
     tendril::StrTendril,
@@ -69,111 +70,72 @@ impl TreeSink for RcDomWithLineNumbers {
         self
     }
 
-    // Forward all other methods to RcDom.
+    // Delegate all other methods to RcDom.
+    delegate! {
+        to self.dom {
+            fn get_document(&mut self) -> Self::Handle;
 
-    fn get_document(&mut self) -> Self::Handle {
-        self.dom.get_document()
-    }
+            fn elem_name<'a>(&'a self, target: &'a Self::Handle) -> ExpandedName<'a>;
 
-    fn elem_name<'a>(&'a self, target: &'a Self::Handle) -> ExpandedName<'a> {
-        self.dom.elem_name(target)
-    }
+            fn create_element(
+                &mut self,
+                name: QualName,
+                attrs: Vec<Attribute>,
+                flags: ElementFlags,
+            ) -> Self::Handle;
 
-    fn create_element(
-        &mut self,
-        name: QualName,
-        attrs: Vec<Attribute>,
-        flags: ElementFlags,
-    ) -> Self::Handle {
-        self.dom.create_element(name, attrs, flags)
-    }
+            fn create_comment(&mut self, text: StrTendril) -> Self::Handle;
 
-    fn create_comment(&mut self, text: StrTendril) -> Self::Handle {
-        self.dom.create_comment(text)
-    }
+            fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> Self::Handle;
 
-    fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> Self::Handle {
-        self.dom.create_pi(target, data)
-    }
+            fn append(&mut self, parent: &Self::Handle, child: NodeOrText<Self::Handle>);
 
-    fn append(&mut self, parent: &Self::Handle, child: NodeOrText<Self::Handle>) {
-        self.dom.append(parent, child)
-    }
+            fn append_based_on_parent_node(
+                &mut self,
+                element: &Self::Handle,
+                prev_element: &Self::Handle,
+                child: NodeOrText<Self::Handle>,
+            );
 
-    fn append_based_on_parent_node(
-        &mut self,
-        element: &Self::Handle,
-        prev_element: &Self::Handle,
-        child: NodeOrText<Self::Handle>,
-    ) {
-        self.dom
-            .append_based_on_parent_node(element, prev_element, child)
-    }
+            fn append_doctype_to_document(
+                &mut self,
+                name: StrTendril,
+                public_id: StrTendril,
+                system_id: StrTendril,
+            );
 
-    fn append_doctype_to_document(
-        &mut self,
-        name: StrTendril,
-        public_id: StrTendril,
-        system_id: StrTendril,
-    ) {
-        self.dom
-            .append_doctype_to_document(name, public_id, system_id)
-    }
+            fn mark_script_already_started(&mut self, node: &Self::Handle);
 
-    fn mark_script_already_started(&mut self, node: &Self::Handle) {
-        self.dom.mark_script_already_started(node)
-    }
+            fn pop(&mut self, node: &Self::Handle);
 
-    fn pop(&mut self, node: &Self::Handle) {
-        self.dom.pop(node)
-    }
+            fn get_template_contents(&mut self, target: &Self::Handle) -> Self::Handle;
 
-    fn get_template_contents(&mut self, target: &Self::Handle) -> Self::Handle {
-        self.dom.get_template_contents(target)
-    }
+            fn same_node(&self, x: &Self::Handle, y: &Self::Handle) -> bool;
 
-    fn same_node(&self, x: &Self::Handle, y: &Self::Handle) -> bool {
-        self.dom.same_node(x, y)
-    }
+            fn set_quirks_mode(&mut self, mode: QuirksMode);
 
-    fn set_quirks_mode(&mut self, mode: QuirksMode) {
-        self.dom.set_quirks_mode(mode)
-    }
+            fn append_before_sibling(
+                &mut self,
+                sibling: &Self::Handle,
+                new_node: NodeOrText<Self::Handle>,
+            );
 
-    fn append_before_sibling(
-        &mut self,
-        sibling: &Self::Handle,
-        new_node: NodeOrText<Self::Handle>,
-    ) {
-        self.dom.append_before_sibling(sibling, new_node)
-    }
+            fn add_attrs_if_missing(&mut self, target: &Self::Handle, attrs: Vec<Attribute>);
 
-    fn add_attrs_if_missing(&mut self, target: &Self::Handle, attrs: Vec<Attribute>) {
-        self.dom.add_attrs_if_missing(target, attrs)
-    }
+            fn associate_with_form(
+                &mut self,
+                target: &Self::Handle,
+                form: &Self::Handle,
+                nodes: (&Self::Handle, Option<&Self::Handle>),
+            );
 
-    fn associate_with_form(
-        &mut self,
-        target: &Self::Handle,
-        form: &Self::Handle,
-        nodes: (&Self::Handle, Option<&Self::Handle>),
-    ) {
-        self.dom.associate_with_form(target, form, nodes)
-    }
+            fn remove_from_parent(&mut self, target: &Self::Handle);
 
-    fn remove_from_parent(&mut self, target: &Self::Handle) {
-        self.dom.remove_from_parent(target)
-    }
+            fn reparent_children(&mut self, node: &Self::Handle, new_parent: &Self::Handle);
 
-    fn reparent_children(&mut self, node: &Self::Handle, new_parent: &Self::Handle) {
-        self.dom.reparent_children(node, new_parent)
-    }
+            fn is_mathml_annotation_xml_integration_point(&self, handle: &Self::Handle) -> bool;
 
-    fn is_mathml_annotation_xml_integration_point(&self, handle: &Self::Handle) -> bool {
-        self.dom.is_mathml_annotation_xml_integration_point(handle)
-    }
-
-    fn complete_script(&mut self, node: &Self::Handle) -> NextParserState {
-        self.dom.complete_script(node)
+            fn complete_script(&mut self, node: &Self::Handle) -> NextParserState;
+        }
     }
 }
