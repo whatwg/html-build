@@ -14,11 +14,21 @@ mod dom_utils;
 mod interface_index;
 mod io_utils;
 mod parser;
+mod rcdom_with_line_numbers;
 mod represents;
 mod tag_omission;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
+    // This gives slightly prettier error-printing.
+    if let Err(e) = run().await {
+        eprintln!("{}", e);
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+async fn run() -> io::Result<()> {
     // Since we're using Rc in the DOM implementation, we must ensure that tasks
     // which act on it are confined to this thread.
 

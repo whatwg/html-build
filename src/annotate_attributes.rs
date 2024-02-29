@@ -313,6 +313,7 @@ mod tests {
         // reordered in the HTML spec).
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <h3>The a element</h3>
 <dl class="element">
     <dt>Categories
@@ -338,7 +339,7 @@ mod tests {
         assert_eq!(
             serialize_for_test(&[document]),
             r#"
-<html><head></head><body><h3>The a element</h3>
+<!DOCTYPE html><html><head></head><body><h3>The a element</h3>
 <dl class="element">
     <dt>Categories
     </dt><dd>Flow content
@@ -369,6 +370,7 @@ mod tests {
         // i.e., the variant description is used where requested
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <h3>The a element</h3>
 <dl class="element">
     <dt><span data-x="concept-element-attributes">Content attributes</span>
@@ -390,7 +392,7 @@ mod tests {
         assert_eq!(
             serialize_for_test(&[document]),
             r#"
-<html><head></head><body><h3>The a element</h3>
+<!DOCTYPE html><html><head></head><body><h3>The a element</h3>
 <dl class="element">
     <dt><span data-x="concept-element-attributes">Content attributes</span>
     </dt><dd><code data-x="attr-a-href">href</code>
@@ -415,6 +417,7 @@ mod tests {
         // Checks that the special rules for using : instead of an em dash work.
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <h3>The a element</h3>
 <dl class="element">
     <dt><span data-x="concept-element-attributes">Content attributes</span>
@@ -431,7 +434,7 @@ mod tests {
         assert_eq!(
             serialize_for_test(&[document]),
             r#"
-<html><head></head><body><h3>The a element</h3>
+<!DOCTYPE html><html><head></head><body><h3>The a element</h3>
 <dl class="element">
     <dt><span data-x="concept-element-attributes">Content attributes</span>
     </dt><dd>Also, the <code data-x="attr-a-name">name</code> attribute <span data-x="attr-a-name">has special semantics</span> on this element: Anchor name
@@ -450,6 +453,7 @@ mod tests {
         // Checks that the special rules for joining any special semantics with a ; work.
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <h3>The a element</h3>
 <dl class="element">
     <dt><span data-x="concept-element-attributes">Content attributes</span>
@@ -467,7 +471,7 @@ mod tests {
         assert_eq!(
             serialize_for_test(&[document]),
             r#"
-<html><head></head><body><h3>The a element</h3>
+<!DOCTYPE html><html><head></head><body><h3>The a element</h3>
 <dl class="element">
     <dt><span data-x="concept-element-attributes">Content attributes</span>
     </dt><dd>Also, the <code data-x="attr-a-name">name</code> attribute <span data-x="attr-a-name">has special semantics</span> on this element: Anchor name; Name of the anchor
@@ -488,6 +492,7 @@ mod tests {
         // repeating the description.
         let document = parse_document_async(
             r#"
+<!DOCTYPE html>
 <h3>The img element</h3>
 <dl class="element">
     <dt><span data-x="concept-element-attributes">Content attributes</span>
@@ -509,7 +514,7 @@ mod tests {
         assert_eq!(
             serialize_for_test(&[document]),
             r#"
-<html><head></head><body><h3>The img element</h3>
+<!DOCTYPE html><html><head></head><body><h3>The img element</h3>
 <dl class="element">
     <dt><span data-x="concept-element-attributes">Content attributes</span>
     </dt><dd><code data-x="attr-dim-width">width</code>

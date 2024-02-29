@@ -170,14 +170,16 @@ mod tests {
             "<tr><td>en<td>English",
         )
         .await?;
-        let document =
-            parse_document_async("<table><!--BOILERPLATE languages-->".as_bytes()).await?;
+        let document = parse_document_async(
+            "<!DOCTYPE html><table><!--BOILERPLATE languages--></table>".as_bytes(),
+        )
+        .await?;
         let mut proc = Processor::new(boilerplate_dir.path(), Path::new("."));
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;
         assert_eq!(
             serialize_for_test(&[document]),
-            "<html><head></head><body><table><tbody><tr><td>en</td><td>English</td></tr></tbody></table></body></html>");
+            "<!DOCTYPE html><html><head></head><body><table><tbody><tr><td>en</td><td>English</td></tr></tbody></table></body></html>");
         Ok(())
     }
 
@@ -189,15 +191,16 @@ mod tests {
             "data:text/html,Hello, world!",
         )
         .await?;
-        let document =
-            parse_document_async("<a href=\"<!--BOILERPLATE data.url-->\">hello</a>".as_bytes())
-                .await?;
+        let document = parse_document_async(
+            "<!DOCTYPE html><a href=\"<!--BOILERPLATE data.url-->\">hello</a>".as_bytes(),
+        )
+        .await?;
         let mut proc = Processor::new(boilerplate_dir.path(), Path::new("."));
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;
         assert_eq!(
             serialize_for_test(&[document]),
-            "<html><head></head><body><a href=\"data:text/html,Hello, world!\">hello</a></body></html>");
+            "<!DOCTYPE html><html><head></head><body><a href=\"data:text/html,Hello, world!\">hello</a></body></html>");
         Ok(())
     }
 
@@ -208,23 +211,23 @@ mod tests {
         tokio::fs::write(example_dir.path().join("ex2"), "second").await?;
         tokio::fs::write(example_dir.path().join("ignored"), "bad").await?;
         let document =
-            parse_document_async("<pre>EXAMPLE ex1</pre><pre><code class=html>\nEXAMPLE ex2  </code></pre><p>EXAMPLE ignored</p>".as_bytes())
+            parse_document_async("<!DOCTYPE html><pre>EXAMPLE ex1</pre><pre><code class=html>\nEXAMPLE ex2  </code></pre><p>EXAMPLE ignored</p>".as_bytes())
                 .await?;
         let mut proc = Processor::new(Path::new("."), example_dir.path());
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;
         assert_eq!(
             serialize_for_test(&[document]),
-            "<html><head></head><body><pre>first</pre><pre><code class=\"html\">second</code></pre><p>EXAMPLE ignored</p></body></html>" );
+            "<!DOCTYPE html><html><head></head><body><pre>first</pre><pre><code class=\"html\">second</code></pre><p>EXAMPLE ignored</p></body></html>" );
         Ok(())
     }
 
     #[tokio::test]
     async fn test_errors_unsafe_paths() -> io::Result<()> {
         let bad_path_examples = [
-            "<body><!--BOILERPLATE /etc/passwd-->",
-            "<body><pre data-x=\"<!--BOILERPLATE src/../../foo-->\"></pre>",
-            "<body><pre>EXAMPLE ../foo</pre>",
+            "<!DOCTYPE html><body><!--BOILERPLATE /etc/passwd-->",
+            "<!DOCTYPE html><body><pre data-x=\"<!--BOILERPLATE src/../../foo-->\"></pre>",
+            "<!DOCTYPE html><body><pre>EXAMPLE ../foo</pre>",
         ];
         for example in bad_path_examples {
             let document = parse_document_async(example.as_bytes()).await?;
