@@ -130,22 +130,58 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_document_parse_errors() -> io::Result<()> {
+    async fn test_document_error_line_number() -> io::Result<()> {
         let result =
-            parse_document_async("<!DOCTYPE html>Hello <strong><em>world</strong></em>".as_bytes())
+            parse_document_async("<!DOCTYPE html>Hello\n<strong><em>world</strong></em>".as_bytes())
                 .await;
-        assert!(matches!(result, Err(e) if e.kind() == io::ErrorKind::InvalidData));
+
+        let error = result.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("Line 2: "));
+
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_fragment_parse_errors() -> io::Result<()> {
+    async fn test_document_error_exact() -> io::Result<()> {
+        let result =
+            parse_document_async("<!DOCTYPE html>&asdf;".as_bytes())
+                .await;
+
+        let error = result.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("&asdf;"));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_fragment_error_line_number() -> io::Result<()> {
         let document = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
         let body = document.children.borrow()[1].children.borrow()[1].clone();
         assert!(body.is_html_element(&local_name!("body")));
         let result =
-            parse_fragment_async("Hello <strong><em>world</strong></em>".as_bytes(), &body).await;
-        assert!(matches!(result, Err(e) if e.kind() == io::ErrorKind::InvalidData));
+            parse_fragment_async("Hello \n\n<strong><em>world</strong></em>".as_bytes(), &body).await;
+
+        let error = result.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("Line 3: "));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_fragment_error_exact() -> io::Result<()> {
+        let document = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
+        let body = document.children.borrow()[1].children.borrow()[1].clone();
+        assert!(body.is_html_element(&local_name!("body")));
+        let result =
+            parse_fragment_async("&asdf;".as_bytes(), &body).await;
+
+        let error = result.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("&asdf;"));
+
         Ok(())
     }
 }
