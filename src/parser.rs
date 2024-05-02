@@ -2,15 +2,19 @@
 
 use std::io;
 
-use html5ever::driver::{self, Parser};
+use html5ever::driver::{self, ParseOpts, Parser};
 use html5ever::tendril::{ByteTendril, TendrilSink};
-use markup5ever_rcdom::{Handle, RcDom};
+use html5ever::tokenizer::TokenizerOpts;
+use html5ever::tree_builder::TreeBuilderOpts;
+use markup5ever_rcdom::Handle;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
+use crate::rcdom_with_line_numbers::RcDomWithLineNumbers;
+
 async fn parse_internal_async<R: AsyncRead + Unpin>(
-    parser: Parser<RcDom>,
+    parser: Parser<RcDomWithLineNumbers>,
     mut r: R,
-) -> io::Result<Handle> {
+) -> io::Result<RcDomWithLineNumbers> {
     let mut tendril_sink = parser.from_utf8();
 
     // This draws on the structure of the sync tendril read_from.
@@ -35,7 +39,7 @@ async fn parse_internal_async<R: AsyncRead + Unpin>(
         }
     }
     let dom = tendril_sink.finish();
-    Ok(dom.document)
+    Ok(dom)
 }
 
 pub async fn parse_fragment_async<R: AsyncRead + Unpin>(
@@ -43,12 +47,16 @@ pub async fn parse_fragment_async<R: AsyncRead + Unpin>(
     context: &Handle,
 ) -> io::Result<Vec<Handle>> {
     let parser = driver::parse_fragment_for_element(
-        RcDom::default(),
-        Default::default(),
+        RcDomWithLineNumbers::default(),
+        create_error_opts(),
         context.clone(),
         None,
     );
-    let document = parse_internal_async(parser, r).await?;
+
+    let dom = parse_internal_async(parser, r).await?;
+    dom.create_error_from_parse_errors()?;
+
+    let document = dom.document();
     let mut new_children = document.children.take()[0].children.take();
     for new_child in new_children.iter_mut() {
         new_child.parent.take();
@@ -57,8 +65,24 @@ pub async fn parse_fragment_async<R: AsyncRead + Unpin>(
 }
 
 pub async fn parse_document_async<R: AsyncRead + Unpin>(r: R) -> io::Result<Handle> {
-    let parser = driver::parse_document(RcDom::default(), Default::default());
-    parse_internal_async(parser, r).await
+    let parser = driver::parse_document(RcDomWithLineNumbers::default(), create_error_opts());
+    let dom = parse_internal_async(parser, r).await?;
+    dom.create_error_from_parse_errors()?;
+
+    Ok(dom.document().clone())
+}
+
+fn create_error_opts() -> ParseOpts {
+    ParseOpts {
+        tokenizer: TokenizerOpts {
+            exact_errors: true,
+            ..Default::default()
+        },
+        tree_builder: TreeBuilderOpts {
+            exact_errors: true,
+            ..Default::default()
+        },
+    }
 }
 
 #[cfg(test)]
@@ -95,13 +119,69 @@ pub(crate) mod tests {
         // we're in. This is important because of the special rules
         // surrounding, e.g., tables. If you change this to use the body as context,
         // no element at all is emitted.
-        let document = parse_document_async("<!DOCTYPE html><table>".as_bytes()).await?;
+        let document = parse_document_async("<!DOCTYPE html><table></table>".as_bytes()).await?;
         let body = document.children.borrow()[1].children.borrow()[1].clone();
         assert!(body.is_html_element(&local_name!("body")));
         let table = body.children.borrow()[0].clone();
         assert!(table.is_html_element(&local_name!("table")));
         let children = parse_fragment_async("<tbody>".as_bytes(), &table).await?;
         assert_eq!(serialize_for_test(&children), "<tbody></tbody>");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_document_error_line_number() -> io::Result<()> {
+        let result =
+            parse_document_async("<!DOCTYPE html>Hello\n<strong><em>world</strong></em>".as_bytes())
+                .await;
+
+        let error = result.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("Line 2: "));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_document_error_exact() -> io::Result<()> {
+        let result =
+            parse_document_async("<!DOCTYPE html>&asdf;".as_bytes())
+                .await;
+
+        let error = result.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("&asdf;"));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_fragment_error_line_number() -> io::Result<()> {
+        let document = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
+        let body = document.children.borrow()[1].children.borrow()[1].clone();
+        assert!(body.is_html_element(&local_name!("body")));
+        let result =
+            parse_fragment_async("Hello \n\n<strong><em>world</strong></em>".as_bytes(), &body).await;
+
+        let error = result.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("Line 3: "));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_fragment_error_exact() -> io::Result<()> {
+        let document = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
+        let body = document.children.borrow()[1].children.borrow()[1].clone();
+        assert!(body.is_html_element(&local_name!("body")));
+        let result =
+            parse_fragment_async("&asdf;".as_bytes(), &body).await;
+
+        let error = result.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("&asdf;"));
+
         Ok(())
     }
 }

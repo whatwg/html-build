@@ -128,13 +128,13 @@ mod tests {
     #[tokio::test]
     async fn test_represents() -> io::Result<()> {
         // Uses can occur either before or after.
-        let document = parse_document_async("<p><!--REPRESENTS chair--><p>The <code>chair</code> element <span>represents</span> a seat\nat a <code>table</code>.<p><!--REPRESENTS chair-->".as_bytes()).await?;
+        let document = parse_document_async("<!DOCTYPE html><p><!--REPRESENTS chair--><p>The <code>chair</code> element <span>represents</span> a seat\nat a <code>table</code>.<p><!--REPRESENTS chair-->".as_bytes()).await?;
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply()?;
         assert_eq!(
             serialize_for_test(&[document]),
-            "<html><head></head><body><p>A seat\nat a <code>table</code>.</p><p>The <code>chair</code> element <span>represents</span> a seat\nat a <code>table</code>.</p><p>A seat\nat a <code>table</code>.</p></body></html>"
+            "<!DOCTYPE html><html><head></head><body><p>A seat\nat a <code>table</code>.</p><p>The <code>chair</code> element <span>represents</span> a seat\nat a <code>table</code>.</p><p>A seat\nat a <code>table</code>.</p></body></html>"
         );
         Ok(())
     }
@@ -142,7 +142,7 @@ mod tests {
     #[tokio::test]
     async fn test_represents_undefined() -> io::Result<()> {
         // Uses can occur either before or after.
-        let document = parse_document_async("<p><!--REPRESENTS chain--><p>The <code>chair</code> element <span>represents</span> a seat\nat a <code>table</code>.<p><!--REPRESENTS chair-->".as_bytes()).await?;
+        let document = parse_document_async("<!DOCTYPE html><p><!--REPRESENTS chain--><p>The <code>chair</code> element <span>represents</span> a seat\nat a <code>table</code>.<p><!--REPRESENTS chair-->".as_bytes()).await?;
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         let result = proc.apply();
