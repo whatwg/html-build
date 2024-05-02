@@ -229,7 +229,7 @@ function checkHTMLBuildIsUpToDate {
     echo -n "Your local branch is $new_commits "
     [[ $new_commits == "1" ]] && echo -n "commit" || echo -n "commits"
     echo " behind $origin_url:"
-    git log --no-pager --oneline HEAD..FETCH_HEAD
+    git --no-pager log --oneline HEAD..FETCH_HEAD
     echo
     echo "To update, run this command:"
     echo
