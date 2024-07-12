@@ -20,11 +20,6 @@ pub trait NodeHandleExt {
         self.get_attribute(name).is_some()
     }
 
-    /// Returns true if the attribute exists and the predicate matches it.
-    fn attribute_matches(&self, name: &QualName, f: impl Fn(&str) -> bool) -> bool {
-        self.get_attribute(name).map_or(false, |v| f(&v))
-    }
-
     /// Returns true if the attribute exists and has the value mentioned.
     fn attribute_is(&self, name: &QualName, expected: &str) -> bool {
         self.get_attribute(name).as_deref() == Some(expected)
@@ -64,24 +59,8 @@ pub trait NodeHandleExt {
     /// Appends children (without checking node type).
     fn append_children(&self, children: impl Iterator<Item = Self>);
 
-    /// Same, but just one.
-    fn append_child(&self, child: Self)
-    where
-        Self: Sized,
-    {
-        self.append_children(std::iter::once(child))
-    }
-
     /// Inserts children before the specified child.
     fn insert_children_before(&self, existing: &Self, new: impl Iterator<Item = Self>);
-
-    /// Same, but just one.
-    fn insert_child(&self, existing: &Self, new: Self)
-    where
-        Self: Sized,
-    {
-        self.insert_children_before(existing, std::iter::once(new))
-    }
 
     /// Removes the node from its parent and replaces it with the nodes provided.
     /// Does nothing if the node has no parent.
