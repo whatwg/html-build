@@ -18,6 +18,14 @@ mod rcdom_with_line_numbers;
 mod represents;
 mod tag_omission;
 
+const BIKEPLATE: &str = "<pre class=metadata>
+Group: WHATWG
+H1: HTML
+Shortname: html
+Abstract: HTML is Bikeshed.
+Indent: 1
+</pre>";
+
 #[tokio::main]
 async fn main() -> io::Result<()> {
     // This gives slightly prettier error-printing.
@@ -35,6 +43,12 @@ async fn run() -> io::Result<()> {
     // Find the paths we need.
     let cache_dir = path_from_env("HTML_CACHE", ".cache");
     let source_dir = path_from_env("HTML_SOURCE", "../html");
+    let use_bikeshed_str = env::var_os("USE_BIKESHED");
+    let use_bikeshed = use_bikeshed_str.is_some_and(|s| s.eq_ignore_ascii_case("TRUE"));
+    if use_bikeshed {
+        eprintln!("BIKESHED MODE");
+        println!("{}", BIKEPLATE);
+    }
 
     // Because parsing can jump around the tree a little, it's most reasonable
     // to just parse the whole document before doing any processing. Even for

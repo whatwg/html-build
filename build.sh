@@ -15,6 +15,7 @@ declare -r WATTSI_LATEST=140
 # Shared state variables throughout this script
 LOCAL_WATTSI=true
 WATTSI_RESULT=0
+USE_BIKESHED=false
 DO_UPDATE=true
 DO_LINT=true
 DO_HIGHLIGHT=true
@@ -37,6 +38,7 @@ HTML_GIT_CLONE_OPTIONS=${HTML_GIT_CLONE_OPTIONS:-"--depth=2"}
 
 # This is used by child scripts, and so we export it
 export HTML_CACHE
+export USE_BIKESHED
 
 # Used specifically when the Dockerfile calls this script
 SKIP_BUILD_UPDATE_CHECK=${SKIP_BUILD_UPDATE_CHECK:-false}
@@ -85,14 +87,16 @@ function main {
     exit 0
   fi
 
-  checkWattsi
-  ensureHighlighterInstalled
+  if [[ $USE_BIKESHED != "true" ]]; then
+    checkWattsi
+    ensureHighlighterInstalled
 
-  doLint
+    doLint
 
-  updateRemoteDataFiles
+    updateRemoteDataFiles
 
-  startHighlightServer
+    startHighlightServer
+  fi
 
   processSource "source" "default"
 
@@ -146,6 +150,7 @@ function processCommandLineArgs {
         echo "  $0 help   Show this usage statement."
         echo
         echo "Build options:"
+        echo "  -b|--bikeshed     Use Bikeshed instead of Wattsi. (experimental)"
         echo "  -d|--docker       Use Docker to build in a container."
         echo "  -r|--remote       Use the build server."
         echo "  -s|--serve        After building, serve the results on http://localhost:$SERVE_PORT."
@@ -175,6 +180,9 @@ function processCommandLineArgs {
         DO_LINT=false
         DO_HIGHLIGHT=false
         SINGLE_PAGE_ONLY=true
+        ;;
+      -b|--bikeshed)
+        USE_BIKESHED=true
         ;;
       -d|--docker)
         USE_DOCKER=true
@@ -663,27 +671,33 @@ function processSource {
     cargo run "${cargo_args[@]}" <"$HTML_SOURCE/$source_location" >"$HTML_TEMP/source-whatwg-complete"
   fi
 
-  runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
-  if [[ $WATTSI_RESULT == "0" ]]; then
-    if [[ $LOCAL_WATTSI != "true" ]]; then
-      "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
-    fi
+  if [[ $USE_BIKESHED == "true" ]]; then
+    echo "BIKESHED!!!"
+    bikeshed spec --byos "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/bikeshed-output" --md-Text-Macro="SHA $HTML_SHA"
+    exit 0
   else
-    if [[ $LOCAL_WATTSI != "true" ]]; then
-      "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
-    fi
-    if [[ $WATTSI_RESULT == "65" ]]; then
-      echo
-      echo "There were errors. Running again to show the original line numbers."
-      echo
-      runWattsi "$HTML_SOURCE/$source_location" "$HTML_TEMP/wattsi-raw-source-output"
+    runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
+    if [[ $WATTSI_RESULT == "0" ]]; then
       if [[ $LOCAL_WATTSI != "true" ]]; then
-        grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+        "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
       fi
+    else
+      if [[ $LOCAL_WATTSI != "true" ]]; then
+        "$QUIET" || grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+      fi
+      if [[ $WATTSI_RESULT == "65" ]]; then
+        echo
+        echo "There were errors. Running again to show the original line numbers."
+        echo
+        runWattsi "$HTML_SOURCE/$source_location" "$HTML_TEMP/wattsi-raw-source-output"
+        if [[ $LOCAL_WATTSI != "true" ]]; then
+          grep -v '^$' "$HTML_TEMP/wattsi-output.txt" # trim blank lines
+        fi
+      fi
+      echo
+      echo "There were errors. Stopping."
+      exit "$WATTSI_RESULT"
     fi
-    echo
-    echo "There were errors. Stopping."
-    exit "$WATTSI_RESULT"
   fi
 
   # Keep the list of files copied from $HTML_SOURCE in sync with `doServerBuild`
