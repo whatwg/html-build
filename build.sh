@@ -183,6 +183,7 @@ function processCommandLineArgs {
         ;;
       -b|--bikeshed)
         USE_BIKESHED=true
+        SINGLE_PAGE_ONLY=true
         ;;
       -d|--docker)
         USE_DOCKER=true
@@ -672,9 +673,14 @@ function processSource {
   fi
 
   if [[ $USE_BIKESHED == "true" ]]; then
-    echo "BIKESHED!!!"
-    bikeshed spec --byos "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/bikeshed-output" --md-Text-Macro="SHA $HTML_SHA"
-    exit 0
+    clearDir "$HTML_TEMP/bikeshed-output"
+
+    # TODO: port to html-build Rust code
+    node wattsi2bikeshed.js "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/source-whatwg-complete.bs"
+
+    local bikeshed_args=( --force )
+    $DO_UPDATE || bikeshed_args+=( --no-update )
+    bikeshed "${bikeshed_args[@]}" spec "$HTML_TEMP/source-whatwg-complete.bs" "$HTML_TEMP/bikeshed-output/index.html" --md-Text-Macro="SHA $HTML_SHA" --md-Text-Macro="COMMIT-SHA $HTML_SHA"
   else
     runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
     if [[ $WATTSI_RESULT == "0" ]]; then
@@ -704,7 +710,11 @@ function processSource {
 
   if [[ $build_type == "default" ]]; then
     # Singlepage HTML
-    mv "$HTML_TEMP/wattsi-output/index-html" "$HTML_OUTPUT/index.html"
+    if [[ $USE_BIKESHED == "true" ]]; then
+      mv "$HTML_TEMP/bikeshed-output/index.html" "$HTML_OUTPUT/index.html"
+    else
+      mv "$HTML_TEMP/wattsi-output/index-html" "$HTML_OUTPUT/index.html"
+    fi
 
     if [[ $SINGLE_PAGE_ONLY == "false" ]]; then
       # Singlepage Commit Snapshot
@@ -720,7 +730,9 @@ function processSource {
     fi
 
     cp -p  entities/out/entities.json "$HTML_OUTPUT"
-    cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
+    if [[ $USE_BIKESHED == "false" ]]; then
+      cp -p "$HTML_TEMP/wattsi-output/xrefs.json" "$HTML_OUTPUT"
+    fi
 
     clearDir "$HTML_TEMP"
 

@@ -17,14 +17,7 @@ mod parser;
 mod rcdom_with_line_numbers;
 mod represents;
 mod tag_omission;
-
-const BIKEPLATE: &str = "<pre class=metadata>
-Group: WHATWG
-H1: HTML
-Shortname: html
-Abstract: HTML is Bikeshed.
-Indent: 1
-</pre>";
+mod bikeshed;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -45,10 +38,6 @@ async fn run() -> io::Result<()> {
     let source_dir = path_from_env("HTML_SOURCE", "../html");
     let use_bikeshed_str = env::var_os("USE_BIKESHED");
     let use_bikeshed = use_bikeshed_str.is_some_and(|s| s.eq_ignore_ascii_case("TRUE"));
-    if use_bikeshed {
-        eprintln!("BIKESHED MODE");
-        println!("{}", BIKEPLATE);
-    }
 
     // Because parsing can jump around the tree a little, it's most reasonable
     // to just parse the whole document before doing any processing. Even for
@@ -60,6 +49,7 @@ async fn run() -> io::Result<()> {
     let mut annotate_attributes = annotate_attributes::Processor::new();
     let mut tag_omission = tag_omission::Processor::new();
     let mut interface_index = interface_index::Processor::new();
+    let mut bikeshed = bikeshed::Processor::new();
 
     // We do exactly one pass to identify the changes that need to be made.
     dom_utils::scan_dom(&document, &mut |h| {
@@ -68,6 +58,9 @@ async fn run() -> io::Result<()> {
         annotate_attributes.visit(h);
         tag_omission.visit(h);
         interface_index.visit(h);
+        if use_bikeshed {
+            bikeshed.visit(h);
+        }
     });
 
     // And then we apply all of the changes. These different processors mostly

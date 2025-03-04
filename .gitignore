@@ -4,6 +4,7 @@ html/
 output/
 mdn/.id-list
 mdn/developer.mozilla.org/
+node_modules/
 highlighter/
 
 
