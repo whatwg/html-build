@@ -25,6 +25,13 @@ function removeDataX(elem) {
     }
 }
 
+function replaceWithChildren(elem) {
+    while (elem.firstChild) {
+        elem.parentNode.insertBefore(elem.firstChild, elem);
+    }
+    elem.remove();
+}
+
 function isElement(node) {
     return node?.nodeType === 1;
 }
@@ -151,11 +158,7 @@ function convert(infile, outfile) {
             if (span.hasAttributes()) {
                 console.warn('Discarding <span> attributes:', span.outerHTML);
             }
-            // Move children to replace span.
-            while (span.firstChild) {
-                span.parentNode.insertBefore(span.firstChild, span);
-            }
-            span.remove();
+            replaceWithChildren(span);
             continue;
         }
 
@@ -177,7 +180,7 @@ function convert(infile, outfile) {
                     console.warn('Unhandled <span> attribute:', name);
             }
         }
-        // Move the <span> children over to replace itself.
+        // Move the <span> children over to <a>.
         while (span.firstChild) {
             a.appendChild(span.firstChild);
         }
@@ -188,16 +191,41 @@ function convert(infile, outfile) {
         }
     }
 
+    for (const code of document.querySelectorAll('pre > code')) {
+        const pre = code.parentNode;
+        if (code.hasAttribute('class')) {
+            switch (code.className) {
+                case 'idl':
+                    pre.className = 'idl';
+                    break;
+                case 'js':
+                    pre.className = 'lang-javascript';
+                    break;
+                case 'abnf':
+                case 'css':
+                case 'html':
+                    case 'json':
+                    pre.className = `lang-${code.className}`;
+                    break;
+                default:
+                    console.warn('Unhandled <pre><code> class:', code.className);
+            }
+            code.removeAttribute('class');
+        }
+        if (code.getAttribute(kCrossRefAttribute) === '') {
+            code.removeAttribute(kCrossRefAttribute);
+        }
+        if (code.hasAttributes()) {
+            console.warn('Discarding <code> attributes:', code.outerHTML);
+        }
+        replaceWithChildren(code);
+    }
+
     // Link <code> to the right thing.
     for (const code of document.querySelectorAll('code')) {
         // <code undefined> shouldn't be linked.
         if (code.hasAttribute('undefined')) {
             code.removeAttribute('undefined');
-            continue;
-        }
-
-        if (code.parentNode.localName == 'pre') {
-            // TODO: unwrap
             continue;
         }
 
@@ -253,7 +281,7 @@ function convert(infile, outfile) {
     }
 
     for (const elem of document.querySelectorAll('[data-x]')) {
-        const dataX = elem.getAttribute('data-x');
+        const dataX = elem.getAttribute(kCrossRefAttribute);
         if (dataX) {
             if (elem.parentNode.localName == 'dfn') {
                 // console.warn(elem.parentNode.outerHTML);
@@ -274,7 +302,7 @@ function convert(infile, outfile) {
                     console.warn('Empty data-x attribute:', elem.outerHTML);
             }
         }
-        elem.removeAttribute('data-x');
+        elem.removeAttribute(kCrossRefAttribute);
     }
 
     for (const elem of document.querySelectorAll('[data-x-href]')) {
