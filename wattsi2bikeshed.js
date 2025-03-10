@@ -17,17 +17,12 @@ Include MDN Panels: false
 
 const kCrossRefAttribute = 'data-x';
 
-// Hoist data-x attributes to <dfn> or <span>, to match how Wattsi uses the
-// data-x attribute of a single child element when present:
-// https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L888
-function hoistDataX(from, to) {
-    const value = from.getAttribute(kCrossRefAttribute);
-    if (from.parentNode === to && to.firstChild === to.lastChild) {
-        to.setAttribute(kCrossRefAttribute, value);
-    } else if (value) {
-        // console.warn('Ineffectual data-x in source:', to.outerHTML);
+// Remove data-x attributes recursively.
+function removeDataX(elem) {
+    elem.removeAttribute(kCrossRefAttribute);
+    for (const descendent of elem.querySelectorAll('[data-x]')) {
+        descendent.removeAttribute(kCrossRefAttribute);
     }
-    from.removeAttribute(kCrossRefAttribute);
 }
 
 function isElement(node) {
@@ -86,16 +81,10 @@ function convert(infile, outfile) {
             console.warn('Duplicate <dfn> topic:', topic);
         }
         crossRefs.set(topic, dfn);
-        // for (const elem of dfn.querySelectorAll('[data-x]')) {
-        //     hoistDataX(elem, dfn);
-        // }
 
-        // Remove all data-x attributes. If this changes the topic, then
+        // Remove data-x attributes. If this changes the topic, then
         // it came from data-x and is copied over to lt for Bikeshed.
-        dfn.removeAttribute(kCrossRefAttribute);
-        for (const elem of dfn.querySelectorAll('[data-x]')) {
-            elem.removeAttribute(kCrossRefAttribute);
-        }
+        removeDataX(dfn);
         if (getTopicIdentifier(dfn) !== topic) {
             dfn.setAttribute('lt', topic);
         }
@@ -118,12 +107,6 @@ function convert(infile, outfile) {
             continue;
         }
 
-        if (span.hasAttribute('subdfn')) {
-            // TODO: transform to a regular <dfn>?
-            // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L86
-            continue;
-        }
-
         // Empty data-x="" means it's not a link.
         if (span.getAttribute(kCrossRefAttribute) === '') {
             continue;
@@ -135,10 +118,6 @@ function convert(infile, outfile) {
             continue;
         }
 
-        // for (const elem of span.querySelectorAll('[data-x]')) {
-        //     hoistDataX(elem, span);
-        // }
-
         const topic = getTopicIdentifier(span);
         const dfn = crossRefs.get(topic);
         if (!dfn) {
@@ -147,11 +126,18 @@ function convert(infile, outfile) {
             continue;
         }
 
+        if (span.hasAttribute('subdfn')) {
+            // TODO: generate an ID based on the linked term, like Wattsi:
+            // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L943-L961
+            span.removeAttribute('subdfn');
+        }
+
         // For <span><code>foo</code></span> and <span>"<code>SyntaxError</code>"</span>,
         // drop the outer <span> and depend on the <code> linking logic. Note that this
         // excludes the surrounding quotes from the link text, which is a minor change.
         // The <code> element is further transformed in a following step.
         function isQuote(node) {
+            return false; // <- hack to disable unwrapping
             return isText(node) && node.data === '"';
         }
         const code = span.querySelector('code');
@@ -173,15 +159,12 @@ function convert(infile, outfile) {
             continue;
         }
 
+        // Remove data-x attributes. This might change the topic.
+        removeDataX(span);
+        const needLt = getTopicIdentifier(span) !== topic;
+
         // Output a <a> instead of <span>.
         const a = document.createElement('a');
-
-        // Remove all data-x attributes. This might change the computed topic.
-        span.removeAttribute(kCrossRefAttribute); // not actually needed
-        for (const elem of span.querySelectorAll('[data-x]')) {
-            elem.removeAttribute(kCrossRefAttribute);
-        }
-
 
         for (const name of span.getAttributeNames()) {
             const value = span.getAttribute(name);
@@ -200,63 +183,69 @@ function convert(infile, outfile) {
         }
         span.replaceWith(a);
 
-        // If the computed topic isn't
-        if (getTopicIdentifier(a) !== topic) {
+        if (needLt) {
             a.setAttribute('lt', topic);
         }
     }
 
+    // Link <code> to the right thing.
     for (const code of document.querySelectorAll('code')) {
+        // <code undefined> shouldn't be linked.
+        if (code.hasAttribute('undefined')) {
+            code.removeAttribute('undefined');
+            continue;
+        }
+
+        if (code.parentNode.localName == 'pre') {
+            // TODO: unwrap
+            continue;
+        }
+
         // <code> inside <a> or <dfn> should be left untouched.
         if (code.closest('a, dfn')) {
             continue;
         }
 
-        let dataX;
-        let skip = false;
-
-        for (const name of code.getAttributeNames()) {
-            const value = code.getAttribute(name);
-            switch (name) {
-                case 'data-x':
-                    // handled below
-                    dataX = value;
-                    break;
-                case 'class':
-                    // TODO: transform <pre><code class="idl"> etc.
-                case 'id':
-                    // Used to preserve old IDs. TODO: transform to oldids, confirming that
-                    // it actually works: https://github.com/speced/bikeshed/issues/2033
-                case 'subdfn':
-                    // TODO: transform to a regular <dfn>?
-                    // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L86
-                case 'undefined':
-                    // TODO: used in Wattsi to allow use of undefined terms?
-                    // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L87C4-L87C23
-                    skip = true;
-                    break;
-                default:
-                    console.warn('Unhandled <code> attribute:', name);
-                    skip = true;
-            }
+        const topic = getTopicIdentifier(code);
+        if (topic === '') {
+            continue;
         }
-
-        if (skip || dataX === '') {
+        // if (code.textContent == 'video/mpeg' && code.parentNode.localName == 'p') {
+        //     console.log(code.outerHTML);
+        //     throw 'found it ' + topic;
+        // }
+        const dfn = crossRefs.get(topic);
+        if (!dfn) {
+            console.log(code.parentNode.outerHTML)
+            console.log('topic', topic)
             continue;
         }
 
+        if (code.hasAttribute('subdfn')) {
+            // TODO: generate an ID based on the linked term, like Wattsi:
+            // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L943-L961
+            code.removeAttribute('subdfn');
+        }
+
+        // Remove data-x attributes. This might change the topic.
+        removeDataX(code);
+        const needLt = getTopicIdentifier(code) !== topic;
+
         const hasSingleTextChild = isText(code.firstChild) && code.firstChild === code.lastChild;
-        if (false && hasSingleTextChild && !dataX) {
+        if (false && hasSingleTextChild && !code.hasAttributes() && !needLt) {
             // Replace with {{foo}} autolink syntax.
-            const text = code.firstChild.nodeValue;
+            const text = code.firstChild.data;
             code.replaceWith(`{{${text}}}`);
         } else {
             // TODO: Transform to {{Foo/bar()}} where possible, and fall
             // back to <a lt="..."><code>. This is just the fallback:
             const a = document.createElement('a');
-            if (dataX) {
-                a.setAttribute('lt', dataX);
-                code.removeAttribute('data-x');
+            if (needLt) {
+                a.setAttribute('lt', topic);
+            }
+            for (const name of code.getAttributeNames()) {
+                a.setAttribute(name, code.getAttribute(name));
+                code.removeAttribute(name);
             }
             code.replaceWith(a);
             a.appendChild(code);
