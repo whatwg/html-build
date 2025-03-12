@@ -45,16 +45,21 @@ function hasMarkup(text) {
     return markup.test(text);
 }
 
-// Get the "topic identifier" for cross-references like Wattsi:
+// Get the "topic" for cross-references like Wattsi:
 // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L882-L894
-function getTopicIdentifier(elem) {
+function getTopic(elem) {
     let result;
-    if (elem.hasAttribute(kCrossRefAttribute)) {
-        result = elem.getAttribute(kCrossRefAttribute);
-    } else if (isElement(elem.firstChild) && elem.firstChild === elem.lastChild) {
-        result = getTopicIdentifier(elem.firstChild);
-    } else {
-        result = elem.textContent;
+    while (true) {
+        if (elem.hasAttribute(kCrossRefAttribute)) {
+            result = elem.getAttribute(kCrossRefAttribute);
+            break;
+        } else if (isElement(elem.firstChild) && elem.firstChild === elem.lastChild) {
+            elem = elem.firstChild;
+            continue;
+        } else {
+            result = elem.textContent;
+            break;
+        }
     }
     // This matches Wattsi's MungeStringToTopic in spirit,
     // but perhaps not in every detail:
@@ -63,6 +68,15 @@ function getTopicIdentifier(elem) {
         .replaceAll(/\s+/g, ' ')
         .toLowerCase()
         .trim();
+}
+
+// Convert a topic to an ID like Wattsi:
+// https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L786-L832
+function getId(topic) {
+    // Note: no toLowerCase() because this is already done in getTopic().
+    return topic
+        .replaceAll(/["?`]/g, '')
+        .replaceAll(/[\s<>\[\\\]^{|}%]+/g, '-');
 }
 
 function convert(infile, outfile) {
@@ -88,7 +102,7 @@ function convert(infile, outfile) {
         if (dfn.getAttribute(kCrossRefAttribute) === '') {
             continue;
         }
-        const topic = getTopicIdentifier(dfn);
+        const topic = getTopic(dfn);
         if (crossRefs.has(topic)) {
             console.warn('Duplicate <dfn> topic:', topic);
         }
@@ -97,8 +111,12 @@ function convert(infile, outfile) {
         // Remove data-x attributes. If this changes the topic, then
         // it came from data-x and is copied over to lt for Bikeshed.
         removeDataX(dfn);
-        if (getTopicIdentifier(dfn) !== topic) {
+        if (getTopic(dfn) !== topic) {
             dfn.setAttribute('lt', topic);
+        }
+
+        if (!dfn.hasAttribute('id')) {
+            dfn.setAttribute('id', getId(topic));
         }
     }
 
@@ -130,7 +148,7 @@ function convert(infile, outfile) {
             continue;
         }
 
-        const topic = getTopicIdentifier(span);
+        const topic = getTopic(span);
         const dfn = crossRefs.get(topic);
         if (!dfn) {
             // TODO: vet these cases for any that should actually be linked
@@ -169,7 +187,7 @@ function convert(infile, outfile) {
 
         // Remove data-x attributes. This might change the topic.
         removeDataX(span);
-        const needLt = getTopicIdentifier(span) !== topic;
+        const needLt = getTopic(span) !== topic;
 
         // Output a <a> instead of <span>.
         const a = document.createElement('a');
@@ -239,7 +257,7 @@ function convert(infile, outfile) {
             continue;
         }
 
-        const topic = getTopicIdentifier(code);
+        const topic = getTopic(code);
         if (topic === '') {
             continue;
         }
@@ -258,7 +276,7 @@ function convert(infile, outfile) {
 
         // Remove data-x attributes. This might change the topic.
         removeDataX(code);
-        const needLt = getTopicIdentifier(code) !== topic;
+        const needLt = getTopic(code) !== topic;
 
         const a = document.createElement('a');
         if (needLt) {
