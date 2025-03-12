@@ -40,6 +40,11 @@ function isText(node) {
     return node?.nodeType === 3;
 }
 
+const markup = /[\[\]{}<>&]/g;
+function hasMarkup(text) {
+    return markup.test(text);
+}
+
 // Get the "topic identifier" for cross-references like Wattsi:
 // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L882-L894
 function getTopicIdentifier(elem) {
@@ -238,14 +243,10 @@ function convert(infile, outfile) {
         if (topic === '') {
             continue;
         }
-        // if (code.textContent == 'video/mpeg' && code.parentNode.localName == 'p') {
-        //     console.log(code.outerHTML);
-        //     throw 'found it ' + topic;
-        // }
+
         const dfn = crossRefs.get(topic);
         if (!dfn) {
-            console.log(code.parentNode.outerHTML)
-            console.log('topic', topic)
+            console.warn('No <dfn> found for topic:', topic);
             continue;
         }
 
@@ -259,25 +260,16 @@ function convert(infile, outfile) {
         removeDataX(code);
         const needLt = getTopicIdentifier(code) !== topic;
 
-        const hasSingleTextChild = isText(code.firstChild) && code.firstChild === code.lastChild;
-        if (false && hasSingleTextChild && !code.hasAttributes() && !needLt) {
-            // Replace with {{foo}} autolink syntax.
-            const text = code.firstChild.data;
-            code.replaceWith(`{{${text}}}`);
-        } else {
-            // TODO: Transform to {{Foo/bar()}} where possible, and fall
-            // back to <a lt="..."><code>. This is just the fallback:
-            const a = document.createElement('a');
-            if (needLt) {
-                a.setAttribute('lt', topic);
-            }
-            for (const name of code.getAttributeNames()) {
-                a.setAttribute(name, code.getAttribute(name));
-                code.removeAttribute(name);
-            }
-            code.replaceWith(a);
-            a.appendChild(code);
+        const a = document.createElement('a');
+        if (needLt) {
+            a.setAttribute('lt', topic);
         }
+        for (const name of code.getAttributeNames()) {
+            a.setAttribute(name, code.getAttribute(name));
+            code.removeAttribute(name);
+        }
+        code.replaceWith(a);
+        a.appendChild(code);
     }
 
     for (const elem of document.querySelectorAll('[data-x]')) {
@@ -308,6 +300,19 @@ function convert(infile, outfile) {
     for (const elem of document.querySelectorAll('[data-x-href]')) {
         // TODO
         elem.removeAttribute('data-x-href');
+    }
+
+    // Simplify <a> to Bikeshed autolinks.
+    for (const a of document.querySelectorAll('a')) {
+        break;
+        const hasSingleTextNode = isText(a.firstChild) && a.firstChild === a.lastChild;
+        if (hasSingleTextNode && !a.hasAttributes()) {
+            const text = a.firstChild.data;
+            if (!hasMarkup(text)) {
+                a.replaceWith(`[=${text}=]`);
+            }
+        }
+        // TODO: handle <a for>.
     }
 
     for (const elem of document.querySelectorAll('*')) {
