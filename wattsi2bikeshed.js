@@ -71,6 +71,29 @@ function getId(topic) {
         .replaceAll(/[\s<>\[\\\]^{|}%]+/g, '-');
 }
 
+// Get the linking text like Bikeshed:
+// https://github.com/speced/bikeshed/blob/50d0ec772915adcd5cec0c2989a27fa761d70e71/bikeshed/h/dom.py#L174-L201
+function getBikeshedLinkText(elem) {
+    // Note: ignoring data-lt="" and just looking at text content.
+    let text;
+    switch (elem.localName) {
+        case 'dfn':
+        case 'a':
+            text = elem.textContent;
+            break;
+        case 'h2':
+        case 'h3':
+        case 'h4':
+        case 'h5':
+        case 'h6':
+            text = (elem.querySelector('.content') ?? elem).textContent;
+            break;
+        default:
+            return null;
+    }
+    return text.trim().replaceAll(/\s+/g, ' ');
+}
+
 function convert(infile, outfile) {
     const source = readFileSync(infile, 'utf-8');
     const dom = new JSDOM(source);
@@ -102,6 +125,14 @@ function convert(infile, outfile) {
 
         if (!dfn.hasAttribute('id')) {
             dfn.setAttribute('id', getId(topic));
+        }
+
+        // Remove "new" from the linking text of constructors.
+        if (dfn.hasAttribute('constructor')) {
+            const lt = getBikeshedLinkText(dfn);
+            if (lt.startsWith('new ')) {
+                dfn.setAttribute('lt', lt.substring(4));
+            }
         }
     }
 
