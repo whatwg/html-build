@@ -17,14 +17,6 @@ Include MDN Panels: false
 
 const kCrossRefAttribute = 'data-x';
 
-// Remove data-x attributes recursively.
-function removeDataX(elem) {
-    elem.removeAttribute(kCrossRefAttribute);
-    for (const descendent of elem.querySelectorAll('[data-x]')) {
-        descendent.removeAttribute(kCrossRefAttribute);
-    }
-}
-
 function replaceWithChildren(elem) {
     while (elem.firstChild) {
         elem.parentNode.insertBefore(elem.firstChild, elem);
@@ -108,13 +100,6 @@ function convert(infile, outfile) {
         }
         crossRefs.set(topic, dfn);
 
-        // Remove data-x attributes. If this changes the topic, then
-        // it came from data-x and is copied over to lt for Bikeshed.
-        removeDataX(dfn);
-        if (getTopic(dfn) !== topic) {
-            dfn.setAttribute('lt', topic);
-        }
-
         if (!dfn.hasAttribute('id')) {
             dfn.setAttribute('id', getId(topic));
         }
@@ -185,16 +170,14 @@ function convert(infile, outfile) {
             continue;
         }
 
-        // Remove data-x attributes. This might change the topic.
-        removeDataX(span);
-        const needLt = getTopic(span) !== topic;
-
         // Output a <a> instead of <span>.
         const a = document.createElement('a');
 
         for (const name of span.getAttributeNames()) {
             const value = span.getAttribute(name);
             switch (name) {
+                case 'data-x':
+                    break;
                 case 'id':
                     // Copy over.
                     a.setAttribute(name, value);
@@ -208,10 +191,6 @@ function convert(infile, outfile) {
             a.appendChild(span.firstChild);
         }
         span.replaceWith(a);
-
-        if (needLt) {
-            a.setAttribute('lt', topic);
-        }
     }
 
     for (const code of document.querySelectorAll('pre > code')) {
@@ -274,14 +253,7 @@ function convert(infile, outfile) {
             code.removeAttribute('subdfn');
         }
 
-        // Remove data-x attributes. This might change the topic.
-        removeDataX(code);
-        const needLt = getTopic(code) !== topic;
-
         const a = document.createElement('a');
-        if (needLt) {
-            a.setAttribute('lt', topic);
-        }
         for (const name of code.getAttributeNames()) {
             a.setAttribute(name, code.getAttribute(name));
             code.removeAttribute(name);
@@ -291,27 +263,6 @@ function convert(infile, outfile) {
     }
 
     for (const elem of document.querySelectorAll('[data-x]')) {
-        const dataX = elem.getAttribute(kCrossRefAttribute);
-        if (dataX) {
-            if (elem.parentNode.localName == 'dfn') {
-                // console.warn(elem.parentNode.outerHTML);
-            }
-            elem.setAttribute('lt', dataX);
-        } else {
-            // An empty data-x attribute is for when <code> or <span> shouldn't
-            // link to anything, or a bare <dfn> in the output.
-            switch (elem.localName) {
-                case 'code':
-                case 'span':
-                    // Bikeshed will not change bare <code> or <span>.
-                    break;
-                case 'dfn':
-                    // TODO: to make Bikeshed output a bare <dfn>
-                    break;
-                default:
-                    console.warn('Empty data-x attribute:', elem.outerHTML);
-            }
-        }
         elem.removeAttribute(kCrossRefAttribute);
     }
 
