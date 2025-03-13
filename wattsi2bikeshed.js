@@ -73,25 +73,33 @@ function getId(topic) {
 
 // Get the linking text like Bikeshed:
 // https://github.com/speced/bikeshed/blob/50d0ec772915adcd5cec0c2989a27fa761d70e71/bikeshed/h/dom.py#L174-L201
-function getBikeshedLinkText(elem) {
-    // Note: ignoring data-lt="" and just looking at text content.
-    let text;
-    switch (elem.localName) {
-        case 'dfn':
-        case 'a':
-            text = elem.textContent;
-            break;
-        case 'h2':
-        case 'h3':
-        case 'h4':
-        case 'h5':
-        case 'h6':
-            text = (elem.querySelector('.content') ?? elem).textContent;
-            break;
-        default:
-            return null;
+function getBikeshedLinkTexts(elem) {
+    const dataLt = elem.getAttribute('data-lt');
+    if (dataLt === '') {
+        return [];
     }
-    return text.trim().replaceAll(/\s+/g, ' ');
+
+    let texts = [];
+    if (dataLt) {
+        // TODO: what's the `rawText in ["|", "||", "|||"]` condition for?
+        texts = dataLt.split('|');
+    } else {
+        switch (elem.localName) {
+            case 'dfn':
+            case 'a':
+                texts = [elem.textContent];
+                break;
+            case 'h2':
+            case 'h3':
+            case 'h4':
+            case 'h5':
+            case 'h6':
+                texts = [(elem.querySelector('.content') ?? elem).textContent];
+                break;
+        }
+    }
+
+    return texts.map((x) => x.trim().replaceAll(/\s+/g, ' '));
 }
 
 function convert(infile, outfile) {
@@ -128,10 +136,10 @@ function convert(infile, outfile) {
         }
 
         // Remove "new" from the linking text of constructors.
-        if (dfn.hasAttribute('constructor')) {
-            const lt = getBikeshedLinkText(dfn);
-            if (lt.startsWith('new ')) {
-                dfn.setAttribute('lt', lt.substring(4));
+        if (dfn.hasAttribute('constructor') && !dfn.hasAttribute('data-lt')) {
+            const lt = getBikeshedLinkTexts(dfn)[0];
+            if (lt?.startsWith('new ')) {
+                dfn.setAttribute('data-lt', lt.substring(4));
             }
         }
     }
@@ -208,6 +216,7 @@ function convert(infile, outfile) {
             const value = span.getAttribute(name);
             switch (name) {
                 case 'data-x':
+                case 'data-lt':
                     break;
                 case 'id':
                     // Copy over.
