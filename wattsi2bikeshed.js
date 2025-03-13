@@ -145,6 +145,8 @@ function convert(infile, outfile) {
     }
 
     // Replace <span> with the inner <code> or a new <a>.
+    // TODO: align more closely with Wattsi:
+    // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L1454-L1487
     const spans = document.querySelectorAll('span');
     for (const [i, span] of Object.entries(spans)) {
         // Don't touch any span with a descendent span.
@@ -231,6 +233,30 @@ function convert(infile, outfile) {
             a.appendChild(span.firstChild);
         }
         span.replaceWith(a);
+
+        // TODO: ensure that Bikeshed will identify the same <dfn> as Wattsi.
+    }
+
+    // Wrap <i data-x="..."> with <a>. Wattsi handling is here:
+    // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L1454-L1487
+    for (const i of document.querySelectorAll('i[data-x]')) {
+        if (i.closest('dfn')) {
+            continue;
+        }
+
+        const topic = getTopic(i);
+        const dfn = crossRefs.get(topic);
+        if (!dfn) {
+            continue;
+            // TODO: vet these cases for any that should actually be linked
+            // console.log(i.outerHTML);
+        }
+
+        const a = document.createElement('a');
+        i.parentNode.insertBefore(a, i);
+        a.appendChild(i);
+
+        // TODO: ensure that Bikeshed will identify the same <dfn> as Wattsi.
     }
 
     for (const code of document.querySelectorAll('pre > code')) {
@@ -300,6 +326,8 @@ function convert(infile, outfile) {
         }
         code.replaceWith(a);
         a.appendChild(code);
+
+        // TODO: ensure that Bikeshed will identify the same <dfn> as Wattsi.
     }
 
     // Rewrite data-lt to lt.
