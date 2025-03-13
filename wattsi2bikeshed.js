@@ -293,6 +293,12 @@ function convert(infile, outfile) {
         a.appendChild(code);
     }
 
+    // Rewrite data-lt to lt.
+    for (const elem of document.querySelectorAll('[data-lt]')) {
+        elem.setAttribute('lt', elem.getAttribute('data-lt'));
+        elem.removeAttribute('data-lt');
+    }
+
     for (const elem of document.querySelectorAll('[data-x]')) {
         elem.removeAttribute(kCrossRefAttribute);
     }
@@ -313,24 +319,6 @@ function convert(infile, outfile) {
             }
         }
         // TODO: handle <a for>.
-    }
-
-    for (const elem of document.querySelectorAll('*')) {
-        for (const attrName of elem.getAttributeNames()) {
-            if (!attrName.startsWith('data-')) {
-                continue;
-            }
-            switch (attrName) {
-                case 'data-lt':
-                    // TODO, handle these somehow
-                    break;
-                case 'data-noexport':
-                    // Leave alone, see comment in source.
-                    break;
-                default:
-                    console.warn('Unhandled data attribute:', elem.outerHTML);
-            }
-        }
     }
 
     const output = document.body.innerHTML
