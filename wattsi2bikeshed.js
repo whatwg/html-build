@@ -171,6 +171,9 @@ function convert(infile, outfile) {
         }
     }
 
+    // Track used <dfn>s in order to identify the unused ones.
+    const usedDfns = new Set();
+
     // Replace <span> with the inner <code> or a new <a>.
     // TODO: align more closely with Wattsi:
     // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L1454-L1487
@@ -262,6 +265,7 @@ function convert(infile, outfile) {
         span.replaceWith(a);
 
         ensureLink(a, dfn);
+        usedDfns.add(dfn);
     }
 
     // Wrap <i data-x="..."> with <a>. Wattsi handling is here:
@@ -284,6 +288,7 @@ function convert(infile, outfile) {
         a.appendChild(i);
 
         ensureLink(a, dfn);
+        usedDfns.add(dfn);
     }
 
     for (const code of document.querySelectorAll('pre > code')) {
@@ -355,6 +360,7 @@ function convert(infile, outfile) {
         a.appendChild(code);
 
         ensureLink(a, dfn);
+        usedDfns.add(dfn);
     }
 
     // Rewrite data-lt to lt.
@@ -370,6 +376,19 @@ function convert(infile, outfile) {
     for (const elem of document.querySelectorAll('[data-x-href]')) {
         // TODO
         elem.removeAttribute('data-x-href');
+    }
+
+    // Add noexport to unused <dfn>s to silence Bikeshed warnings about them.
+    // TODO: vet for cases that are accidentally unused.
+    for (const dfn of crossRefs.values()) {
+        if (usedDfns.has(dfn)) {
+            continue;
+        }
+        // This <dfn> is unused by Wattsi rules.
+        if (dfn.hasAttribute('data-export') || dfn.hasAttribute('export')) {
+            continue;
+        }
+        dfn.setAttribute('noexport', '');
     }
 
     // Simplify <a> to Bikeshed autolinks.
