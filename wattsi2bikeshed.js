@@ -102,6 +102,33 @@ function getBikeshedLinkTexts(elem) {
     return texts.map((x) => x.trim().replaceAll(/\s+/g, ' '));
 }
 
+// Add for and lt to ensure that Bikeshed will link the <a> to the right <dfn>.
+function ensureLink(a, dfn) {
+    if (dfn.hasAttribute('for')) {
+        a.setAttribute('for', dfn.getAttribute('for'));
+        // TODO: don't add when it's already unambiguous.
+    }
+
+    const dfnLts = getBikeshedLinkTexts(dfn);
+    if (dfnLts.length === 0) {
+        console.warn('No linking text for', dfn.outerHTML);
+        return;
+    }
+    const aLts = getBikeshedLinkTexts(a);
+    if (aLts.length !== 1) {
+        console.warn('Zero or too many linking texts for', a.outerHTML);
+    }
+    if (!dfnLts.some((lt) => lt === aLts[0])) {
+        // console.log('Fixing link from', a.outerHTML, 'to', dfn.outerHTML, 'with lt');
+        // Note: data-lt is rewritten to lt later. It would also work to remove
+        // any data-lt attribute here and just add lt.
+        a.setAttribute('data-lt', dfnLts[0]);
+    }
+
+    // TODO: check if Bikeshed would now find the right <dfn> and if not
+    // add additional attributes to make it so.
+}
+
 function convert(infile, outfile) {
     const source = readFileSync(infile, 'utf-8');
     const dom = new JSDOM(source);
@@ -218,8 +245,8 @@ function convert(infile, outfile) {
             const value = span.getAttribute(name);
             switch (name) {
                 case 'data-x':
-                case 'data-lt':
                     break;
+                case 'data-lt':
                 case 'id':
                     // Copy over.
                     a.setAttribute(name, value);
@@ -234,7 +261,7 @@ function convert(infile, outfile) {
         }
         span.replaceWith(a);
 
-        // TODO: ensure that Bikeshed will identify the same <dfn> as Wattsi.
+        ensureLink(a, dfn);
     }
 
     // Wrap <i data-x="..."> with <a>. Wattsi handling is here:
@@ -256,7 +283,7 @@ function convert(infile, outfile) {
         i.parentNode.insertBefore(a, i);
         a.appendChild(i);
 
-        // TODO: ensure that Bikeshed will identify the same <dfn> as Wattsi.
+        ensureLink(a, dfn);
     }
 
     for (const code of document.querySelectorAll('pre > code')) {
@@ -327,7 +354,7 @@ function convert(infile, outfile) {
         code.replaceWith(a);
         a.appendChild(code);
 
-        // TODO: ensure that Bikeshed will identify the same <dfn> as Wattsi.
+        ensureLink(a, dfn);
     }
 
     // Rewrite data-lt to lt.
