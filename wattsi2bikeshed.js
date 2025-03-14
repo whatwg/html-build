@@ -39,27 +39,40 @@ function hasMarkup(text) {
 
 // Get the "topic" for cross-references like Wattsi:
 // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L882-L894
-function getTopic(elem) {
+//
+// Also return whether it came from a data-x attribute or text content, so that
+// data-x attribute values can be detected and processed further.
+function getTopicAndSource(elem) {
     let result;
+    let source;
     while (true) {
         if (elem.hasAttribute(kCrossRefAttribute)) {
             result = elem.getAttribute(kCrossRefAttribute);
+            source = kCrossRefAttribute;
             break;
         } else if (isElement(elem.firstChild) && elem.firstChild === elem.lastChild) {
             elem = elem.firstChild;
             continue;
         } else {
             result = elem.textContent;
+            source = 'textContent';
             break;
         }
     }
     // This matches Wattsi's MungeStringToTopic in spirit,
     // but perhaps not in every detail:
-    return result
-        .replaceAll('#', '')
-        .replaceAll(/\s+/g, ' ')
-        .toLowerCase()
-        .trim();
+    return [
+        result
+            .replaceAll('#', '')
+            .replaceAll(/\s+/g, ' ')
+            .toLowerCase()
+            .trim(),
+        source
+    ];
+}
+
+function getTopic(elem) {
+    return getTopicAndSource(elem)[0];
 }
 
 // Convert a topic to an ID like Wattsi:
@@ -73,60 +86,90 @@ function getId(topic) {
 
 // Get the linking text like Bikeshed:
 // https://github.com/speced/bikeshed/blob/50d0ec772915adcd5cec0c2989a27fa761d70e71/bikeshed/h/dom.py#L174-L201
-function getBikeshedLinkTexts(elem) {
+function getBikeshedLinkTextSet(elem) {
+    const texts = new Set();
+
     const dataLt = elem.getAttribute('data-lt');
     if (dataLt === '') {
-        return [];
+        return texts;
     }
 
-    let texts = [];
+    const add = (x) => texts.add(x.trim().replaceAll(/\s+/g, ' '));
+
     if (dataLt) {
         // TODO: what's the `rawText in ["|", "||", "|||"]` condition for?
-        texts = dataLt.split('|');
+        dataLt.split('|').map(add);
     } else {
         switch (elem.localName) {
             case 'dfn':
             case 'a':
-                texts = [elem.textContent];
+                add(elem.textContent);
                 break;
             case 'h2':
             case 'h3':
             case 'h4':
             case 'h5':
             case 'h6':
-                texts = [(elem.querySelector('.content') ?? elem).textContent];
+                add((elem.querySelector('.content') ?? elem).textContent);
                 break;
         }
     }
 
-    return texts.map((x) => x.trim().replaceAll(/\s+/g, ' '));
+    const dataLocalLt = elem.getAttribute('data-local-lt');
+    if (dataLocalLt) {
+        if (dataLocalLt.includes('|')) {
+            console.warn('Ignoring data-local-lt value containing |:', dataLocalLt);
+        } else {
+            add(dataLocalLt);
+        }
+    }
+
+    return texts;
+}
+
+// Get the *first* linking text like Bikeshed:
+// https://github.com/speced/bikeshed/blob/50d0ec772915adcd5cec0c2989a27fa761d70e71/bikeshed/h/dom.py#L215-L220
+function getBikeshedLinkText(elem) {
+    for (const text of getBikeshedLinkTextSet(elem)) {
+        return text;
+    }
+    return null;
 }
 
 // Add for and lt to ensure that Bikeshed will link the <a> to the right <dfn>.
-function ensureLink(a, dfn) {
+function ensureLink(a, dfn, dfnLtCounts) {
     if (dfn.hasAttribute('for')) {
         a.setAttribute('for', dfn.getAttribute('for'));
         // TODO: don't add when it's already unambiguous.
     }
 
-    const dfnLts = getBikeshedLinkTexts(dfn);
-    if (dfnLts.length === 0) {
+    const dfnLts = getBikeshedLinkTextSet(dfn);
+    if (dfnLts.size === 0) {
         console.warn('No linking text for', dfn.outerHTML);
         return;
     }
-    const aLts = getBikeshedLinkTexts(a);
-    if (aLts.length !== 1) {
-        console.warn('Zero or too many linking texts for', a.outerHTML);
-    }
-    if (!dfnLts.some((lt) => lt === aLts[0])) {
-        // console.log('Fixing link from', a.outerHTML, 'to', dfn.outerHTML, 'with lt');
-        // Note: data-lt is rewritten to lt later. It would also work to remove
-        // any data-lt attribute here and just add lt.
-        a.setAttribute('data-lt', dfnLts[0]);
+    const aLt = getBikeshedLinkText(a);
+    if (!aLt) {
+        console.warn('No linking text for', a.outerHTML);
+        return;
     }
 
-    // TODO: check if Bikeshed would now find the right <dfn> and if not
-    // add additional attributes to make it so.
+    if (a.hasAttribute('for')) {
+        // TODO: look in dfnLts when that tracks <dfn for>
+        return;
+    }
+
+    for (const lt of dfnLts) {
+        if (dfnLtCounts.get(lt) === 1) {
+            // This is a unique linking text.
+            // Note: data-lt is rewritten to lt later. It would also work to remove
+            // any data-lt attribute here and just add lt.
+            a.setAttribute('data-lt', lt);
+            return;
+        }
+    }
+
+    // TODO: handle cases that end up here.
 }
 
 function convert(infile, outfile) {
@@ -147,27 +190,50 @@ function convert(infile, outfile) {
     // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L735-L759
 
     // Scan all definitions
-    const crossRefs = new Map();
+    const crossRefs = new Map(); // map from Wattsi topic to <dfn>
+    const dfnLtCounts = new Map(); // map from Bikeshed link text to number of uses in <dfn>
     for (const dfn of document.querySelectorAll('dfn')) {
         if (dfn.getAttribute(kCrossRefAttribute) === '') {
             continue;
         }
-        const topic = getTopic(dfn);
+        const [topic, source] = getTopicAndSource(dfn);
         if (crossRefs.has(topic)) {
             console.warn('Duplicate <dfn> topic:', topic);
         }
         crossRefs.set(topic, dfn);
 
         if (!dfn.hasAttribute('id')) {
+            // TODO: avoid if Bikeshed would generate the same ID
             dfn.setAttribute('id', getId(topic));
         }
 
+        const lts = getBikeshedLinkTextSet(dfn);
+
         // Remove "new" from the linking text of constructors.
         if (dfn.hasAttribute('constructor') && !dfn.hasAttribute('data-lt')) {
-            const lt = getBikeshedLinkTexts(dfn)[0];
-            if (lt?.startsWith('new ')) {
-                dfn.setAttribute('data-lt', lt.substring(4));
+            for (const lt of lts) {
+                if (lt.startsWith('new ')) {
+                    dfn.setAttribute('data-lt', lt.substring(4));
+                    break;
+                }
             }
+        }
+
+        // Put data-x values into local-lt to enable disambiguating <dfn>s
+        // with the same linking text, but only if it's not already in lts.
+        if (source === kCrossRefAttribute && !lts.has(topic)) {
+            dfn.setAttribute('data-local-lt', topic);
+            lts.add(topic); // equivalent to calling getBikeshedLinkTextSet(dfn) again
+        }
+
+        // Count uses of each Bikeshed linking text
+        if (dfn.hasAttribute('for')) {
+            // TODO: track <dfn for> as well
+            continue;
+        }
+        for (const lt of lts) {
+            const count = (dfnLtCounts.get(lt) ?? 0) + 1
+            dfnLtCounts.set(lt, count);
         }
     }
 
@@ -264,7 +330,7 @@ function convert(infile, outfile) {
         }
         span.replaceWith(a);
 
-        ensureLink(a, dfn);
+        ensureLink(a, dfn, dfnLtCounts);
         usedDfns.add(dfn);
     }
 
@@ -287,7 +353,7 @@ function convert(infile, outfile) {
         i.parentNode.insertBefore(a, i);
         a.appendChild(i);
 
-        ensureLink(a, dfn);
+        ensureLink(a, dfn, dfnLtCounts);
         usedDfns.add(dfn);
     }
 
@@ -359,14 +425,18 @@ function convert(infile, outfile) {
         code.replaceWith(a);
         a.appendChild(code);
 
-        ensureLink(a, dfn);
+        ensureLink(a, dfn, dfnLtCounts);
         usedDfns.add(dfn);
     }
 
-    // Rewrite data-lt to lt.
+    // Rewrite data-lt to lt and data-local-lt to local-lt.
     for (const elem of document.querySelectorAll('[data-lt]')) {
         elem.setAttribute('lt', elem.getAttribute('data-lt'));
         elem.removeAttribute('data-lt');
+    }
+    for (const elem of document.querySelectorAll('[data-local-lt]')) {
+        elem.setAttribute('local-lt', elem.getAttribute('data-local-lt'));
+        elem.removeAttribute('data-local-lt');
     }
 
     for (const elem of document.querySelectorAll('[data-x]')) {
