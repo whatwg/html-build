@@ -193,10 +193,15 @@ function convert(infile, outfile) {
     const crossRefs = new Map(); // map from Wattsi topic to <dfn>
     const dfnLtCounts = new Map(); // map from Bikeshed link text to number of uses in <dfn>
     for (const dfn of document.querySelectorAll('dfn')) {
-        if (dfn.getAttribute(kCrossRefAttribute) === '') {
+        const [topic, source] = getTopicAndSource(dfn);
+        if (topic === '' && source === kCrossRefAttribute) {
+            // This isn't a linkable definition and Wattsi outputs a plain <dfn>
+            // with no attributes. The closest thing in Bikeshed is a definition
+            // with no linking text that is not exported.
+            dfn.setAttribute('data-lt', '');
+            dfn.setAttribute('noexport', '');
             continue;
         }
-        const [topic, source] = getTopicAndSource(dfn);
         if (crossRefs.has(topic)) {
             console.warn('Duplicate <dfn> topic:', topic);
         }
