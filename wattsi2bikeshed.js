@@ -219,6 +219,17 @@ function convert(infile, outfile) {
             }
         }
 
+        // Remove leading "document." from linking text of document.write/writeln.
+        if (dfn.hasAttribute('method') && dfn.getAttribute('for') === 'Document' &&
+            !dfn.hasAttribute('data-lt')) {
+            for (const lt of lts) {
+                if (lt.startsWith('document.')) {
+                    dfn.setAttribute('data-lt', lt.substring(9));
+                    break;
+                }
+            }
+        }
+
         // Put data-x values into local-lt to enable disambiguating <dfn>s
         // with the same linking text, but only if it's not already in lts.
         if (source === kCrossRefAttribute && !lts.has(topic)) {
