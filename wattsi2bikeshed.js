@@ -86,6 +86,9 @@ function getId(topic) {
 
 // Get the linking text like Bikeshed:
 // https://github.com/speced/bikeshed/blob/50d0ec772915adcd5cec0c2989a27fa761d70e71/bikeshed/h/dom.py#L174-L201
+//
+// Also approximate the additional munging Bikeshed does here:
+// https://github.com/speced/bikeshed/blob/9f194ae38e5495487d58b1f1180c29a9fa09ea5d/bikeshed/refs/manager.py#L291-L298
 function getBikeshedLinkTextSet(elem) {
     const texts = new Set();
 
@@ -94,7 +97,16 @@ function getBikeshedLinkTextSet(elem) {
         return texts;
     }
 
-    const add = (x) => texts.add(x.trim().replaceAll(/\s+/g, ' '));
+    function add(lt) {
+        lt = lt.trim().replaceAll(/\s+/g, ' ');
+        // These are the extra bits from addLocalDfns in Bikeshed:
+        lt = lt.replaceAll("’", "'");
+        // TODO: line-ending em dashes or -- (if they exist in HTML)
+        // TODO: only lowercase dfn types that Bikeshed would if lowercasing
+        // everything results in collisions that Bikeshed doesn't have.
+        lt = lt.toLowerCase();
+        texts.add(lt);
+    }
 
     if (dataLt) {
         // TODO: what's the `rawText in ["|", "||", "|||"]` condition for?
