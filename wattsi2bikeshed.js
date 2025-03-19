@@ -39,40 +39,27 @@ function hasMarkup(text) {
 
 // Get the "topic" for cross-references like Wattsi:
 // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L882-L894
-//
-// Also return whether it came from a data-x attribute or text content, so that
-// data-x attribute values can be detected and processed further.
-function getTopicAndSource(elem) {
+function getTopic(elem) {
     let result;
-    let source;
     while (true) {
         if (elem.hasAttribute(kCrossRefAttribute)) {
             result = elem.getAttribute(kCrossRefAttribute);
-            source = kCrossRefAttribute;
             break;
         } else if (isElement(elem.firstChild) && elem.firstChild === elem.lastChild) {
             elem = elem.firstChild;
             continue;
         } else {
             result = elem.textContent;
-            source = 'textContent';
             break;
         }
     }
     // This matches Wattsi's MungeStringToTopic in spirit,
     // but perhaps not in every detail:
-    return [
-        result
-            .replaceAll('#', '')
-            .replaceAll(/\s+/g, ' ')
-            .toLowerCase()
-            .trim(),
-        source
-    ];
-}
-
-function getTopic(elem) {
-    return getTopicAndSource(elem)[0];
+    return result
+        .replaceAll('#', '')
+        .replaceAll(/\s+/g, ' ')
+        .toLowerCase()
+        .trim();
 }
 
 // Convert a topic to an ID like Wattsi:
@@ -216,8 +203,8 @@ function convert(infile, outfile) {
     const crossRefs = new Map(); // map from Wattsi topic to <dfn>
     const dfnLtCounts = new Map(); // map from Bikeshed link text to number of uses in <dfn>
     for (const dfn of document.querySelectorAll('dfn')) {
-        const [topic, source] = getTopicAndSource(dfn);
-        if (topic === '' && source === kCrossRefAttribute) {
+        const topic = getTopic(dfn);
+        if (topic === '') {
             // This isn't a linkable definition and Wattsi outputs a plain <dfn>
             // with no attributes. The closest thing in Bikeshed is a definition
             // with no linking text that is not exported.
