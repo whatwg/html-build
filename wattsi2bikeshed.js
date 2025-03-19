@@ -181,7 +181,18 @@ function ensureLink(a, dfn, dfnLtCounts) {
         }
     }
 
-    // TODO: handle cases that end up here.
+    if (!dfn.hasAttribute('data-local-lt')) {
+        if (!dfn.id) {
+            console.warn('No id for dfn', dfn.outerHTML);
+            return;
+        }
+        // Use a prefix to make the linking text unique. The prefix is "xxx-""
+        // because class="XXX" is used as a FIXME/TODO in HTML, and these
+        // local-lt attributes should be removed over time.
+        dfn.setAttribute('data-local-lt', `xxx-${dfn.id}`);
+    }
+
+    a.setAttribute('data-lt', dfn.getAttribute('data-local-lt'));
 }
 
 function convert(infile, outfile) {
@@ -245,13 +256,6 @@ function convert(infile, outfile) {
                     break;
                 }
             }
-        }
-
-        // Put data-x values into local-lt to enable disambiguating <dfn>s
-        // with the same linking text, but only if it's not already in lts.
-        if (source === kCrossRefAttribute && !lts.has(topic)) {
-            dfn.setAttribute('data-local-lt', topic);
-            lts.add(topic); // equivalent to calling getBikeshedLinkTextSet(dfn) again
         }
 
         // Count uses of each Bikeshed linking text
