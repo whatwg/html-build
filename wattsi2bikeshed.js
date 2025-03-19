@@ -75,7 +75,7 @@ function getId(topic) {
 // https://github.com/speced/bikeshed/blob/50d0ec772915adcd5cec0c2989a27fa761d70e71/bikeshed/h/dom.py#L174-L201
 //
 // Also approximate the additional munging Bikeshed does here:
-// https://github.com/speced/bikeshed/blob/9f194ae38e5495487d58b1f1180c29a9fa09ea5d/bikeshed/refs/manager.py#L291-L298
+// https://github.com/speced/bikeshed/blob/f3fd50cc3a67ecbffb562b16252237aeaa2b4eae/bikeshed/refs/manager.py#L291-L297
 function getBikeshedLinkTextSet(elem) {
     const texts = new Set();
 
