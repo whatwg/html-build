@@ -7,11 +7,11 @@ use std::collections::HashMap;
 use std::io;
 
 use html5ever::tendril::StrTendril;
-use html5ever::{local_name, namespace_url, ns, LocalName, QualName};
+use html5ever::{LocalName, QualName, local_name, namespace_url, ns};
 use markup5ever_rcdom::{Handle, NodeData};
 use regex::Regex;
 
-use crate::dom_utils::{self, heading_level, NodeHandleExt};
+use crate::dom_utils::{self, NodeHandleExt, heading_level};
 
 #[derive(Default)]
 struct ElementInfo {
@@ -108,10 +108,10 @@ impl Processor {
         match (iter.next(), iter.next(), iter.next()) {
             (Some(a), Some(b), Some(c))
                 if a.node_text()
-                    .map_or(false, |t| t.trim() == "A" || t.trim() == "An")
+                    .is_some_and(|t| t.trim() == "A" || t.trim() == "An")
                     && b.is_html_element(&local_name!("code"))
                     && c.node_text()
-                        .map_or(false, |t| t.trim().starts_with("element")) =>
+                        .is_some_and(|t| t.trim().starts_with("element")) =>
             {
                 let info = self.elements.entry(b.text_content()).or_default();
                 info.optional_tags_info.push(paragraph.clone());

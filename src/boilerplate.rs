@@ -7,7 +7,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use html5ever::tendril::{self, SendTendril};
-use html5ever::{local_name, Attribute, LocalName, QualName};
+use html5ever::{Attribute, LocalName, QualName, local_name};
 use markup5ever_rcdom::{Handle, NodeData};
 use tokio::fs::File;
 use tokio::task::JoinHandle;
@@ -48,11 +48,11 @@ impl Processor {
     /// Identifies replacements which will be needed, and starts the necessary
     /// I/O.
     pub fn visit(&mut self, node: &Handle) {
-        match node.data {
+        match &node.data {
             // BOILERPLATE comments will need to be replaced with their
             // corresponding HTML, parsed. Open the file so that we can do so on
             // demand.
-            NodeData::Comment { ref contents } if contents.starts_with("BOILERPLATE ") => {
+            NodeData::Comment { contents } if contents.starts_with("BOILERPLATE ") => {
                 let path = Path::new(contents[12..].trim());
                 let file = if is_safe_path(path) {
                     tokio::spawn(File::open(self.path.join(path)))
@@ -67,12 +67,8 @@ impl Processor {
             // Pseudo-comments can also appear in element attributes. These are
             // not parsed as HTML, so we simply want to read them into memory so
             // they can be replaced.
-            NodeData::Element { ref attrs, .. } => {
-                for Attribute {
-                    ref name,
-                    ref value,
-                } in attrs.borrow().iter()
-                {
+            NodeData::Element { attrs, .. } => {
+                for Attribute { name, value } in attrs.borrow().iter() {
                     if value.starts_with("<!--BOILERPLATE ") && value.ends_with("-->") {
                         let path = Path::new(value[16..value.len() - 3].trim());
                         let file_contents = if is_safe_path(path) {
@@ -94,7 +90,7 @@ impl Processor {
             // <pre> and <pre><code> which contain EXAMPLE also need to be
             // replaced, but as plain text. These are loaded from the "examples"
             // directory instead.
-            NodeData::Text { ref contents } => {
+            NodeData::Text { contents } => {
                 let borrowed_contents = contents.borrow();
                 let text = borrowed_contents.trim();
                 if !text.starts_with("EXAMPLE ") {
@@ -102,10 +98,10 @@ impl Processor {
                 }
                 const PRE: LocalName = local_name!("pre");
                 const CODE: LocalName = local_name!("code");
-                let has_suitable_parent = node.parent_node().map_or(false, |p| {
+                let has_suitable_parent = node.parent_node().is_some_and(|p| {
                     p.is_html_element(&PRE)
                         || (p.is_html_element(&CODE)
-                            && p.parent_node().map_or(false, |p2| p2.is_html_element(&PRE)))
+                            && p.parent_node().is_some_and(|p2| p2.is_html_element(&PRE)))
                 });
                 if has_suitable_parent {
                     let path = Path::new(text[8..].trim());
@@ -179,7 +175,8 @@ mod tests {
         proc.apply().await?;
         assert_eq!(
             serialize_for_test(&[document]),
-            "<!DOCTYPE html><html><head></head><body><table><tbody><tr><td>en</td><td>English</td></tr></tbody></table></body></html>");
+            "<!DOCTYPE html><html><head></head><body><table><tbody><tr><td>en</td><td>English</td></tr></tbody></table></body></html>"
+        );
         Ok(())
     }
 
@@ -200,7 +197,8 @@ mod tests {
         proc.apply().await?;
         assert_eq!(
             serialize_for_test(&[document]),
-            "<!DOCTYPE html><html><head></head><body><a href=\"data:text/html,Hello, world!\">hello</a></body></html>");
+            "<!DOCTYPE html><html><head></head><body><a href=\"data:text/html,Hello, world!\">hello</a></body></html>"
+        );
         Ok(())
     }
 
@@ -218,7 +216,8 @@ mod tests {
         proc.apply().await?;
         assert_eq!(
             serialize_for_test(&[document]),
-            "<!DOCTYPE html><html><head></head><body><pre>first</pre><pre><code class=\"html\">second</code></pre><p>EXAMPLE ignored</p></body></html>" );
+            "<!DOCTYPE html><html><head></head><body><pre>first</pre><pre><code class=\"html\">second</code></pre><p>EXAMPLE ignored</p></body></html>"
+        );
         Ok(())
     }
 

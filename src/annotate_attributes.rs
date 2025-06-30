@@ -5,7 +5,7 @@ use std::io;
 use std::rc::Rc;
 
 use html5ever::tendril::StrTendril;
-use html5ever::{local_name, namespace_url, ns, LocalName, QualName};
+use html5ever::{LocalName, QualName, local_name, namespace_url, ns};
 use markup5ever_rcdom::{Handle, NodeData};
 
 use crate::dom_utils::{self, NodeHandleExt};
@@ -142,7 +142,7 @@ impl Processor {
                 let mut variant_comment = None;
                 let mut variant_str = None;
                 for node in description.iter() {
-                    if let NodeData::Comment { ref contents } = node.data {
+                    if let NodeData::Comment { contents } = &node.data {
                         if contents.trim().starts_with("or:") {
                             variant_comment = Some(node);
                             variant_str = Some(StrTendril::from(contents.trim()[3..].trim_start()));
@@ -158,7 +158,7 @@ impl Processor {
                         .children
                         .borrow()
                         .iter()
-                        .filter(|c| variant_comment.map_or(true, |vc| !Rc::ptr_eq(c, vc)))
+                        .filter(|c| variant_comment.is_none_or(|vc| !Rc::ptr_eq(c, vc)))
                         .map(|c| c.deep_clone())
                         .collect(),
                     variant: variant_str,
@@ -167,7 +167,7 @@ impl Processor {
                 if existing.default.is_empty() {
                     existing.default = descriptions.default;
                 } else if !descriptions.default.is_empty() {
-                    if let NodeData::Text { ref contents } = existing.default.last().unwrap().data {
+                    if let NodeData::Text { contents } = &existing.default.last().unwrap().data {
                         let mut borrow = contents.borrow_mut();
                         if let Some(last_non_ws) = borrow.rfind(|c: char| !c.is_ascii_whitespace())
                         {
@@ -209,13 +209,13 @@ impl Processor {
                     let mut has_special_semantics = false;
                     let mut key = None;
                     dom_utils::scan_dom(dd, &mut |n| match &n.data {
-                        NodeData::Comment { ref contents } if contents.trim() == "no-annotate" => {
+                        NodeData::Comment { contents } if contents.trim() == "no-annotate" => {
                             can_annotate = false;
                         }
-                        NodeData::Comment { ref contents } if contents.trim() == "variant" => {
+                        NodeData::Comment { contents } if contents.trim() == "variant" => {
                             wants_variant_description = true;
                         }
-                        NodeData::Text { ref contents }
+                        NodeData::Text { contents }
                             if contents.borrow().contains("has special semantics") =>
                         {
                             has_special_semantics = true;
@@ -257,7 +257,7 @@ impl Processor {
             };
             let mut description: Vec<Handle> = match descriptions {
                 Descriptions {
-                    variant: Some(ref variant),
+                    variant: Some(variant),
                     ..
                 } if wants_variant_description => {
                     parser::parse_fragment_async(variant[..].as_bytes(), &dd).await?
@@ -268,22 +268,22 @@ impl Processor {
                         format!(
                             "Attribute {key} wants variant description, but no <!--or--> was found"
                         ),
-                    ))
+                    ));
                 }
-                Descriptions { ref default, .. } => {
-                    default.iter().map(|n| n.deep_clone()).collect()
-                }
+                Descriptions { default, .. } => default.iter().map(|n| n.deep_clone()).collect(),
             };
 
             let mut dd_children = dd.children.borrow_mut();
             if has_special_semantics {
                 // Replace the trailing period with a separating colon.
-                if let Some(NodeData::Text { contents }) = dd_children.last_mut().map(|n| &n.data) {
-                    let mut text = contents.borrow_mut();
-                    *text = StrTendril::from(
-                        text.trim_end_matches(|c: char| c.is_ascii_whitespace() || c == '.'),
-                    );
-                    text.push_slice(": ");
+                if let Some(last) = dd_children.last_mut() {
+                    if let NodeData::Text { contents } = &last.data {
+                        let mut text = contents.borrow_mut();
+                        *text = StrTendril::from(
+                            text.trim_end_matches(|c: char| c.is_ascii_whitespace() || c == '.'),
+                        );
+                        text.push_slice(": ");
+                    }
                 }
             } else {
                 // Insert an em dash.

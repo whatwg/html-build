@@ -87,7 +87,7 @@ fn create_self_link(id: &str) -> Handle {
     let href = url.fragment().unwrap_or("");
 
     Handle::create_element(local_name!("a"))
-        .attribute(&local_name!("href"), format!("#{}", href))
+        .attribute(&local_name!("href"), format!("#{href}"))
         .attribute(&local_name!("class"), "self-link")
         .build()
 }

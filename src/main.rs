@@ -1,4 +1,4 @@
-use html5ever::serialize::{serialize, SerializeOpts};
+use html5ever::serialize::{SerializeOpts, serialize};
 use std::borrow::Cow;
 use std::default::Default;
 use std::env;
@@ -23,7 +23,7 @@ mod tag_omission;
 async fn main() -> io::Result<()> {
     // This gives slightly prettier error-printing.
     if let Err(e) = run().await {
-        eprintln!("{}", e);
+        eprintln!("{e}");
         std::process::exit(1);
     }
     Ok(())

@@ -3,9 +3,9 @@
 use delegate::delegate;
 use html5ever::interface::TreeSink;
 use html5ever::{
+    Attribute, ExpandedName, QualName,
     tendril::StrTendril,
     tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode},
-    Attribute, ExpandedName, QualName,
 };
 use markup5ever_rcdom::{Handle, RcDom};
 use std::borrow::Cow;
@@ -33,7 +33,7 @@ impl RcDomWithLineNumbers {
                 .join("\n");
             Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("Parse errors encountered:\n\n{}", error_messages),
+                format!("Parse errors encountered:\n\n{error_messages}"),
             ))
         } else {
             Ok(())
