@@ -1,6 +1,6 @@
 # This Dockerfile is just used to run on Travis CI in an environment that can easily and repeatedly
 # install our build dependencies.
-FROM rust:1.73-slim as builder
+FROM rust:1.88-slim as builder
 WORKDIR /whatwg/html-build
 COPY Cargo.lock Cargo.toml ./
 COPY src ./src/

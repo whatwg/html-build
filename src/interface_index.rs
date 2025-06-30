@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::io;
 
 use html5ever::tendril::StrTendril;
-use html5ever::{local_name, namespace_url, ns, QualName};
+use html5ever::{QualName, local_name, namespace_url, ns};
 use markup5ever_rcdom::Handle;
 
 use crate::dom_utils::NodeHandleExt;
@@ -58,9 +58,9 @@ impl Processor {
         // attributes.
         if node.is_html_element(&local_name!("code"))
             && node.has_class("idl")
-            && node.parent_node().map_or(false, |p| {
-                p.is_html_element(&local_name!("pre")) && !p.has_class("extract")
-            })
+            && node
+                .parent_node()
+                .is_some_and(|p| p.is_html_element(&local_name!("pre")) && !p.has_class("extract"))
         {
             let borrowed_children = node.children.borrow();
             for window in borrowed_children.windows(2) {
@@ -90,7 +90,7 @@ impl Processor {
             }
         }
 
-        if node.node_text().map_or(false, |t| t.contains(MARKER)) {
+        if node.node_text().is_some_and(|t| t.contains(MARKER)) {
             self.marker_nodes.push(node.clone());
         }
     }

@@ -77,7 +77,7 @@ impl Processor {
                 None => {
                     return Err(io::Error::new(
                         io::ErrorKind::InvalidData,
-                        format!("<!--REPRESENTS {}--> refers to unknown tag", tag),
+                        format!("<!--REPRESENTS {tag}--> refers to unknown tag"),
                     ));
                 }
             };
@@ -95,7 +95,7 @@ impl Processor {
                 .map(|(index, sibling)| {
                     let clone = sibling.deep_clone();
                     // Capitalize the first letter of the first node (which is expected to be text).
-                    if let (0, NodeData::Text { ref contents }) = (index, &clone.data) {
+                    if let (0, NodeData::Text { contents }) = (index, &clone.data) {
                         contents.replace_with(|text| capitalize(text.trim_start()));
                     }
                     clone

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use html5ever::tendril::StrTendril;
-use html5ever::{local_name, namespace_url, ns, Attribute, LocalName, QualName};
+use html5ever::{Attribute, LocalName, QualName, local_name, namespace_url, ns};
 use markup5ever_rcdom::{Handle, Node, NodeData};
 
 /// Extensions to the DOM interface to make manipulation more ergonimc.
@@ -231,7 +231,7 @@ impl NodeHandleExt for Handle {
                 name:
                     QualName {
                         ns: ns!(html),
-                        ref local,
+                        local,
                         ..
                     },
                 ..
@@ -247,7 +247,7 @@ impl NodeHandleExt for Handle {
             local: local_name!("class"),
         };
         self.get_attribute(&CLASS)
-            .map_or(false, |v| v.split_ascii_whitespace().any(|c| c == class))
+            .is_some_and(|v| v.split_ascii_whitespace().any(|c| c == class))
     }
 
     fn has_any_class(&self, classes: &[&str]) -> bool {
@@ -256,14 +256,13 @@ impl NodeHandleExt for Handle {
             ns: ns!(),
             local: local_name!("class"),
         };
-        self.get_attribute(&CLASS).map_or(false, |v| {
-            v.split_ascii_whitespace().any(|c| classes.contains(&c))
-        })
+        self.get_attribute(&CLASS)
+            .is_some_and(|v| v.split_ascii_whitespace().any(|c| classes.contains(&c)))
     }
 
     fn node_text(&self) -> Option<StrTendril> {
         match &self.data {
-            NodeData::Text { ref contents } => Some(contents.borrow().clone()),
+            NodeData::Text { contents } => Some(contents.borrow().clone()),
             _ => None,
         }
     }
@@ -271,7 +270,7 @@ impl NodeHandleExt for Handle {
     fn text_content(&self) -> StrTendril {
         let mut text = StrTendril::new();
         scan_dom(self, &mut |n| {
-            if let NodeData::Text { ref contents } = &n.data {
+            if let NodeData::Text { contents } = &n.data {
                 text.push_tendril(&contents.borrow());
             }
         });
