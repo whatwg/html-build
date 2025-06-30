@@ -16,6 +16,7 @@ mod io_utils;
 mod parser;
 mod rcdom_with_line_numbers;
 mod represents;
+mod self_link;
 mod tag_omission;
 
 #[tokio::main]
@@ -46,6 +47,7 @@ async fn run() -> io::Result<()> {
     let mut annotate_attributes = annotate_attributes::Processor::new();
     let mut tag_omission = tag_omission::Processor::new();
     let mut interface_index = interface_index::Processor::new();
+    let mut self_link = self_link::Processor::new();
 
     // We do exactly one pass to identify the changes that need to be made.
     dom_utils::scan_dom(&document, &mut |h| {
@@ -54,6 +56,7 @@ async fn run() -> io::Result<()> {
         annotate_attributes.visit(h);
         tag_omission.visit(h);
         interface_index.visit(h);
+        self_link.visit(h);
     });
 
     // And then we apply all of the changes. These different processors mostly
@@ -64,6 +67,7 @@ async fn run() -> io::Result<()> {
     annotate_attributes.apply().await?;
     tag_omission.apply()?;
     interface_index.apply()?;
+    self_link.apply()?;
 
     // Finally, we write the result to standard out.
     let serializable: SerializableHandle = document.into();
