@@ -37,6 +37,9 @@ pub trait NodeHandleExt {
     /// Returns true if the node is an element with the given class.
     fn has_class(&self, class: &str) -> bool;
 
+    /// Returns true if the node is an element with any of the given classes.
+    fn has_any_class(&self, classes: &[&str]) -> bool;
+
     /// Returns true if the node is an element with the given ID.
     fn has_id(&self, id: &str) -> bool {
         const ID: QualName = QualName {
@@ -58,6 +61,11 @@ pub trait NodeHandleExt {
 
     /// Appends children (without checking node type).
     fn append_children(&self, children: impl Iterator<Item = Self>);
+
+    /// Prepends a single child to the node's children.
+    fn prepend_child(&self, child: Self)
+    where
+        Self: Sized;
 
     /// Inserts children before the specified child.
     fn insert_children_before(&self, existing: &Self, new: impl Iterator<Item = Self>);
@@ -242,6 +250,17 @@ impl NodeHandleExt for Handle {
             .map_or(false, |v| v.split_ascii_whitespace().any(|c| c == class))
     }
 
+    fn has_any_class(&self, classes: &[&str]) -> bool {
+        const CLASS: QualName = QualName {
+            prefix: None,
+            ns: ns!(),
+            local: local_name!("class"),
+        };
+        self.get_attribute(&CLASS).map_or(false, |v| {
+            v.split_ascii_whitespace().any(|c| classes.contains(&c))
+        })
+    }
+
     fn node_text(&self) -> Option<StrTendril> {
         match &self.data {
             NodeData::Text { ref contents } => Some(contents.borrow().clone()),
@@ -268,6 +287,13 @@ impl NodeHandleExt for Handle {
             let old_parent = c.parent.replace(Some(Rc::downgrade(self)));
             assert!(old_parent.is_none());
         }));
+    }
+
+    fn prepend_child(&self, child: Handle) {
+        let mut children = self.children.borrow_mut();
+        let old_parent = child.parent.replace(Some(Rc::downgrade(self)));
+        assert!(old_parent.is_none());
+        children.insert(0, child);
     }
 
     fn insert_children_before(&self, existing: &Handle, new: impl Iterator<Item = Handle>) {
