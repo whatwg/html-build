@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::io;
 
 use html5ever::tendril::StrTendril;
-use html5ever::{LocalName, QualName, local_name, namespace_url, ns};
+use html5ever::{LocalName, QualName, local_name, ns};
 use markup5ever_rcdom::{Handle, NodeData};
 use regex::Regex;
 

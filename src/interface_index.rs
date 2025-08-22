@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::io;
 
 use html5ever::tendril::StrTendril;
-use html5ever::{QualName, local_name, namespace_url, ns};
+use html5ever::{QualName, local_name, ns};
 use markup5ever_rcdom::Handle;
 
 use crate::dom_utils::NodeHandleExt;
