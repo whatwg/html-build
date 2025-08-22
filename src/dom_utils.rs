@@ -137,10 +137,9 @@ pub fn scan_dom<F: FnMut(&Handle)>(handle: &Handle, f: &mut F) {
         template_contents: ref tc,
         ..
     } = handle.data
+        && let Some(ref tc_handle) = *tc.borrow()
     {
-        if let Some(ref tc_handle) = *tc.borrow() {
-            scan_dom(tc_handle, f);
-        }
+        scan_dom(tc_handle, f);
     }
 }
 

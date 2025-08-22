@@ -142,11 +142,11 @@ impl Processor {
                 let mut variant_comment = None;
                 let mut variant_str = None;
                 for node in description.iter() {
-                    if let NodeData::Comment { contents } = &node.data {
-                        if contents.trim().starts_with("or:") {
-                            variant_comment = Some(node);
-                            variant_str = Some(StrTendril::from(contents.trim()[3..].trim_start()));
-                        }
+                    if let NodeData::Comment { contents } = &node.data
+                        && contents.trim().starts_with("or:")
+                    {
+                        variant_comment = Some(node);
+                        variant_str = Some(StrTendril::from(contents.trim()[3..].trim_start()));
                     }
                 }
 
@@ -276,14 +276,14 @@ impl Processor {
             let mut dd_children = dd.children.borrow_mut();
             if has_special_semantics {
                 // Replace the trailing period with a separating colon.
-                if let Some(last) = dd_children.last_mut() {
-                    if let NodeData::Text { contents } = &last.data {
-                        let mut text = contents.borrow_mut();
-                        *text = StrTendril::from(
-                            text.trim_end_matches(|c: char| c.is_ascii_whitespace() || c == '.'),
-                        );
-                        text.push_slice(": ");
-                    }
+                if let Some(last) = dd_children.last_mut()
+                    && let NodeData::Text { contents } = &last.data
+                {
+                    let mut text = contents.borrow_mut();
+                    *text = StrTendril::from(
+                        text.trim_end_matches(|c: char| c.is_ascii_whitespace() || c == '.'),
+                    );
+                    text.push_slice(": ");
                 }
             } else {
                 // Insert an em dash.
