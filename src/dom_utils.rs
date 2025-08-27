@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use html5ever::tendril::StrTendril;
-use html5ever::{Attribute, LocalName, QualName, local_name, namespace_url, ns};
+use html5ever::{Attribute, LocalName, QualName, local_name, ns};
 use markup5ever_rcdom::{Handle, Node, NodeData};
 
 /// Extensions to the DOM interface to make manipulation more ergonimc.
@@ -137,10 +137,9 @@ pub fn scan_dom<F: FnMut(&Handle)>(handle: &Handle, f: &mut F) {
         template_contents: ref tc,
         ..
     } = handle.data
+        && let Some(ref tc_handle) = *tc.borrow()
     {
-        if let Some(ref tc_handle) = *tc.borrow() {
-            scan_dom(tc_handle, f);
-        }
+        scan_dom(tc_handle, f);
     }
 }
 

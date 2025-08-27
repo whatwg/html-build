@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::io;
 
 use html5ever::tendril::StrTendril;
-use html5ever::{LocalName, QualName, local_name, namespace_url, ns};
+use html5ever::{LocalName, QualName, local_name, ns};
 use markup5ever_rcdom::{Handle, NodeData};
 use regex::Regex;
 
@@ -67,19 +67,17 @@ impl Processor {
         // If we encounter the Void elements section, look for the next dt.
         if node.is_html_element(&local_name!("dfn"))
             && node.text_content().trim() == "Void elements"
-        {
-            if let Some(dt) = node
+            && let Some(dt) = node
                 .parent_node()
                 .filter(|n| n.is_html_element(&local_name!("dt")))
-            {
-                for dd in dom_utils::dt_descriptions(&dt) {
-                    dom_utils::scan_dom(&dd, &mut |n| {
-                        if n.is_html_element(&local_name!("code")) {
-                            let info = self.elements.entry(n.text_content()).or_default();
-                            info.is_void_element = true;
-                        }
-                    });
-                }
+        {
+            for dd in dom_utils::dt_descriptions(&dt) {
+                dom_utils::scan_dom(&dd, &mut |n| {
+                    if n.is_html_element(&local_name!("code")) {
+                        let info = self.elements.entry(n.text_content()).or_default();
+                        info.is_void_element = true;
+                    }
+                });
             }
         }
 
@@ -91,12 +89,13 @@ impl Processor {
         }
 
         // If we see a <dl class="element">, record that.
-        if node.is_html_element(&local_name!("dl")) && node.has_class("element") {
-            if let Some(elem) = std::mem::take(&mut self.most_recent_element_dfn) {
-                let info = self.elements.entry(elem).or_default();
-                if info.dl.is_none() {
-                    info.dl = Some(node.clone());
-                }
+        if node.is_html_element(&local_name!("dl"))
+            && node.has_class("element")
+            && let Some(elem) = std::mem::take(&mut self.most_recent_element_dfn)
+        {
+            let info = self.elements.entry(elem).or_default();
+            if info.dl.is_none() {
+                info.dl = Some(node.clone());
             }
         }
     }

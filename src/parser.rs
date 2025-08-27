@@ -50,6 +50,7 @@ pub async fn parse_fragment_async<R: AsyncRead + Unpin>(
         RcDomWithLineNumbers::default(),
         create_error_opts(),
         context.clone(),
+        false,
         None,
     );
 
@@ -139,6 +140,25 @@ pub(crate) mod tests {
         let error = result.unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
         assert!(error.to_string().contains("Line 2: "));
+
+        Ok(())
+    }
+
+    // See https://github.com/whatwg/html-build/issues/301
+    #[tokio::test]
+    async fn test_document_error_line_number_pre() -> io::Result<()> {
+        let result = parse_document_async(
+            r##"<!DOCTYPE html>
+<pre>h1&gt;
+</pre>
+<p>Test 2</span>"##
+                .as_bytes(),
+        )
+        .await;
+
+        let error = result.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("Line 4: "));
 
         Ok(())
     }

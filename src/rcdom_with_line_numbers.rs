@@ -5,15 +5,16 @@ use html5ever::interface::TreeSink;
 use html5ever::{
     Attribute, ExpandedName, QualName,
     tendril::StrTendril,
-    tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode},
+    tree_builder::{ElementFlags, NodeOrText, QuirksMode},
 };
 use markup5ever_rcdom::{Handle, RcDom};
 use std::borrow::Cow;
+use std::cell::Cell;
 use std::io;
 
 pub struct RcDomWithLineNumbers {
     dom: RcDom,
-    current_line: u64,
+    current_line: Cell<u64>,
 }
 
 impl RcDomWithLineNumbers {
@@ -23,10 +24,11 @@ impl RcDomWithLineNumbers {
     }
 
     pub fn create_error_from_parse_errors(&self) -> io::Result<()> {
-        if !self.dom.errors.is_empty() {
+        if !self.dom.errors.borrow().is_empty() {
             let error_messages = self
                 .dom
                 .errors
+                .borrow()
                 .iter()
                 .map(|e| e.to_string())
                 .collect::<Vec<String>>()
@@ -45,7 +47,7 @@ impl Default for RcDomWithLineNumbers {
     fn default() -> Self {
         Self {
             dom: RcDom::default(),
-            current_line: 1,
+            current_line: Cell::new(1),
         }
     }
 }
@@ -54,15 +56,17 @@ impl TreeSink for RcDomWithLineNumbers {
     type Output = RcDomWithLineNumbers;
     type Handle = <RcDom as TreeSink>::Handle;
 
+    type ElemName<'a> = <RcDom as TreeSink>::ElemName<'a>;
+
     // Override the parse_error method to add line numbers to the error messages.
-    fn parse_error(&mut self, msg: Cow<'static, str>) {
-        let msg_with_line = format!("Line {}: {}", self.current_line, msg);
+    fn parse_error(&self, msg: Cow<'static, str>) {
+        let msg_with_line = format!("Line {}: {}", self.current_line.get(), msg);
         self.dom.parse_error(Cow::Owned(msg_with_line));
     }
 
     // Override to track the current line number.
-    fn set_current_line(&mut self, line: u64) {
-        self.current_line = line;
+    fn set_current_line(&self, line: u64) {
+        self.current_line.set(line);
     }
 
     // Override to return RcDomWithLineNumbers instead of RcDom.
@@ -73,69 +77,67 @@ impl TreeSink for RcDomWithLineNumbers {
     // Delegate all other methods to RcDom.
     delegate! {
         to self.dom {
-            fn get_document(&mut self) -> Self::Handle;
+            fn get_document(&self) -> Self::Handle;
 
             fn elem_name<'a>(&'a self, target: &'a Self::Handle) -> ExpandedName<'a>;
 
             fn create_element(
-                &mut self,
+                &self,
                 name: QualName,
                 attrs: Vec<Attribute>,
                 flags: ElementFlags,
             ) -> Self::Handle;
 
-            fn create_comment(&mut self, text: StrTendril) -> Self::Handle;
+            fn create_comment(&self, text: StrTendril) -> Self::Handle;
 
-            fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> Self::Handle;
+            fn create_pi(&self, target: StrTendril, data: StrTendril) -> Self::Handle;
 
-            fn append(&mut self, parent: &Self::Handle, child: NodeOrText<Self::Handle>);
+            fn append(&self, parent: &Self::Handle, child: NodeOrText<Self::Handle>);
 
             fn append_based_on_parent_node(
-                &mut self,
+                &self,
                 element: &Self::Handle,
                 prev_element: &Self::Handle,
                 child: NodeOrText<Self::Handle>,
             );
 
             fn append_doctype_to_document(
-                &mut self,
+                &self,
                 name: StrTendril,
                 public_id: StrTendril,
                 system_id: StrTendril,
             );
 
-            fn mark_script_already_started(&mut self, node: &Self::Handle);
+            fn mark_script_already_started(&self, node: &Self::Handle);
 
-            fn pop(&mut self, node: &Self::Handle);
+            fn pop(&self, node: &Self::Handle);
 
-            fn get_template_contents(&mut self, target: &Self::Handle) -> Self::Handle;
+            fn get_template_contents(&self, target: &Self::Handle) -> Self::Handle;
 
             fn same_node(&self, x: &Self::Handle, y: &Self::Handle) -> bool;
 
-            fn set_quirks_mode(&mut self, mode: QuirksMode);
+            fn set_quirks_mode(&self, mode: QuirksMode);
 
             fn append_before_sibling(
-                &mut self,
+                &self,
                 sibling: &Self::Handle,
                 new_node: NodeOrText<Self::Handle>,
             );
 
-            fn add_attrs_if_missing(&mut self, target: &Self::Handle, attrs: Vec<Attribute>);
+            fn add_attrs_if_missing(&self, target: &Self::Handle, attrs: Vec<Attribute>);
 
             fn associate_with_form(
-                &mut self,
+                &self,
                 target: &Self::Handle,
                 form: &Self::Handle,
                 nodes: (&Self::Handle, Option<&Self::Handle>),
             );
 
-            fn remove_from_parent(&mut self, target: &Self::Handle);
+            fn remove_from_parent(&self, target: &Self::Handle);
 
-            fn reparent_children(&mut self, node: &Self::Handle, new_parent: &Self::Handle);
+            fn reparent_children(&self, node: &Self::Handle, new_parent: &Self::Handle);
 
             fn is_mathml_annotation_xml_integration_point(&self, handle: &Self::Handle) -> bool;
-
-            fn complete_script(&mut self, node: &Self::Handle) -> NextParserState;
         }
     }
 }

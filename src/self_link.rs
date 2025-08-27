@@ -1,7 +1,7 @@
 //! Inserts `<a class="self-link" href="#ID">` links for elements with `id` attributes and certain classes.
 
 use html5ever::tendril::StrTendril;
-use html5ever::{QualName, local_name, namespace_url, ns};
+use html5ever::{QualName, local_name, ns};
 use markup5ever_rcdom::Handle;
 use url::Url;
 
