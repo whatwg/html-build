@@ -11,25 +11,54 @@ env:
 
 
 jobs:
-  build:
-    name: Build
+  static-checks:
+    name: Static Checks
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout whatwg/html-build
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Check formatting
+        run: cargo fmt --check
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
+      - name: Run tests
+        run: cargo test
+      - name: Shellcheck
+        run: |
+          shellcheck *.sh
+          shellcheck ci-build/*.sh
+
+  build-and-publish:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    needs: [static-checks]
     permissions:
       contents: read
       packages: write
     steps:
     - name: Checkout whatwg/html-build
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Shellcheck
-      run: |
-        shellcheck *.sh
-        shellcheck ci-build/*.sh
     - name: Docker build
       run: ci-build/docker-build.sh
     - name: Checkout whatwg/html
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: whatwg/html
         path: html
@@ -40,7 +69,7 @@ jobs:
         bash ci-build/docker-run.sh "$GITHUB_WORKSPACE/html" output
     - name: Docker login
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}

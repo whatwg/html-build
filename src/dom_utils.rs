@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use html5ever::tendril::StrTendril;
-use html5ever::{local_name, namespace_url, ns, Attribute, LocalName, QualName};
+use html5ever::{Attribute, LocalName, QualName, local_name, ns};
 use markup5ever_rcdom::{Handle, Node, NodeData};
 
 /// Extensions to the DOM interface to make manipulation more ergonimc.
@@ -37,6 +37,9 @@ pub trait NodeHandleExt {
     /// Returns true if the node is an element with the given class.
     fn has_class(&self, class: &str) -> bool;
 
+    /// Returns true if the node is an element with any of the given classes.
+    fn has_any_class(&self, classes: &[&str]) -> bool;
+
     /// Returns true if the node is an element with the given ID.
     fn has_id(&self, id: &str) -> bool {
         const ID: QualName = QualName {
@@ -58,6 +61,11 @@ pub trait NodeHandleExt {
 
     /// Appends children (without checking node type).
     fn append_children(&self, children: impl Iterator<Item = Self>);
+
+    /// Prepends a single child to the node's children.
+    fn prepend_child(&self, child: Self)
+    where
+        Self: Sized;
 
     /// Inserts children before the specified child.
     fn insert_children_before(&self, existing: &Self, new: impl Iterator<Item = Self>);
@@ -129,10 +137,9 @@ pub fn scan_dom<F: FnMut(&Handle)>(handle: &Handle, f: &mut F) {
         template_contents: ref tc,
         ..
     } = handle.data
+        && let Some(ref tc_handle) = *tc.borrow()
     {
-        if let Some(ref tc_handle) = *tc.borrow() {
-            scan_dom(tc_handle, f);
-        }
+        scan_dom(tc_handle, f);
     }
 }
 
@@ -223,7 +230,7 @@ impl NodeHandleExt for Handle {
                 name:
                     QualName {
                         ns: ns!(html),
-                        ref local,
+                        local,
                         ..
                     },
                 ..
@@ -239,12 +246,22 @@ impl NodeHandleExt for Handle {
             local: local_name!("class"),
         };
         self.get_attribute(&CLASS)
-            .map_or(false, |v| v.split_ascii_whitespace().any(|c| c == class))
+            .is_some_and(|v| v.split_ascii_whitespace().any(|c| c == class))
+    }
+
+    fn has_any_class(&self, classes: &[&str]) -> bool {
+        const CLASS: QualName = QualName {
+            prefix: None,
+            ns: ns!(),
+            local: local_name!("class"),
+        };
+        self.get_attribute(&CLASS)
+            .is_some_and(|v| v.split_ascii_whitespace().any(|c| classes.contains(&c)))
     }
 
     fn node_text(&self) -> Option<StrTendril> {
         match &self.data {
-            NodeData::Text { ref contents } => Some(contents.borrow().clone()),
+            NodeData::Text { contents } => Some(contents.borrow().clone()),
             _ => None,
         }
     }
@@ -252,7 +269,7 @@ impl NodeHandleExt for Handle {
     fn text_content(&self) -> StrTendril {
         let mut text = StrTendril::new();
         scan_dom(self, &mut |n| {
-            if let NodeData::Text { ref contents } = &n.data {
+            if let NodeData::Text { contents } = &n.data {
                 text.push_tendril(&contents.borrow());
             }
         });
@@ -268,6 +285,13 @@ impl NodeHandleExt for Handle {
             let old_parent = c.parent.replace(Some(Rc::downgrade(self)));
             assert!(old_parent.is_none());
         }));
+    }
+
+    fn prepend_child(&self, child: Handle) {
+        let mut children = self.children.borrow_mut();
+        let old_parent = child.parent.replace(Some(Rc::downgrade(self)));
+        assert!(old_parent.is_none());
+        children.insert(0, child);
     }
 
     fn insert_children_before(&self, existing: &Handle, new: impl Iterator<Item = Handle>) {

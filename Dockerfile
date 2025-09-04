@@ -1,4 +1,4 @@
-FROM rust:1.73-slim as builder
+FROM rust:1.88-slim as builder
 WORKDIR /whatwg/html-build
 COPY Cargo.lock Cargo.toml ./
 COPY src ./src/
