@@ -38,7 +38,6 @@ HTML_GIT_CLONE_OPTIONS=${HTML_GIT_CLONE_OPTIONS:-"--depth=2"}
 
 # This is used by child scripts, and so we export it
 export HTML_CACHE
-export USE_BIKESHED
 
 # Used specifically when the Dockerfile calls this script
 SKIP_BUILD_UPDATE_CHECK=${SKIP_BUILD_UPDATE_CHECK:-false}
@@ -675,7 +674,6 @@ function processSource {
   if [[ $USE_BIKESHED == "true" ]]; then
     clearDir "$HTML_TEMP/bikeshed-output"
 
-    # TODO: port to html-build Rust code
     node wattsi2bikeshed.js "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/source-whatwg-complete.bs"
 
     local bikeshed_args=( --force )
