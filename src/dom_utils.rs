@@ -5,7 +5,7 @@ use html5ever::tendril::StrTendril;
 use html5ever::{Attribute, LocalName, QualName, local_name, ns};
 use markup5ever_rcdom::{Handle, Node, NodeData};
 
-/// Extensions to the DOM interface to make manipulation more ergonimc.
+/// Extensions to the DOM interface to make manipulation more ergonomic.
 pub trait NodeHandleExt {
     /// Returns a handle to the parent node, if there is one.
     fn parent_node(&self) -> Option<Self>
