@@ -19,6 +19,7 @@ mod rcdom_with_line_numbers;
 mod represents;
 mod self_link;
 mod tag_omission;
+mod variables;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -60,11 +61,13 @@ async fn run_preprocess() -> io::Result<()> {
     let mut tag_omission = tag_omission::Processor::new();
     let mut interface_index = interface_index::Processor::new();
     let mut self_link = self_link::Processor::new();
+    let mut variables = variables::Processor::new(&parsed);
 
     // We do exactly one pass to identify the changes that need to be made.
     dom_utils::scan_dom(&document, &mut |h| {
         boilerplate.visit(h);
         represents.visit(h);
+        variables.visit(h);
         annotate_attributes.visit(h);
         tag_omission.visit(h);
         interface_index.visit(h);
@@ -76,6 +79,7 @@ async fn run_preprocess() -> io::Result<()> {
     // conflicts between them.
     boilerplate.apply().await?;
     represents.apply()?;
+    variables.apply()?;
     annotate_attributes.apply().await?;
     tag_omission.apply()?;
     interface_index.apply()?;
