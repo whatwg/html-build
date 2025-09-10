@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 
 use markup5ever_rcdom::SerializableHandle;
 
+mod anchor_permanence;
 mod annotate_attributes;
 mod boilerplate;
 mod dom_utils;
@@ -21,15 +22,25 @@ mod tag_omission;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
+    let is_post = env::args().any(|a| a == "--singlepage-post");
+    let result = if is_post {
+        // --singlepage-post runs the postprocess phase, which is currently only meant to be used on the
+        // singlepage output from Wattsi.
+        run_postprocess().await
+    } else {
+        // By default we run the preprocess phase, which creates a new input for Wattsi.
+        run_preprocess().await
+    };
+
     // This gives slightly prettier error-printing.
-    if let Err(e) = run().await {
+    if let Err(e) = result {
         eprintln!("{e}");
         std::process::exit(1);
     }
     Ok(())
 }
 
-async fn run() -> io::Result<()> {
+async fn run_preprocess() -> io::Result<()> {
     // Since we're using Rc in the DOM implementation, we must ensure that tasks
     // which act on it are confined to this thread.
 
@@ -70,6 +81,27 @@ async fn run() -> io::Result<()> {
     self_link.apply()?;
 
     // Finally, we write the result to standard out.
+    let serializable: SerializableHandle = document.into();
+    serialize(
+        &mut BufWriter::with_capacity(128 * 1024, io::stdout()),
+        &serializable,
+        SerializeOpts::default(),
+    )?;
+    Ok(())
+}
+
+// The steps and considerations here are similar to run_preprocess.
+async fn run_postprocess() -> io::Result<()> {
+    let document = parser::parse_document_async(tokio::io::stdin()).await?;
+
+    let mut anchor_permanence = anchor_permanence::Processor::new();
+
+    dom_utils::scan_dom(&document, &mut |h| {
+        anchor_permanence.visit(h);
+    });
+
+    anchor_permanence.apply()?;
+
     let serializable: SerializableHandle = document.into();
     serialize(
         &mut BufWriter::with_capacity(128 * 1024, io::stdout()),
