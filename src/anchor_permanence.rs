@@ -87,57 +87,64 @@ mod tests {
     use super::*;
     use crate::dom_utils;
     use crate::parser::{parse_document_async, tests::serialize_for_test};
+    use std::io;
 
     #[tokio::test]
-    async fn removes_script_from_head() {
-        let document = parse_document_async(r#"<!DOCTYPE html>
+    async fn removes_script_from_head() -> io::Result<()> {
+        let parsed = parse_document_async(r#"<!DOCTYPE html>
 <html><head><script type="text/required-ids">a b c</script></head><body><div id="a"></div><p id="b"></p><section id="c"></section></body></html>
-"#.as_bytes()).await.unwrap();
+"#.as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut processor = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| processor.visit(h));
         processor.apply().unwrap();
         let serialized = serialize_for_test(&[document]);
         assert!(!serialized.contains("text/required-ids"));
+        Ok(())
     }
 
     #[tokio::test]
-    async fn no_script_present_noop() {
-        let document = parse_document_async(
+    async fn no_script_present_noop() -> io::Result<()> {
+        let parsed = parse_document_async(
             r#"<!DOCTYPE html>
 <html><head></head><body></body></html>
 "#
             .as_bytes(),
         )
-        .await
-        .unwrap();
+        .await?;
+        let document = parsed.document().clone();
         let before = serialize_for_test(&[document.clone()]);
         let mut processor = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| processor.visit(h));
         processor.apply().unwrap();
         assert_eq!(before, serialize_for_test(&[document]));
+        Ok(())
     }
 
     #[tokio::test]
-    async fn whitespace_splitting() {
+    async fn whitespace_splitting() -> io::Result<()> {
         // Includes indentation, multiple spaces, and newlines in the script content.
-        let document = parse_document_async(r#"<!DOCTYPE html><html><head><script type="text/required-ids">
+        let parsed = parse_document_async(r#"<!DOCTYPE html><html><head><script type="text/required-ids">
         foo   bar
             baz
     qux
 </script></head><body><div id="foo"></div><div id="bar"></div><div id="baz"></div><div id="qux"></div></body></html>
-"#.as_bytes()).await.unwrap();
+"#.as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut processor = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| processor.visit(h));
         processor.apply().unwrap();
         let serialized = serialize_for_test(&[document]);
         assert!(!serialized.contains("text/required-ids"));
+        Ok(())
     }
 
     #[tokio::test]
-    async fn errors_on_missing_ids() {
-        let document = parse_document_async(r#"<!DOCTYPE html>
+    async fn errors_on_missing_ids() -> io::Result<()> {
+        let parsed = parse_document_async(r#"<!DOCTYPE html>
 <html><head><script type="text/required-ids">foo bar baz</script></head><body><div id="foo"></div></body></html>
-"#.as_bytes()).await.unwrap();
+"#.as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut processor = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| processor.visit(h));
         let err = processor.apply().expect_err("expected missing IDs error");
@@ -145,15 +152,17 @@ mod tests {
             err.to_string()
                 .contains("Missing required IDs for anchor permanence: bar, baz")
         );
+        Ok(())
     }
 
     #[tokio::test]
     #[should_panic(expected = "multiple required-ids scripts encountered")]
     async fn panics_on_multiple_required_ids_scripts() {
-        let document = parse_document_async(r#"<!DOCTYPE html><html><head>
+        let parsed = parse_document_async(r#"<!DOCTYPE html><html><head>
 <script type="text/required-ids">a b</script>
 <script type="text/required-ids">c d</script>
 </head><body><div id="a"></div><div id="b"></div><div id="c"></div><div id="d"></div></body></html>"#.as_bytes()).await.unwrap();
+        let document = parsed.document().clone();
         let mut processor = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| processor.visit(h));
     }

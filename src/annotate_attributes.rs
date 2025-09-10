@@ -311,7 +311,7 @@ mod tests {
         // before and after the attributes table, to demonstrate that this is
         // not sensitive to which order they occur in (i.e., these could be
         // reordered in the HTML spec).
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <h3>The a element</h3>
@@ -333,6 +333,7 @@ mod tests {
     <dd><code data-x="attr-area-href">href</code>
 </dl>
             "#.trim().as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;
@@ -368,7 +369,7 @@ mod tests {
     async fn test_variant() -> io::Result<()> {
         // This checks that <!-- variant --> and <!-- or: --> work correctly.
         // i.e., the variant description is used where requested
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <h3>The a element</h3>
@@ -386,6 +387,7 @@ mod tests {
     <dd><code data-x="attr-area-href">href</code><!-- variant -->
 </dl>
             "#.trim().as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;
@@ -415,7 +417,7 @@ mod tests {
     #[tokio::test]
     async fn test_special_semantics() -> io::Result<()> {
         // Checks that the special rules for using : instead of an em dash work.
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <h3>The a element</h3>
@@ -428,6 +430,7 @@ mod tests {
     <tr><th><code data-x>name</code><td><code data-x="attr-a-name">a</code><td>Anchor name
 </tbody></table>
             "#.trim().as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;
@@ -451,7 +454,7 @@ mod tests {
     #[tokio::test]
     async fn test_special_semantics_multiple() -> io::Result<()> {
         // Checks that the special rules for joining any special semantics with a ; work.
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <h3>The a element</h3>
@@ -465,6 +468,7 @@ mod tests {
     <tr><th><code data-x>name</code><td><code data-x="attr-a-name">a</code><td>Name of the anchor
 </tbody></table>
             "#.trim().as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;
@@ -490,7 +494,7 @@ mod tests {
     async fn test_identical_links() -> io::Result<()> {
         // This checks the same identifier can be linked multiple times without
         // repeating the description.
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <h3>The img element</h3>
@@ -508,6 +512,7 @@ mod tests {
     <tr><th><code data-x>width</code><td><code data-x="attr-dim-width">img</code>; <code data-x="attr-dim-width">video</code><td>Horizontal dimension
 </tbody></table>
             "#.trim().as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;

@@ -186,7 +186,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_two_interfaces_in_one_block() -> io::Result<()> {
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <pre><code class=idl>
@@ -199,6 +199,7 @@ INSERT INTERFACES HERE
             .as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply()?;
@@ -216,7 +217,7 @@ interface <dfn interface="">HTMLBlinkElement</dfn> { ... }
 
     #[tokio::test]
     async fn test_two_interfaces_in_separate_blocks() -> io::Result<()> {
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <pre><code class=idl>
@@ -231,6 +232,7 @@ INSERT INTERFACES HERE
             .as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply()?;
@@ -250,7 +252,7 @@ interface <dfn interface="">HTMLBlinkElement</dfn> { ... }
 
     #[tokio::test]
     async fn interface_with_partial() -> io::Result<()> {
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <pre><code class=idl>
@@ -265,6 +267,7 @@ INSERT INTERFACES HERE
             .as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply()?;
@@ -284,7 +287,7 @@ partial interface <span id="HTMLMarqueeElement-partial">HTMLMarqueeElement</span
 
     #[tokio::test]
     async fn interface_with_two_partials() -> io::Result<()> {
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <pre><code class=idl>
@@ -298,6 +301,7 @@ INSERT INTERFACES HERE
             .as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply()?;
@@ -316,7 +320,7 @@ partial interface <span id="HTMLMarqueeElement-partial-2">HTMLMarqueeElement</sp
 
     #[tokio::test]
     async fn only_partials() -> io::Result<()> {
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <pre><code class=idl>
@@ -329,6 +333,7 @@ INSERT INTERFACES HERE
             .as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply()?;
@@ -346,7 +351,7 @@ partial interface <span id="HTMLMarqueeElement-partial-2">HTMLMarqueeElement</sp
 
     #[tokio::test]
     async fn marker_before() -> io::Result<()> {
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 INSERT INTERFACES HERE
@@ -358,6 +363,7 @@ interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
             .as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply()?;
@@ -376,7 +382,8 @@ interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
 
     #[tokio::test]
     async fn no_marker() -> io::Result<()> {
-        let document = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
+        let parsed = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         let result = proc.apply();
@@ -386,11 +393,12 @@ interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
 
     #[tokio::test]
     async fn duplicate_marker() -> io::Result<()> {
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             "<!DOCTYPE html><div>INSERT INTERFACES HERE</div><div>INSERT INTERFACES HERE</div>"
                 .as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         let result = proc.apply();
@@ -400,7 +408,7 @@ interface <dfn interface="">HTMLMarqueeElement</dfn> { ... }
 
     #[tokio::test]
     async fn duplicate_dfn() -> io::Result<()> {
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <pre><code class=idl>
@@ -411,6 +419,7 @@ interface <dfn interface>HTMLMarqueeElement</dfn> { ... }
             .as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         let result = proc.apply();
