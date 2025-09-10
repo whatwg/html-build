@@ -76,6 +76,11 @@ pub trait NodeHandleExt {
     where
         Self: Sized;
 
+    /// Removes the node from its parent.
+    fn remove(&self)
+    where
+        Self: Sized;
+
     /// Clones the node and its entire subtree (including template contents).
     fn deep_clone(&self) -> Self;
 
@@ -324,6 +329,10 @@ impl NodeHandleExt for Handle {
             .expect("corrupt child list");
         children.splice(i..=i, replacements);
         self.parent.take();
+    }
+
+    fn remove(&self) {
+        self.replace_with(Vec::new());
     }
 
     fn deep_clone(&self) -> Handle {

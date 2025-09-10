@@ -654,14 +654,7 @@ function processSource {
   $QUIET || echo "Pre-processing the source..."
   cp -p  entities/out/entities.inc "$HTML_CACHE"
   cp -p  entities/out/entities-dtd.url "$HTML_CACHE"
-  if hash html-build 2>/dev/null; then
-    html-build <"$HTML_SOURCE/$source_location" >"$HTML_TEMP/source-whatwg-complete"
-  else
-    local cargo_args=( --release )
-    $VERBOSE && cargo_args+=( --verbose )
-    $QUIET && cargo_args+=( --quiet )
-    cargo run "${cargo_args[@]}" <"$HTML_SOURCE/$source_location" >"$HTML_TEMP/source-whatwg-complete"
-  fi
+  runRustTools <"$HTML_SOURCE/$source_location" >"$HTML_TEMP/source-whatwg-complete"
 
   runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
   if [[ $WATTSI_RESULT == "0" ]]; then
@@ -690,7 +683,7 @@ function processSource {
 
   if [[ $build_type == "default" ]]; then
     # Singlepage HTML
-    mv "$HTML_TEMP/wattsi-output/index-html" "$HTML_OUTPUT/index.html"
+    runRustTools --singlepage-post <"$HTML_TEMP/wattsi-output/index-html" >"$HTML_OUTPUT/index.html"
 
     if [[ $SINGLE_PAGE_ONLY == "false" ]]; then
       # Singlepage Commit Snapshot
@@ -747,6 +740,22 @@ function checkWattsi {
     LOCAL_WATTSI=true
   else
     LOCAL_WATTSI=false
+  fi
+}
+
+# Runs the Rust-based build tools, either with the version in $PATH or by using cargo to compile
+# them beforehand.
+# - Arguments: all arguments to pass to the tools
+# - Output: whatever the tools output
+function runRustTools {
+  if hash html-build 2>/dev/null; then
+    html-build "$@"
+  else
+    local cargo_args=( --release )
+    $VERBOSE && cargo_args+=( --verbose )
+    $QUIET && cargo_args+=( --quiet )
+    cargo_args+=( -- )
+    cargo run "${cargo_args[@]}" "$@"
   fi
 }
 
