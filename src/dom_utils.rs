@@ -28,6 +28,9 @@ pub trait NodeHandleExt {
     /// Sets an attribute on the element. Must be an element.
     fn set_attribute(&self, name: &QualName, value: StrTendril);
 
+    /// Removes an attribute from the element, if present. Must be an element.
+    fn remove_attribute(&self, name: &QualName);
+
     /// Returns true if the node is an element.
     fn is_element(&self) -> bool;
 
@@ -222,6 +225,16 @@ impl NodeHandleExt for Handle {
                 name: name.clone(),
                 value,
             });
+        }
+    }
+
+    fn remove_attribute(&self, name: &QualName) {
+        let mut attrs = match self.data {
+            NodeData::Element { ref attrs, .. } => attrs.borrow_mut(),
+            _ => panic!("not an element"),
+        };
+        if let Some(i) = attrs.iter().position(|a| &a.name == name) {
+            attrs.remove(i);
         }
     }
 
