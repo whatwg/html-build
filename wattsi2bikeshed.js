@@ -196,8 +196,19 @@ function convert(infile, outfile) {
         }
     }
 
-    // TODO: handle w-* variant attributes like Wattsi does:
+    // Handle w-nodev and similar attributes. Wattsi handling is here:
     // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L735-L759
+    const includeAttributes = ['w-nodev', 'w-nosnap', 'w-noreview', 'w-nosplit'];
+    const excludeAttributes = ['w-dev', 'w-nohtml'];
+
+    const includeSelector = includeAttributes.map(attr => `[${attr}]`).join(', ');
+    for (const elem of document.querySelectorAll(includeSelector)) {
+        replaceWithChildren(elem);
+    }
+    const excludeSelector = excludeAttributes.map(attr => `[${attr}]`).join(', ');
+    for (const elem of document.querySelectorAll(excludeSelector)) {
+        elem.remove();
+    }
 
     // Scan all definitions
     const crossRefs = new Map(); // map from Wattsi topic to <dfn>
