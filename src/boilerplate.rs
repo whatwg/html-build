@@ -166,10 +166,11 @@ mod tests {
             "<tr><td>en<td>English",
         )
         .await?;
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             "<!DOCTYPE html><table><!--BOILERPLATE languages--></table>".as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new(boilerplate_dir.path(), Path::new("."));
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;
@@ -188,10 +189,11 @@ mod tests {
             "data:text/html,Hello, world!",
         )
         .await?;
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             "<!DOCTYPE html><a href=\"<!--BOILERPLATE data.url-->\">hello</a>".as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new(boilerplate_dir.path(), Path::new("."));
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;
@@ -208,9 +210,10 @@ mod tests {
         tokio::fs::write(example_dir.path().join("ex1"), "first").await?;
         tokio::fs::write(example_dir.path().join("ex2"), "second").await?;
         tokio::fs::write(example_dir.path().join("ignored"), "bad").await?;
-        let document =
+        let parsed =
             parse_document_async("<!DOCTYPE html><pre>EXAMPLE ex1</pre><pre><code class=html>\nEXAMPLE ex2  </code></pre><p>EXAMPLE ignored</p>".as_bytes())
                 .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new(Path::new("."), example_dir.path());
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply().await?;
@@ -229,7 +232,8 @@ mod tests {
             "<!DOCTYPE html><body><pre>EXAMPLE ../foo</pre>",
         ];
         for example in bad_path_examples {
-            let document = parse_document_async(example.as_bytes()).await?;
+            let parsed = parse_document_async(example.as_bytes()).await?;
+            let document = parsed.document().clone();
             let mut proc = Processor::new(Path::new("."), Path::new("."));
             dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
             let result = proc.apply().await;

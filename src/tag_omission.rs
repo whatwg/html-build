@@ -203,7 +203,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_simple() -> io::Result<()> {
-        let document = parse_document_async(
+        let parsed = parse_document_async(
             r#"
 <!DOCTYPE html>
 <h3>Optional tags</h3>
@@ -252,6 +252,7 @@ mod tests {
             .as_bytes(),
         )
         .await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply()?;

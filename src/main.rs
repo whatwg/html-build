@@ -51,7 +51,8 @@ async fn run_preprocess() -> io::Result<()> {
     // Because parsing can jump around the tree a little, it's most reasonable
     // to just parse the whole document before doing any processing. Even for
     // the HTML standard, this doesn't take too long.
-    let document = parser::parse_document_async(tokio::io::stdin()).await?;
+    let parsed = parser::parse_document_async(tokio::io::stdin()).await?;
+    let document = parsed.document().clone();
 
     let mut boilerplate = boilerplate::Processor::new(cache_dir.clone(), source_dir.join("demos"));
     let mut represents = represents::Processor::new();
@@ -92,7 +93,8 @@ async fn run_preprocess() -> io::Result<()> {
 
 // The steps and considerations here are similar to run_preprocess.
 async fn run_postprocess() -> io::Result<()> {
-    let document = parser::parse_document_async(tokio::io::stdin()).await?;
+    let parsed = parser::parse_document_async(tokio::io::stdin()).await?;
+    let document = parsed.document().clone();
 
     let mut anchor_permanence = anchor_permanence::Processor::new();
 

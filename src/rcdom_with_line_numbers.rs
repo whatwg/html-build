@@ -17,6 +17,13 @@ pub struct RcDomWithLineNumbers {
     current_line: Cell<u64>,
 }
 
+#[cfg(test)]
+impl std::fmt::Debug for RcDomWithLineNumbers {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("RcDomWithLineNumbers")
+    }
+}
+
 impl RcDomWithLineNumbers {
     // Expose out the document and errors from the inner RcDom
     pub fn document(&self) -> &Handle {

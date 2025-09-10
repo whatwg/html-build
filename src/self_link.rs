@@ -97,10 +97,11 @@ mod tests {
     use super::*;
     use crate::dom_utils;
     use crate::parser::{parse_document_async, tests::serialize_for_test};
+    use std::io;
 
     #[tokio::test]
-    async fn test_add_self_link() {
-        let document = parse_document_async(
+    async fn test_add_self_link() -> io::Result<()> {
+        let parsed = parse_document_async(
             r##"<!DOCTYPE html>
 <div class="example" id="foo"></div>
 <div class="note" id="bar"></div>
@@ -110,12 +111,12 @@ mod tests {
 "##
             .as_bytes(),
         )
-        .await
-        .unwrap();
+        .await?;
+        let document = parsed.document().clone();
 
         let mut processor = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| processor.visit(h));
-        processor.apply().unwrap();
+        processor.apply()?;
 
         assert_eq!(
             serialize_for_test(&[document]),
@@ -126,85 +127,90 @@ mod tests {
 <div id="qux"></div>
 </body></html>"##
         );
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_add_self_link_details() {
-        let document = parse_document_async(
+    async fn test_add_self_link_details() -> io::Result<()> {
+        let parsed = parse_document_async(
             r##"<!DOCTYPE html>
 <details class="example" id="foo"><summary>Foo</summary></details>
 "##
             .as_bytes(),
         )
-        .await
-        .unwrap();
+        .await?;
+        let document = parsed.document().clone();
 
         let mut processor = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| processor.visit(h));
-        processor.apply().unwrap();
+        processor.apply()?;
 
         assert_eq!(
             serialize_for_test(&[document]),
             r##"<!DOCTYPE html><html><head></head><body><details class="example" id="foo"><summary>Foo</summary><a href="#foo" class="self-link"></a></details>
 </body></html>"##
         );
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_add_self_link_details_no_summary() {
-        let document = parse_document_async(
+    async fn test_add_self_link_details_no_summary() -> io::Result<()> {
+        let parsed = parse_document_async(
             r##"<!DOCTYPE html><details class="example" id="foo"></details>"##.as_bytes(),
         )
-        .await
-        .unwrap();
+        .await?;
+        let document = parsed.document().clone();
 
         let mut processor = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| processor.visit(h));
         let result = processor.apply();
         assert!(result.is_err());
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_add_self_link_already_present() {
-        let document = parse_document_async(
+    async fn test_add_self_link_already_present() -> io::Result<()> {
+        let parsed = parse_document_async(
             r##"<!DOCTYPE html>
 <div class="example" id="foo"><a class="self-link" href="#foo"></a></div>
 "##
             .as_bytes(),
         )
-        .await
-        .unwrap();
+        .await?;
+        let document = parsed.document().clone();
 
         let mut processor = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| processor.visit(h));
-        processor.apply().unwrap();
+        processor.apply()?;
 
         assert_eq!(
             serialize_for_test(&[document]),
             r##"<!DOCTYPE html><html><head></head><body><div class="example" id="foo"><a class="self-link" href="#foo"></a></div>
 </body></html>"##
         );
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_url_encoding() {
-        let document = parse_document_async(
+    async fn test_url_encoding() -> io::Result<()> {
+        let parsed = parse_document_async(
             r##"<!DOCTYPE html>
 <div class="example" id="foo bar"></div>
 "##
             .as_bytes(),
         )
-        .await
-        .unwrap();
+        .await?;
+        let document = parsed.document().clone();
 
         let mut processor = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| processor.visit(h));
-        processor.apply().unwrap();
+        processor.apply()?;
 
         assert_eq!(
             serialize_for_test(&[document]),
             r##"<!DOCTYPE html><html><head></head><body><div class="example" id="foo bar"><a href="#foo%20bar" class="self-link"></a></div>
 </body></html>"##
         );
+        Ok(())
     }
 }

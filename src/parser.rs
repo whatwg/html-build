@@ -65,12 +65,12 @@ pub async fn parse_fragment_async<R: AsyncRead + Unpin>(
     Ok(new_children)
 }
 
-pub async fn parse_document_async<R: AsyncRead + Unpin>(r: R) -> io::Result<Handle> {
+pub async fn parse_document_async<R: AsyncRead + Unpin>(r: R) -> io::Result<RcDomWithLineNumbers> {
     let parser = driver::parse_document(RcDomWithLineNumbers::default(), create_error_opts());
     let dom = parse_internal_async(parser, r).await?;
     dom.create_error_from_parse_errors()?;
 
-    Ok(dom.document().clone())
+    Ok(dom)
 }
 
 fn create_error_opts() -> ParseOpts {
@@ -120,7 +120,8 @@ pub(crate) mod tests {
         // we're in. This is important because of the special rules
         // surrounding, e.g., tables. If you change this to use the body as context,
         // no element at all is emitted.
-        let document = parse_document_async("<!DOCTYPE html><table></table>".as_bytes()).await?;
+        let parsed = parse_document_async("<!DOCTYPE html><table></table>".as_bytes()).await?;
+        let document = parsed.document().clone();
         let body = document.children.borrow()[1].children.borrow()[1].clone();
         assert!(body.is_html_element(&local_name!("body")));
         let table = body.children.borrow()[0].clone();
@@ -176,7 +177,8 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_fragment_error_line_number() -> io::Result<()> {
-        let document = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
+        let parsed = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
+        let document = parsed.document().clone();
         let body = document.children.borrow()[1].children.borrow()[1].clone();
         assert!(body.is_html_element(&local_name!("body")));
         let result = parse_fragment_async(
@@ -194,7 +196,8 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_fragment_error_exact() -> io::Result<()> {
-        let document = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
+        let parsed = parse_document_async("<!DOCTYPE html>".as_bytes()).await?;
+        let document = parsed.document().clone();
         let body = document.children.borrow()[1].children.borrow()[1].clone();
         assert!(body.is_html_element(&local_name!("body")));
         let result = parse_fragment_async("&asdf;".as_bytes(), &body).await;

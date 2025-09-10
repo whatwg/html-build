@@ -128,7 +128,8 @@ mod tests {
     #[tokio::test]
     async fn test_represents() -> io::Result<()> {
         // Uses can occur either before or after.
-        let document = parse_document_async("<!DOCTYPE html><p><!--REPRESENTS chair--><p>The <code>chair</code> element <span>represents</span> a seat\nat a <code>table</code>.<p><!--REPRESENTS chair-->".as_bytes()).await?;
+        let parsed = parse_document_async("<!DOCTYPE html><p><!--REPRESENTS chair--><p>The <code>chair</code> element <span>represents</span> a seat\nat a <code>table</code>.<p><!--REPRESENTS chair-->".as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         proc.apply()?;
@@ -142,7 +143,8 @@ mod tests {
     #[tokio::test]
     async fn test_represents_undefined() -> io::Result<()> {
         // Uses can occur either before or after.
-        let document = parse_document_async("<!DOCTYPE html><p><!--REPRESENTS chain--><p>The <code>chair</code> element <span>represents</span> a seat\nat a <code>table</code>.<p><!--REPRESENTS chair-->".as_bytes()).await?;
+        let parsed = parse_document_async("<!DOCTYPE html><p><!--REPRESENTS chain--><p>The <code>chair</code> element <span>represents</span> a seat\nat a <code>table</code>.<p><!--REPRESENTS chair-->".as_bytes()).await?;
+        let document = parsed.document().clone();
         let mut proc = Processor::new();
         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
         let result = proc.apply();
