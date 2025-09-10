@@ -378,6 +378,10 @@ function convert(infile, outfile) {
 
     for (const code of document.querySelectorAll('pre > code')) {
         const pre = code.parentNode;
+        if (pre.firstChild !== code || pre.lastChild !== code) {
+            console.warn('Skipping a <pre><code> with sibling nodes: ' + pre.outerHTML);
+            continue;
+        }
         if (code.hasAttribute('class')) {
             switch (code.className) {
                 case 'idl':
@@ -395,15 +399,11 @@ function convert(infile, outfile) {
                 default:
                     console.warn('Unhandled <pre><code> class:', code.className);
             }
-            code.removeAttribute('class');
         }
-        if (code.getAttribute(kCrossRefAttribute) === '') {
-            code.removeAttribute(kCrossRefAttribute);
-        }
-        if (code.hasAttributes()) {
-            console.warn('Discarding <code> attributes:', code.outerHTML);
-        }
-        replaceWithChildren(code);
+        // Strip any markup in the code.
+        // TODO: Indent as much as the <pre> element is indented. This is the
+        // style in other WHATWG specs using Bikeshed.
+        pre.textContent = '\n' + pre.textContent.trim() + '\n';
     }
 
     // Link <code> to the right thing.
