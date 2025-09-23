@@ -392,7 +392,7 @@ function confirmRepo {
       echo
 
       local build_yn
-      read -r -e -p "Y or N? " yn
+      read -r -e -p "Y or N? " build_yn
       if [[ $build_yn == "y" || $build_yn == "Y" ]]; then
         return
       else
