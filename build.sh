@@ -530,8 +530,8 @@ function doServerBuild {
   # server getting confused about their absence.) demos/ needs to be sent in full for inlining.
   local zip_args=(
     --recurse-paths "$HTML_TEMP/$input_zip" . \
-    --include ./source ./404.html ./link-fixup.js ./html-dfn.js ./styles.css \
-              ./fonts/ ./images/ ./dev/ ./demos/\*
+    --include ./source ./404.html "./*.js" ./styles.css \
+              ./fonts/ ./images/ ./dev/ "./demos/*"
   )
   $QUIET && zip_args+=( --quiet )
   (cd "$HTML_SOURCE" && zip "${zip_args[@]}")
@@ -707,8 +707,7 @@ function processSource {
 Disallow: /commit-snapshots/
 Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
     cp -p  "$HTML_SOURCE/404.html" "$HTML_OUTPUT"
-    cp -p "$HTML_SOURCE/link-fixup.js" "$HTML_OUTPUT"
-    cp -p "$HTML_SOURCE/html-dfn.js" "$HTML_OUTPUT"
+    cp -p "$HTML_SOURCE/"*.js "$HTML_OUTPUT"
     cp -p "$HTML_SOURCE/styles.css" "$HTML_OUTPUT"
     cp -pR "$HTML_SOURCE/fonts" "$HTML_OUTPUT"
     cp -pR "$HTML_SOURCE/images" "$HTML_OUTPUT"
