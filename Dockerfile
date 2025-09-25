@@ -1,4 +1,4 @@
-FROM rust:1.88-slim as builder
+FROM rust:1.90-slim AS builder
 WORKDIR /whatwg/html-build
 COPY Cargo.lock Cargo.toml ./
 COPY src ./src/
@@ -13,11 +13,11 @@ COPY --from=builder /usr/local/cargo/bin/html-build /bin/html-build
 
 COPY --from=ghcr.io/whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
 
-ENV PIPX_HOME /opt/pipx
-ENV PIPX_BIN_DIR /usr/bin
+ENV PIPX_HOME=/opt/pipx
+ENV PIPX_BIN_DIR=/usr/bin
 RUN pipx install bs-highlighter
 
 COPY . /whatwg/html-build/
 
-ENV SKIP_BUILD_UPDATE_CHECK true
+ENV SKIP_BUILD_UPDATE_CHECK=true
 ENTRYPOINT ["bash", "/whatwg/html-build/build.sh"]
