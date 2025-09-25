@@ -1,6 +1,6 @@
 # This Dockerfile is just used to run on Travis CI in an environment that can easily and repeatedly
 # install our build dependencies.
-FROM rust:1.88-slim as builder
+FROM rust:1.90-slim AS builder
 WORKDIR /whatwg/html-build
 COPY Cargo.lock Cargo.toml ./
 COPY src ./src/
@@ -27,8 +27,8 @@ COPY --from=builder /usr/local/cargo/bin/html-build /bin/html-build
 
 COPY --from=ghcr.io/whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
 
-ENV PIPX_HOME /opt/pipx
-ENV PIPX_BIN_DIR /usr/bin
+ENV PIPX_HOME=/opt/pipx
+ENV PIPX_BIN_DIR=/usr/bin
 RUN pipx install bs-highlighter
 
 # The DockerHub container for the validator only contains the server version, so we get the .jar
