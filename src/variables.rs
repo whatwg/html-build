@@ -1,9 +1,6 @@
 //! Converts custom attributes `algorithm=""` and `var-scope=""` to `data-`
-//! equivalents, to preserve validity of the output document.
-//
-// TODO: error on `<var>`s outside of those scopes, unless the `<var>` has an
-// `ignore=""` attribute. (This code is present but disabled until
-// https://github.com/whatwg/html/pull/11392 is merged.)
+//! equivalents, to preserve validity of the output document. Errors on `<var>`s
+//! outside of those scopes, unless the `<var>` has an `ignore=""` attribute.
 //
 // TODO: check for `<var>`s inside of these scopes that are only used once, and
 // error when such lone `<var>`s are encountered.
@@ -183,13 +180,12 @@ impl<'a> Processor<'a> {
             return Err(io::Error::new(io::ErrorKind::InvalidData, msgs.join("\n")));
         }
 
-        // Disabled until https://github.com/whatwg/html/pull/11392 is merged.
-        // if !self.var_out_of_scope_msgs.is_empty() {
-        //     return Err(io::Error::new(
-        //         io::ErrorKind::InvalidData,
-        //         self.var_out_of_scope_msgs.join("\n"),
-        //     ));
-        // }
+        if !self.var_out_of_scope_msgs.is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                self.var_out_of_scope_msgs.join("\n"),
+            ));
+        }
 
         let old_algorithm = QualName::new(None, ns!(), LocalName::from("algorithm"));
         let new_algorithm = QualName::new(None, ns!(), LocalName::from("data-algorithm"));
@@ -329,25 +325,24 @@ mod tests {
         );
     }
 
-    // Disabled until https://github.com/whatwg/html/pull/11392 is merged.
-    //     #[tokio::test]
-    //     async fn test_var_outside_scope_errors() {
-    //         let parsed = parse_document_async(
-    //             r##"<!DOCTYPE html>
-    // <p>Outside scope <var>bar</var></p>
-    // "##
-    //             .as_bytes(),
-    //         )
-    //         .await
-    //         .unwrap();
-    //         let document = parsed.document().clone();
+    #[tokio::test]
+    async fn test_var_outside_scope_errors() {
+        let parsed = parse_document_async(
+            r##"<!DOCTYPE html>
+    <p>Outside scope <var>bar</var></p>
+    "##
+            .as_bytes(),
+        )
+        .await
+        .unwrap();
+        let document = parsed.document().clone();
 
-    //         let mut proc = Processor::new(&parsed);
-    //         dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
-    //         let result = proc.apply();
-    //         let err = result.unwrap_err();
-    //         assert!(err.to_string().contains("Line 2: "));
-    //     }
+        let mut proc = Processor::new(&parsed);
+        dom_utils::scan_dom(&document, &mut |h| proc.visit(h));
+        let result = proc.apply();
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Line 2: "));
+    }
 
     #[tokio::test]
     async fn test_var_inside_algorithm_ok() {
