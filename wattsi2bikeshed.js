@@ -10,7 +10,7 @@ Text Macro: TWITTER htmlstandard
 Text Macro: LATESTRD 2025-01
 Abstract: HTML is Bikeshed.
 Indent: 1
-Markup Shorthands: css off
+Markup Shorthands: css off, markdown-block off
 Complain About: accidental-2119 off, missing-example-ids off
 Include MDN Panels: false
 </pre>`;
