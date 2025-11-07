@@ -7,6 +7,10 @@ set -o pipefail
 cd "$(dirname "$0")"
 DIR=$(pwd)
 
+# The latest required version of Bikeshed. Update this if the build depends on
+# new features or bugfixes in Bikeshed.
+BIKESHED_LATEST="5.4.0"
+
 # The latest required version of Wattsi. Update this if you change how ./build.sh invokes Wattsi;
 # it will cause a warning if Wattsi's self-reported version is lower. Note that there's no need to
 # update this on every revision of Wattsi; only do so when a warning is justified.
@@ -86,7 +90,9 @@ function main {
     exit 0
   fi
 
-  if [[ $USE_BIKESHED != "true" ]]; then
+  if [[ $USE_BIKESHED == "true" ]]; then
+    checkBikeshed
+  else
     checkWattsi
     ensureHighlighterInstalled
 
@@ -744,6 +750,24 @@ Disallow: /review-drafts/" > "$HTML_OUTPUT/robots.txt"
     local new_dir="$HTML_OUTPUT/review-drafts/$year_month"
     mkdir -p "$new_dir"
     mv "$HTML_TEMP/wattsi-output/index-review" "$new_dir/index.html"
+  fi
+}
+
+# Checks if Bikeshed is available and up to date
+# - Arguments: none
+# - Output:
+#   - Will echo any errors and exit the script with error code 1 if the required
+#     version is not available.
+function checkBikeshed {
+  if hash bikeshed 2>/dev/null; then
+    BIKESHED_INSTALLED=$(bikeshed --version)
+    if ! printf "%s\n%s" "$BIKESHED_LATEST" "$BIKESHED_INSTALLED" | sort -V -C; then
+      echo "Error: bikeshed version $BIKESHED_LATEST or newer is required."
+      exit 1
+    fi
+  else
+    echo "Error: bikeshed is required."
+    exit 1
   fi
 }
 
