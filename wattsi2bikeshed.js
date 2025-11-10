@@ -68,7 +68,8 @@ function getId(topic) {
     // Note: no toLowerCase() because this is already done in getTopic().
     return topic
         .replaceAll(/["?`]/g, '')
-        .replaceAll(/[\s<>\[\\\]^{|}%]+/g, '-');
+        .replaceAll(/[\s<>\[\\\]^{|}%]+/g, ' ').trim()
+        .replaceAll(' ', '-');
 }
 
 // Get the linking text like Bikeshed:
