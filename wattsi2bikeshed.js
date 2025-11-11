@@ -197,18 +197,35 @@ function convert(infile, outfile) {
         }
     }
 
-    // Handle w-nodev and similar attributes. Wattsi handling is here:
+    // Convert w-nodev and similar attributes to include-if/exclude-if using the
+    // appropriate status for each. Wattsi handling is here:
     // https://github.com/whatwg/wattsi/blob/b9c28036a2a174f7f87315164f001120596a95f1/src/wattsi.pas#L735-L759
-    const includeAttributes = ['w-nodev', 'w-nosnap', 'w-noreview', 'w-nosplit'];
-    const excludeAttributes = ['w-dev', 'w-nohtml'];
-
-    const includeSelector = includeAttributes.map(attr => `[${attr}]`).join(', ');
-    for (const elem of document.querySelectorAll(includeSelector)) {
-        replaceWithChildren(elem);
-    }
-    const excludeSelector = excludeAttributes.map(attr => `[${attr}]`).join(', ');
-    for (const elem of document.querySelectorAll(excludeSelector)) {
-        elem.remove();
+    // TODO: w-nosplit, which doesn't correspond to a status.
+    const conditions = [
+        ['html', 'LS'],
+        ['dev', 'LS-DEV'],
+        ['snap', 'LS-COMMIT'],
+        ['review', 'whatwg/RD'],
+    ];
+    for (const elem of document.querySelectorAll("*")) {
+        const includeIf = [];
+        const excludeIf = [];
+        for (const [cond, status] of conditions) {
+            if (elem.hasAttribute(`w-${cond}`)) {
+                includeIf.push(status);
+                elem.removeAttribute(`w-${cond}`);
+            }
+            if (elem.hasAttribute(`w-no${cond}`)) {
+                excludeIf.push(status);
+                elem.removeAttribute(`w-no${cond}`);
+            }
+        }
+        if (includeIf.length) {
+            elem.setAttribute('include-if', includeIf.join(', '));
+        }
+        if (excludeIf.length) {
+            elem.setAttribute('exclude-if', excludeIf.join(', '));
+        }
     }
 
     // Scan all definitions
@@ -345,6 +362,8 @@ function convert(infile, outfile) {
             const value = span.getAttribute(name);
             switch (name) {
                 case 'data-x':
+                case 'exclude-if':
+                case 'include-if':
                     break;
                 case 'data-lt':
                 case 'id':
