@@ -71,7 +71,7 @@ function main {
 
   clearCacheIfNecessary
 
-  local html_git_dir="$HTML_SOURCE/.git/"
+  local html_git_dir="$HTML_SOURCE/.git"
   HTML_SHA=${SHA_OVERRIDE:-$(git --git-dir="$html_git_dir" rev-parse HEAD)}
 
   if [[ $USE_DOCKER == "true" ]]; then
