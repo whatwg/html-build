@@ -673,11 +673,21 @@ function processSource {
   if [[ $USE_BIKESHED == "true" ]]; then
     clearDir "$HTML_TEMP/bikeshed-output"
 
-    node wattsi2bikeshed.js "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/source-whatwg-complete.bs"
+    runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
 
-    local bikeshed_args=( --force )
-    $DO_UPDATE || bikeshed_args+=( --no-update )
-    bikeshed "${bikeshed_args[@]}" spec "$HTML_TEMP/source-whatwg-complete.bs" "$HTML_TEMP/bikeshed-output/index.html" --md-Text-Macro="SHA $HTML_SHA" --md-Text-Macro="COMMIT-SHA $HTML_SHA"
+    if [[ $WATTSI_RESULT != "0" ]]; then
+      echo "Wattsi failed in Pass 1"
+      exit "$WATTSI_RESULT"
+    fi
+
+    # Phase 1 output is the annotated HTML, which will be the input to Phase 2.
+    # We save it to bikeshed-output/xrefs-pass1.html as requested.
+    cp "$HTML_TEMP/wattsi-output/index-review" "$HTML_TEMP/bikeshed-output/xrefs-pass1.html" || cp "$HTML_TEMP/wattsi-output/index-html" "$HTML_TEMP/bikeshed-output/xrefs-pass1.html"
+    $QUIET || echo "Pass 1 output saved to bikeshed-output/xrefs-pass1.html"
+
+    # For now, we stop here as we are only implementing Step 1.
+    mv "$HTML_TEMP/bikeshed-output" "$HTML_OUTPUT/bikeshed-output"
+    return 0
   else
     runWattsi "$HTML_TEMP/source-whatwg-complete" "$HTML_TEMP/wattsi-output"
     if [[ $WATTSI_RESULT == "0" ]]; then
@@ -825,6 +835,9 @@ function runWattsi {
     local wattsi_args=()
     $QUIET && wattsi_args+=( --quiet )
     $SINGLE_PAGE_ONLY && wattsi_args+=( --single-page-only )
+    if [[ $USE_BIKESHED == "true" ]]; then
+      wattsi_args+=( --bikeshed --pass=1 )
+    fi
     wattsi_args+=( "$source_file" "$HTML_SHA" "$output_dir" "$build_type" "$HTML_CACHE/mdn-spec-links-html.json" )
     if [[ "$DO_HIGHLIGHT" == "true" ]]; then
       wattsi_args+=( "$HIGHLIGHT_SERVER_URL" )
