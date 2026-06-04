@@ -176,14 +176,15 @@ impl Processor {
                         }
                     }
                     existing.default.push(Handle::create_text_node("; "));
-                    existing.default.extend(descriptions.default.into_iter());
+                    existing.default.extend(descriptions.default);
                 }
-                if existing.variant.is_none() {
-                    existing.variant = descriptions.variant;
-                } else if descriptions.variant.is_some() {
-                    let existing_variant = existing.variant.as_mut().unwrap();
-                    existing_variant.push_slice("; ");
-                    existing_variant.push_tendril(&descriptions.variant.unwrap());
+                match (&mut existing.variant, descriptions.variant) {
+                    (None, var) => existing.variant = var,
+                    (Some(existing_variant), Some(desc_variant)) => {
+                        existing_variant.push_slice("; ");
+                        existing_variant.push_tendril(&desc_variant);
+                    }
+                    _ => {}
                 }
             }
         }
@@ -220,10 +221,8 @@ impl Processor {
                         {
                             has_special_semantics = true;
                         }
-                        NodeData::Element { .. } => {
-                            if key.is_none() {
-                                key = n.get_attribute(&data_x);
-                            }
+                        NodeData::Element { .. } if key.is_none() => {
+                            key = n.get_attribute(&data_x);
                         }
                         _ => (),
                     });
