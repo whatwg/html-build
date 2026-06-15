@@ -92,6 +92,7 @@ function main {
 
   if [[ $USE_BIKESHED == "true" ]]; then
     checkBikeshed
+    updateRemoteDataFiles
   else
     checkWattsi
     ensureHighlighterInstalled
@@ -685,7 +686,19 @@ function processSource {
     cp "$HTML_TEMP/wattsi-output/index-review" "$HTML_TEMP/bikeshed-output/xrefs-pass1.html" || cp "$HTML_TEMP/wattsi-output/index-html" "$HTML_TEMP/bikeshed-output/xrefs-pass1.html"
     $QUIET || echo "Pass 1 output saved to bikeshed-output/xrefs-pass1.html"
 
-    # For now, we stop here as we are only implementing Step 1.
+    # Step 2: Bikeshed Link Error Detection
+    $QUIET || echo "Running Bikeshed to detect link errors..."
+    # We use --force to ensure it runs to completion even with errors
+    # and write the log. We ignore exit code of bikeshed.
+    bikeshed --detect-link-errors="$HTML_TEMP/bikeshed-output/xrefs.log" \
+             --force \
+             spec \
+             "$HTML_TEMP/bikeshed-output/xrefs-pass1.html" \
+             "$HTML_TEMP/bikeshed-output/xrefs-pass2-test.html" \
+             --md-markup-shorthands="css off, markdown-block off" || true
+
+    $QUIET || echo "Step 2 completed. Log saved to bikeshed-output/xrefs.log"
+
     mv "$HTML_TEMP/bikeshed-output" "$HTML_OUTPUT/bikeshed-output"
     return 0
   else
