@@ -11,6 +11,12 @@ DIR=$(pwd)
 # new features or bugfixes in Bikeshed.
 BIKESHED_LATEST="5.4.0"
 
+# The required version of the bs-highlighter Python package. This is pinned because 3.x re-escapes
+# "<" as "&lt;" in highlighted IDL blocks, which Wattsi then fails to re-parse, giving
+# 'IDL SYNTAX ERROR ... "Promise&lt"'. Unpin once Wattsi can handle 3.x output. Keep in sync with
+# the pinned version in the Dockerfile.
+declare -r BS_HIGHLIGHTER_VERSION="2.0.3"
+
 # The latest required version of Wattsi. Update this if you change how ./build.sh invokes Wattsi;
 # it will cause a warning if Wattsi's self-reported version is lower. Note that there's no need to
 # update this on every revision of Wattsi; only do so when a warning is justified.
@@ -263,8 +269,11 @@ function ensureHighlighterInstalled {
   # If we're not using local Wattsi then we won't use the local highlighter.
   if [[ $LOCAL_WATTSI == "true" && $DO_HIGHLIGHT == "true" ]]; then
     if hash pipx 2>/dev/null; then
-      if ! hash bs-highlighter-server 2>/dev/null; then
-        pipx install bs-highlighter
+      # Reinstall if missing or at a different version, so that an already-installed 3.x gets
+      # downgraded to the pinned version rather than silently breaking the build.
+      if ! hash bs-highlighter-server 2>/dev/null || \
+         ! pipx list --short 2>/dev/null | grep -qx "bs-highlighter $BS_HIGHLIGHTER_VERSION"; then
+        pipx install --force "bs-highlighter==$BS_HIGHLIGHTER_VERSION"
       fi
     else
       echo

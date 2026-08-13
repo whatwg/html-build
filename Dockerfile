@@ -15,7 +15,9 @@ COPY --from=ghcr.io/whatwg/wattsi:latest /whatwg/wattsi/bin/wattsi /bin/wattsi
 
 ENV PIPX_HOME=/opt/pipx
 ENV PIPX_BIN_DIR=/usr/bin
-RUN pipx install bs-highlighter
+# Pinned: bs-highlighter 3.x re-escapes "<" as "&lt;" in highlighted IDL blocks, which Wattsi then
+# fails to re-parse ('IDL SYNTAX ERROR ... "Promise&lt"'). Unpin once Wattsi handles 3.x output.
+RUN pipx install "bs-highlighter==2.0.3"
 
 COPY . /whatwg/html-build/
 
